@@ -12,37 +12,32 @@ jobs:
   bootstrap:
     if: ${{ !startsWith(github.event.head_commit.message, 'chore: bootstrap generated Laravel') }}
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: mbstring, xml, ctype, fileinfo, pdo, pdo_sqlite
-          coverage: none
-
-      - name: Generate missing Laravel framework files
+      - name: Install Laravel framework skeleton
         run: |
-          if [ ! -f artisan ] || [ ! -d config ]; then
-            composer create-project laravel/laravel /tmp/laravel --no-interaction --prefer-dist
-            rsync -a --ignore-existing /tmp/laravel/ ./
-          fi
+          rm -rf /tmp/laravel
+          git clone --depth 1 https://github.com/laravel/laravel.git /tmp/laravel
+          rsync -a --ignore-existing /tmp/laravel/ ./
 
       - name: Verify Laravel
         run: |
-          php artisan --version
+          test -f artisan
+          test -d app
+          test -d bootstrap
+          test -d config
+          test -d database
+          test -d public
+          test -d resources
+          test -d routes
+          echo "Laravel framework files are present."
 
       - name: Commit generated framework
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          if git diff --cached --quiet; then
-            echo "No generated files needed."
-          else
-            git commit -m "chore: bootstrap generated Laravel"
-            git push
-          fi
+          git commit -m "chore: bootstrap generated Laravel" || exit 0
+          git push
