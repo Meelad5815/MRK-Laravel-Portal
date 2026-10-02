@@ -20,36 +20,29 @@ jobs:
   health-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check live homepage
-        id: home
+      - name: Check static server response
         shell: bash
         run: |
-          set +e
-          curl -L --max-time 30 -sS -o home.html -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\n" "https://meeladrazakhokhar786.freehosting.dev/?i=1" | tee home.status
-          status=$(grep 'HTTP_STATUS=' home.status | cut -d= -f2)
-          if [ "$status" != "200" ]; then
-            echo "HOME_OK=false" >> "$GITHUB_ENV"
-          else
-            echo "HOME_OK=true" >> "$GITHUB_ENV"
-          fi
+          set -euo pipefail
+          curl -L --max-time 20 -fsS "https://meeladrazakhokhar786.freehosting.dev/server-check.html" | grep -q "MRK_SERVER_STATIC_OK"
+          echo "STATIC_SERVER_OK=true"
 
-      - name: Check Laravel diagnostic endpoint
-        id: diagnostic
+      - name: Check PHP and Laravel bootstrap
         shell: bash
         run: |
           set +e
           curl -L --max-time 30 -sS -o diagnostic.txt -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\n" "https://meeladrazakhokhar786.freehosting.dev/diagnostic.php" | tee diagnostic.status
-          cat diagnostic.txt
-          if grep -q "DIAGNOSTIC=OK" diagnostic.txt; then
-            echo "DIAGNOSTIC_OK=true" >> "$GITHUB_ENV"
-          else
-            echo "DIAGNOSTIC_OK=false" >> "$GITHUB_ENV"
+          cat diagnostic.txt 2>/dev/null || true
+          status=$(grep 'HTTP_STATUS=' diagnostic.status | cut -d= -f2)
+          if [ "$status" != "200" ] || ! grep -q "DIAGNOSTIC=OK" diagnostic.txt 2>/dev/null; then
+            echo "Laravel/PHP diagnostic failed."
+            exit 1
           fi
 
       - name: Check key routes
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           for path in "/" "/about" "/services" "/contact"; do
             code=$(curl -L --max-time 20 -sS -o /dev/null -w "%{http_code}" "https://meeladrazakhokhar786.freehosting.dev$path")
             echo "$path => $code"
@@ -65,28 +58,37 @@ jobs:
           script: |
             const title = "AUTO-MONITOR: MRK Laravel site health check failed";
             const body = [
-              "Automated website monitoring detected a failure.",
+              "Automated monitoring detected a production-server failure.",
+              "",
+              "The check now distinguishes static web-server availability from PHP/Laravel availability.",
+              "A failure of the static probe points to hosting/web-server availability.",
+              "A successful static probe with a failed diagnostic points to PHP/runtime/Laravel configuration.",
               "",
               "Live site: https://meeladrazakhokhar786.freehosting.dev/?i=1",
-              "Diagnostic: https://meeladrazakhokhar786.freehosting.dev/diagnostic.php",
-              "",
-              "The workflow checked the homepage, Laravel diagnostic bootstrap, and key routes.",
-              "Review this workflow run's logs for the exact HTTP status or diagnostic message.",
-              "",
-              "This issue is intentionally diagnostic-only: it does not blindly modify production code."
+              "Static probe: https://meeladrazakhokhar786.freehosting.dev/server-check.html",
+              "Diagnostic: https://meeladrazakhokhar786.freehosting.dev/diagnostic.php"
             ].join("\n");
 
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: "open",
+              per_page: 100
             });
 
-            if (!issues.data.some(i => i.title === title)) {
+            const existing = issues.data.find(i => i.title === title);
+            if (!existing) {
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 title,
-                body,
-                });
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: `Repeated health-check failure at ${new Date().toISOString()}.`
+              });
             }
