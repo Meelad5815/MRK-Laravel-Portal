@@ -31,6 +31,7 @@ jobs:
           sed -i 's/^APP_ENV=.*/APP_ENV=production/' .env
           sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
           php artisan key:generate --force
+          php artisan route:list --except-vendor
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -47,6 +48,7 @@ jobs:
           rm -rf deploy
           mkdir deploy
           cp -a app bootstrap config database resources routes vendor artisan composer.json composer.lock .env deploy/
+          touch deploy/database/database.sqlite
           mkdir -p deploy/storage/app/private deploy/storage/framework/cache deploy/storage/framework/sessions deploy/storage/framework/views deploy/storage/logs
           touch deploy/storage/app/.gitignore deploy/storage/app/private/.gitignore deploy/storage/framework/.gitignore deploy/storage/framework/cache/.gitignore deploy/storage/framework/sessions/.gitignore deploy/storage/framework/views/.gitignore deploy/storage/logs/.gitignore
           cp -a public/. deploy/
