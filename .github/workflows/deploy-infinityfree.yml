@@ -32,15 +32,14 @@ jobs:
           sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
           php artisan key:generate --force
 
-      - name: Setup Node and build assets
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
 
       - name: Build frontend assets
         run: |
-          npm ci
+          npm install
           npm run build
 
       - name: Prepare InfinityFree package
@@ -49,7 +48,6 @@ jobs:
           mkdir deploy
           cp -a app bootstrap config database resources routes storage vendor artisan composer.json composer.lock .env deploy/
           cp -a public/. deploy/
-          cp public/.htaccess deploy/.htaccess
 
           python3 - <<'PY'
           from pathlib import Path
@@ -72,19 +70,12 @@ jobs:
               RewriteCond %{HTTP:Authorization} .
               RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
+              RewriteRule ^(app|bootstrap|config|database|resources|routes|storage|vendor)(/|$) - [F,L]
+              RewriteRule ^\.env - [F,L]
+
               RewriteCond %{REQUEST_FILENAME} !-d
               RewriteCond %{REQUEST_FILENAME} !-f
               RewriteRule ^ index.php [L]
-          </IfModule>
-
-          <FilesMatch "^\.(env|git)">
-              Require all denied
-          </FilesMatch>
-
-          <IfModule mod_authz_core.c>
-              <DirectoryMatch "/(app|bootstrap|config|database|resources|routes|storage|vendor)/">
-                  Require all denied
-              </DirectoryMatch>
           </IfModule>
           EOF
 
