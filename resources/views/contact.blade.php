@@ -1,0 +1,3 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Contact | MRK Digital</title>@vite(['resources/css/app.css','resources/js/app.js'])</head>
+<body><header class="site-header"><div class="container nav"><a class="brand" href="{{ route('home') }}">MRK Digital</a><nav><a href="{{ route('home') }}">Home</a><a href="{{ route('about') }}">About</a><a href="{{ route('services') }}">Services</a></nav></div></header><main class="section"><div class="container narrow"><span class="eyebrow">CONTACT</span><h1>Let's build something useful.</h1><p>Contact details and an enquiry form will be connected here in the next development stage.</p></div></main></body></html>
