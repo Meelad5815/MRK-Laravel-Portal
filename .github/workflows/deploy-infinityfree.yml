@@ -1,0 +1,102 @@
+name: Deploy Laravel to InfinityFree
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, fileinfo, pdo, pdo_sqlite
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+      - name: Setup production environment
+        run: |
+          cp .env.example .env
+          sed -i 's/^APP_ENV=.*/APP_ENV=production/' .env
+          sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
+          php artisan key:generate --force
+
+      - name: Setup Node and build assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Build frontend assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare InfinityFree package
+        run: |
+          rm -rf deploy
+          mkdir deploy
+          cp -a app bootstrap config database resources routes storage vendor artisan composer.json composer.lock .env deploy/
+          cp -a public/. deploy/
+          cp public/.htaccess deploy/.htaccess
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("deploy/index.php")
+          s = p.read_text()
+          s = s.replace("require __DIR__.'/../vendor/autoload.php';", "require __DIR__.'/vendor/autoload.php';")
+          s = s.replace("require_once __DIR__.'/../bootstrap/app.php';", "require_once __DIR__.'/bootstrap/app.php';")
+          s = s.replace("file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')", "file_exists($maintenance = __DIR__.'/storage/framework/maintenance.php')")
+          p.write_text(s)
+          PY
+
+          cat > deploy/.htaccess <<'EOF'
+          <IfModule mod_rewrite.c>
+              <IfModule mod_negotiation.c>
+                  Options -MultiViews -Indexes
+              </IfModule>
+
+              RewriteEngine On
+
+              RewriteCond %{HTTP:Authorization} .
+              RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+              RewriteCond %{REQUEST_FILENAME} !-d
+              RewriteCond %{REQUEST_FILENAME} !-f
+              RewriteRule ^ index.php [L]
+          </IfModule>
+
+          <FilesMatch "^\.(env|git)">
+              Require all denied
+          </FilesMatch>
+
+          <IfModule mod_authz_core.c>
+              <DirectoryMatch "/(app|bootstrap|config|database|resources|routes|storage|vendor)/">
+                  Require all denied
+              </DirectoryMatch>
+          </IfModule>
+          EOF
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: ./deploy/
+          server-dir: /htdocs/
+          dangerous-clean-slate: false
+          log-level: standard
