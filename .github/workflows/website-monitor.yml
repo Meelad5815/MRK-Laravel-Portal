@@ -80,7 +80,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: "open",
-              labels: "auto-monitor"
             });
 
             if (!issues.data.some(i => i.title === title)) {
@@ -89,6 +88,5 @@ jobs:
                 repo: context.repo.repo,
                 title,
                 body,
-                labels: ["auto-monitor"]
-              });
+                });
             }
