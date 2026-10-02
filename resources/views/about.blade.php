@@ -1,0 +1,3 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>About | MRK Digital</title>@vite(['resources/css/app.css','resources/js/app.js'])</head>
+<body><header class="site-header"><div class="container nav"><a class="brand" href="{{ route('home') }}">MRK Digital</a><nav><a href="{{ route('home') }}">Home</a><a href="{{ route('services') }}">Services</a><a href="{{ route('contact') }}">Contact</a></nav></div></header><main class="section"><div class="container narrow"><span class="eyebrow">ABOUT</span><h1>Building practical digital solutions.</h1><p>MRK Digital is a growing technology brand focused on websites, web applications, automation and digital services.</p></div></main></body></html>
