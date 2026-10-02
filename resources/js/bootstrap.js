@@ -1,0 +1,1 @@
+// Laravel frontend bootstrap placeholder.
