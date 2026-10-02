@@ -1,0 +1,94 @@
+name: MRK Website Auto Monitor
+
+on:
+  workflow_run:
+    workflows: ["Deploy Laravel to InfinityFree"]
+    types: [completed]
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: mrk-website-monitor
+  cancel-in-progress: true
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check live homepage
+        id: home
+        shell: bash
+        run: |
+          set +e
+          curl -L --max-time 30 -sS -o home.html -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\n" "https://meeladrazakhokhar786.freehosting.dev/?i=1" | tee home.status
+          status=$(grep 'HTTP_STATUS=' home.status | cut -d= -f2)
+          if [ "$status" != "200" ]; then
+            echo "HOME_OK=false" >> "$GITHUB_ENV"
+          else
+            echo "HOME_OK=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Check Laravel diagnostic endpoint
+        id: diagnostic
+        shell: bash
+        run: |
+          set +e
+          curl -L --max-time 30 -sS -o diagnostic.txt -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\n" "https://meeladrazakhokhar786.freehosting.dev/diagnostic.php" | tee diagnostic.status
+          cat diagnostic.txt
+          if grep -q "DIAGNOSTIC=OK" diagnostic.txt; then
+            echo "DIAGNOSTIC_OK=true" >> "$GITHUB_ENV"
+          else
+            echo "DIAGNOSTIC_OK=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Check key routes
+        shell: bash
+        run: |
+          set -e
+          for path in "/" "/about" "/services" "/contact"; do
+            code=$(curl -L --max-time 20 -sS -o /dev/null -w "%{http_code}" "https://meeladrazakhokhar786.freehosting.dev$path")
+            echo "$path => $code"
+            if [ "$code" != "200" ]; then
+              exit 1
+            fi
+          done
+
+      - name: Create failure report
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "AUTO-MONITOR: MRK Laravel site health check failed";
+            const body = [
+              "Automated website monitoring detected a failure.",
+              "",
+              "Live site: https://meeladrazakhokhar786.freehosting.dev/?i=1",
+              "Diagnostic: https://meeladrazakhokhar786.freehosting.dev/diagnostic.php",
+              "",
+              "The workflow checked the homepage, Laravel diagnostic bootstrap, and key routes.",
+              "Review this workflow run's logs for the exact HTTP status or diagnostic message.",
+              "",
+              "This issue is intentionally diagnostic-only: it does not blindly modify production code."
+            ].join("\n");
+
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "auto-monitor"
+            });
+
+            if (!issues.data.some(i => i.title === title)) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ["auto-monitor"]
+              });
+            }
