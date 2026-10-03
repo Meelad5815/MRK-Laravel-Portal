@@ -20,31 +20,89 @@ jobs:
   health-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check static server response
+      - name: Probe hosting layers
         shell: bash
         run: |
-          set -euo pipefail
-          curl -L --max-time 20 -fsS "https://meeladrazakhokhar786.freehosting.dev/server-check.html" | grep -q "MRK_SERVER_STATIC_OK"
-          echo "STATIC_SERVER_OK=true"
+          set +e
+          base="https://meeladrazakhokhar786.freehosting.dev"
+
+          probe() {
+            label="$1"
+            url="$2"
+            body="/tmp/body"
+            meta="/tmp/meta"
+            rm -f "$body" "$meta"
+            curl -L --max-time 20 -sS -o "$body" -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\nSIZE=%{size_download}\n" "$url" > "$meta" 2>/tmp/curl-error
+            rc=$?
+            echo "===== $label ====="
+            echo "URL=$url"
+            echo "CURL_RC=$rc"
+            cat "$meta" 2>/dev/null || true
+            if [ -s /tmp/curl-error ]; then
+              echo "CURL_ERROR=$(tr '\n' ' ' < /tmp/curl-error)"
+            fi
+            if [ -s "$body" ]; then
+              echo "BODY_PREVIEW:"
+              head -c 300 "$body" | tr '\n' ' '
+              echo
+            fi
+            echo
+          }
+
+          probe "ROOT STATIC" "$base/server-check.html"
+          probe "PUBLIC STATIC" "$base/public/server-check.html"
+          probe "ROOT PHP" "$base/diagnostic.php"
+          probe "PUBLIC PHP" "$base/public/diagnostic.php"
+          probe "ROOT LARAVEL" "$base/?i=1"
+          probe "PUBLIC LARAVEL" "$base/public/?i=1"
+
+          root_static=$(curl -L --max-time 20 -sS -o /tmp/root-static "$base/server-check.html" 2>/dev/null; echo $?)
+          public_static=$(curl -L --max-time 20 -sS -o /tmp/public-static "$base/public/server-check.html" 2>/dev/null; echo $?)
+          root_php=$(curl -L --max-time 30 -sS -o /tmp/root-php "$base/diagnostic.php" 2>/dev/null; echo $?)
+          public_php=$(curl -L --max-time 30 -sS -o /tmp/public-php "$base/public/diagnostic.php" 2>/dev/null; echo $?)
+
+          echo "SUMMARY_ROOT_STATIC_CURL_RC=$root_static"
+          echo "SUMMARY_PUBLIC_STATIC_CURL_RC=$public_static"
+          echo "SUMMARY_ROOT_PHP_CURL_RC=$root_php"
+          echo "SUMMARY_PUBLIC_PHP_CURL_RC=$public_php"
+
+          if [ "$public_static" -ne 0 ]; then
+            echo "HOSTING_WEB_LAYER_FAILED: even /public/server-check.html is unreachable."
+            exit 1
+          fi
+
+          if [ "$root_static" -ne 0 ]; then
+            echo "ROOT_REWRITE_LAYER_FAILED: /public works but root rewrite does not."
+            exit 1
+          fi
+
+          echo "STATIC_LAYER_OK"
 
       - name: Check PHP and Laravel bootstrap
         shell: bash
         run: |
           set +e
-          curl -L --max-time 30 -sS -o diagnostic.txt -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\n" "https://meeladrazakhokhar786.freehosting.dev/diagnostic.php" | tee diagnostic.status
-          cat diagnostic.txt 2>/dev/null || true
-          status=$(grep 'HTTP_STATUS=' diagnostic.status | cut -d= -f2)
-          if [ "$status" != "200" ] || ! grep -q "DIAGNOSTIC=OK" diagnostic.txt 2>/dev/null; then
-            echo "Laravel/PHP diagnostic failed."
-            exit 1
-          fi
+          base="https://meeladrazakhokhar786.freehosting.dev"
+          for url in "$base/diagnostic.php" "$base/public/diagnostic.php"; do
+            echo "===== PHP DIAGNOSTIC: $url ====="
+            curl -L --max-time 30 -sS -o diagnostic.txt -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\n" "$url" | tee diagnostic.status
+            cat diagnostic.txt 2>/dev/null || true
+            status=$(grep 'HTTP_STATUS=' diagnostic.status | cut -d= -f2)
+            if [ "$status" = "200" ] && grep -q "DIAGNOSTIC=OK" diagnostic.txt 2>/dev/null; then
+              echo "PHP_DIAGNOSTIC_OK=$url"
+              exit 0
+            fi
+          done
+          echo "PHP/Laravel diagnostic failed on both root and public paths."
+          exit 1
 
       - name: Check key routes
         shell: bash
         run: |
           set -euo pipefail
+          base="https://meeladrazakhokhar786.freehosting.dev"
           for path in "/" "/about" "/services" "/contact"; do
-            code=$(curl -L --max-time 20 -sS -o /dev/null -w "%{http_code}" "https://meeladrazakhokhar786.freehosting.dev$path")
+            code=$(curl -L --max-time 20 -sS -o /dev/null -w "%{http_code}" "$base$path")
             echo "$path => $code"
             if [ "$code" != "200" ]; then
               exit 1
@@ -60,13 +118,14 @@ jobs:
             const body = [
               "Automated monitoring detected a production-server failure.",
               "",
-              "The check now distinguishes static web-server availability from PHP/Laravel availability.",
-              "A failure of the static probe points to hosting/web-server availability.",
-              "A successful static probe with a failed diagnostic points to PHP/runtime/Laravel configuration.",
+              "The monitor probes both the root URL and the direct /public path.",
+              "This separates hosting availability, root .htaccess rewriting, PHP runtime, and Laravel bootstrap failures.",
               "",
               "Live site: https://meeladrazakhokhar786.freehosting.dev/?i=1",
-              "Static probe: https://meeladrazakhokhar786.freehosting.dev/server-check.html",
-              "Diagnostic: https://meeladrazakhokhar786.freehosting.dev/diagnostic.php"
+              "Root static: https://meeladrazakhokhar786.freehosting.dev/server-check.html",
+              "Direct public static: https://meeladrazakhokhar786.freehosting.dev/public/server-check.html",
+              "Root diagnostic: https://meeladrazakhokhar786.freehosting.dev/diagnostic.php",
+              "Direct public diagnostic: https://meeladrazakhokhar786.freehosting.dev/public/diagnostic.php"
             ].join("\n");
 
             const issues = await github.rest.issues.listForRepo({
