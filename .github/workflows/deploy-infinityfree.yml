@@ -51,36 +51,12 @@ jobs:
           touch deploy/database/database.sqlite
           mkdir -p deploy/storage/app/private deploy/storage/framework/cache deploy/storage/framework/sessions deploy/storage/framework/views deploy/storage/logs
           touch deploy/storage/app/.gitignore deploy/storage/app/private/.gitignore deploy/storage/framework/.gitignore deploy/storage/framework/cache/.gitignore deploy/storage/framework/sessions/.gitignore deploy/storage/framework/views/.gitignore deploy/storage/logs/.gitignore
-          cp -a public/. deploy/
-
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("deploy/index.php")
-          s = p.read_text()
-          s = s.replace("require __DIR__.'/../vendor/autoload.php';", "require __DIR__.'/vendor/autoload.php';")
-          s = s.replace("require_once __DIR__.'/../bootstrap/app.php';", "require_once __DIR__.'/bootstrap/app.php';")
-          s = s.replace("file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')", "file_exists($maintenance = __DIR__.'/storage/framework/maintenance.php')")
-          p.write_text(s)
-          PY
+          cp -a public deploy/public
 
           cat > deploy/.htaccess <<'EOF'
-          <IfModule mod_rewrite.c>
-              <IfModule mod_negotiation.c>
-                  Options -MultiViews -Indexes
-              </IfModule>
-
-              RewriteEngine On
-
-              RewriteCond %{HTTP:Authorization} .
-              RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-              RewriteRule ^(app|bootstrap|config|database|resources|routes|storage|vendor)(/|$) - [F,L]
-              RewriteRule ^\.env - [F,L]
-
-              RewriteCond %{REQUEST_FILENAME} !-d
-              RewriteCond %{REQUEST_FILENAME} !-f
-              RewriteRule ^ index.php [L]
-          </IfModule>
+          RewriteEngine On
+          RewriteRule ^storage/(.*)$ /storage/app/public/$1 [END]
+          RewriteRule (.*) /public/$1 [L]
           EOF
 
       - name: Deploy via FTP
