@@ -14,17 +14,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           extensions: mbstring, xml, ctype, fileinfo, pdo, pdo_sqlite
           coverage: none
-
       - name: Install Composer dependencies
         run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
-
       - name: Setup production environment
         run: |
           cp .env.example .env
@@ -32,17 +29,14 @@ jobs:
           sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
           php artisan key:generate --force
           php artisan route:list --except-vendor
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Build frontend assets
         run: |
           npm install
           npm run build
-
       - name: Prepare InfinityFree package
         run: |
           rm -rf deploy
@@ -52,13 +46,11 @@ jobs:
           mkdir -p deploy/storage/app/private deploy/storage/framework/cache deploy/storage/framework/sessions deploy/storage/framework/views deploy/storage/logs
           touch deploy/storage/app/.gitignore deploy/storage/app/private/.gitignore deploy/storage/framework/.gitignore deploy/storage/framework/cache/.gitignore deploy/storage/framework/sessions/.gitignore deploy/storage/framework/views/.gitignore deploy/storage/logs/.gitignore
           cp -a public deploy/public
-
           cat > deploy/.htaccess <<'EOF'
           RewriteEngine On
           RewriteRule ^storage/(.*)$ /storage/app/public/$1 [END]
           RewriteRule (.*) /public/$1 [L]
           EOF
-
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
