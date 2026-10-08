@@ -82,7 +82,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
             'customers' => Customer::count(),
             'quotes' => Quote::count(),
             'invoices' => Invoice::count(),
-            'outstanding' => Invoice::whereIn('status',['unpaid','partial','overdue'])->sum(DB::raw('total-paid')),
+            'outstanding' => Invoice::whereIn('status',['unpaid','partial','overdue'])->sum(DB::raw('total - paid')),
             'total' => Lead::count(),
             'new' => Lead::where('status', 'new')->count(),
             'progress' => Lead::where('status', 'in_progress')->count(),

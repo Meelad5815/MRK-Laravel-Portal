@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Project extends Model
 {
@@ -18,6 +19,11 @@ class Project extends Model
         'featured',
         'completed_at','customer_id','start_date','due_date','progress',
     ];
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
 
     protected $casts = [
         'featured' => 'boolean',
