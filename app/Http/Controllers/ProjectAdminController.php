@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -23,7 +24,7 @@ class ProjectAdminController extends Controller
 
     public function create()
     {
-        return view('admin.projects.create', ['project' => new Project(['status' => 'draft'])]);
+        return view('admin.projects.create', ['project' => new Project(['status' => 'draft','progress'=>0]), 'customers' => Customer::orderBy('name')->get()]);
     }
 
     public function store(Request $request)
@@ -36,7 +37,7 @@ class ProjectAdminController extends Controller
 
     public function edit(Project $project)
     {
-        return view('admin.projects.edit', compact('project'));
+        return view('admin.projects.edit', compact('project') + ['customers' => Customer::orderBy('name')->get()]);
     }
 
     public function update(Request $request, Project $project)
@@ -65,6 +66,10 @@ class ProjectAdminController extends Controller
             'status' => ['required', Rule::in(['draft', 'published'])],
             'featured' => ['nullable', 'boolean'],
             'completed_at' => ['nullable', 'date'],
+            'customer_id' => ['nullable','exists:customers,id'],
+            'start_date' => ['nullable','date'],
+            'due_date' => ['nullable','date','after_or_equal:start_date'],
+            'progress' => ['required','integer','min:0','max:100'],
         ]) + ['featured' => $request->boolean('featured')];
     }
 
