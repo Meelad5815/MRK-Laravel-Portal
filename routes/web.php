@@ -6,6 +6,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectAdminController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceAdminController;
+use App\Http\Controllers\CustomerAdminController;
 use App\Models\Project;
 use App\Models\Lead;
 use App\Models\Service;
@@ -80,8 +81,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ]);
     })->name('dashboard');
     Route::patch('/dashboard/leads/{lead}', [LeadController::class, 'updateStatus'])->name('leads.status');
+    Route::post('/dashboard/leads/{lead}/convert', [LeadController::class, 'convertToCustomer'])->name('leads.convert');
     Route::delete('/dashboard/leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
     Route::get('/dashboard/customers', [CustomerAdminController::class, 'index'])->name('admin.customers.index');
+    Route::get('/dashboard/customers/{customer}', [CustomerAdminController::class, 'show'])->name('admin.customers.show');
     Route::get('/dashboard/customers/create', [CustomerAdminController::class, 'create'])->name('admin.customers.create');
     Route::post('/dashboard/customers', [CustomerAdminController::class, 'store'])->name('admin.customers.store');
     Route::get('/dashboard/customers/{customer}/edit', [CustomerAdminController::class, 'edit'])->name('admin.customers.edit');
