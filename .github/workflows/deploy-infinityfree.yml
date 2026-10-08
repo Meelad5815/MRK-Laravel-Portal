@@ -2,8 +2,6 @@ name: Deploy Laravel to InfinityFree
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 permissions:
   contents: read
@@ -12,40 +10,68 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, xml, ctype, fileinfo, pdo, pdo_sqlite
+          extensions: mbstring, xml, ctype, fileinfo, openssl, pdo, pdo_mysql, pdo_sqlite
           coverage: none
-      - name: Install Composer dependencies
-        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
-      - name: Setup production environment
-        run: |
-          cp .env.example .env
-          sed -i 's/^APP_ENV=.*/APP_ENV=production/' .env
-          sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
-          php artisan key:generate --force
-          php artisan route:list --except-vendor
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Install production dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader=false
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Build frontend assets
+      - name: Build frontend
+        run: npm install && npm run build
+      - name: Prepare production environment
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
+          APP_URL: ${{ secrets.APP_URL }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          npm install
-          npm run build
-      - name: Prepare InfinityFree package
+          test -n "$APP_KEY"
+          test -n "$APP_URL"
+          test -n "$DB_HOST"
+          test -n "$DB_DATABASE"
+          test -n "$DB_USERNAME"
+          cat > .env <<EOF
+          APP_NAME="MRK Digital"
+          APP_ENV=production
+          APP_KEY=$APP_KEY
+          APP_DEBUG=false
+          APP_URL=$APP_URL
+          APP_LOCALE=en
+          APP_FALLBACK_LOCALE=en
+          APP_FAKER_LOCALE=en_US
+          LOG_CHANNEL=stack
+          LOG_LEVEL=error
+          DB_CONNECTION=mysql
+          DB_HOST=$DB_HOST
+          DB_PORT=3306
+          DB_DATABASE=$DB_DATABASE
+          DB_USERNAME=$DB_USERNAME
+          DB_PASSWORD=$DB_PASSWORD
+          SESSION_DRIVER=file
+          SESSION_LIFETIME=120
+          SESSION_SECURE_COOKIE=true
+          SESSION_HTTP_ONLY=true
+          SESSION_SAME_SITE=lax
+          QUEUE_CONNECTION=sync
+          CACHE_STORE=file
+          MAIL_MAILER=log
+          EOF
+          php artisan about
+      - name: Prepare shared-hosting package
         run: |
           rm -rf deploy
-          mkdir deploy
-          cp -a app bootstrap config database resources routes vendor artisan composer.json composer.lock .env deploy/
-          touch deploy/database/database.sqlite
-          mkdir -p deploy/storage/app/private deploy/storage/framework/cache deploy/storage/framework/sessions deploy/storage/framework/views deploy/storage/logs
-          touch deploy/storage/app/.gitignore deploy/storage/app/private/.gitignore deploy/storage/framework/.gitignore deploy/storage/framework/cache/.gitignore deploy/storage/framework/sessions/.gitignore deploy/storage/framework/views/.gitignore deploy/storage/logs/.gitignore
+          mkdir -p deploy
+          cp -a app bootstrap config database resources routes vendor artisan composer.json .env deploy/
           cp -a public deploy/public
+          mkdir -p deploy/storage/app/public deploy/storage/framework/cache deploy/storage/framework/sessions deploy/storage/framework/views deploy/storage/logs
+          touch deploy/storage/app/public/.gitignore deploy/storage/framework/cache/.gitignore deploy/storage/framework/sessions/.gitignore deploy/storage/framework/views/.gitignore deploy/storage/logs/.gitignore
           cat > deploy/.htaccess <<'EOF'
           RewriteEngine On
           RewriteRule ^storage/(.*)$ /storage/app/public/$1 [END]
