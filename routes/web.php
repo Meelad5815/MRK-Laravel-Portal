@@ -7,11 +7,17 @@ use App\Http\Controllers\ProjectAdminController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceAdminController;
 use App\Http\Controllers\CustomerAdminController;
+use App\Http\Controllers\BusinessAdminController;
 use App\Models\Project;
 use App\Models\Lead;
 use App\Models\Service;
+use App\Models\Customer;
+use App\Models\Quote;
+use App\Models\Invoice;
+use App\Models\BlogPost;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 
 Route::get('/', function () {
     $services = Service::query()->where('status', 'published')->where('featured', true)->orderBy('sort_order')->orderBy('title')->limit(6)->get();
@@ -23,6 +29,8 @@ Route::get('/services/{slug}', [ServiceController::class, 'show'])->where('slug'
 Route::view('/contact', 'contact')->name('contact');
 Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
 Route::get('/projects/{slug}', [ProjectController::class, 'show'])->where('slug', '[A-Za-z0-9-]+')->name('projects.show');
+Route::get('/blog/{slug}', [BusinessAdminController::class, 'postShow'])->where('slug', '[A-Za-z0-9-]+')->name('blog.show');
+Route::get('/blog', fn () => view('blog.index', ['posts' => BlogPost::where('status','published')->latest('published_at')->paginate(12)]))->name('blog.index');
 
 Route::get('/robots.txt', function () {
     return response("User-agent: *\nAllow: /\nDisallow: /dashboard\nDisallow: /login\nDisallow: /register\n\nSitemap: " . url('/sitemap.xml') . "\n", 200)
@@ -30,10 +38,11 @@ Route::get('/robots.txt', function () {
 })->name('robots');
 
 Route::get('/sitemap.xml', function () {
-    $urls = [route('home'), route('about'), route('services'), route('contact'), route('projects.index')];
+    $urls = [route('home'), route('about'), route('services'), route('contact'), route('projects.index'), route('blog.index')];
     foreach (Service::query()->where('status', 'published')->get(['slug']) as $service) {
         $urls[] = route('services.show', $service->slug);
     }
+    foreach (BlogPost::query()->where('status', 'published')->get(['slug']) as $post) { $urls[] = route('blog.show', $post->slug); }
     foreach (Project::query()->where('status', 'published')->get(['slug']) as $project) {
         $urls[] = route('projects.show', $project->slug);
     }
@@ -70,6 +79,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
             $query->where('status', $request->query('status'));
         }
         $stats = [
+            'customers' => Customer::count(),
+            'quotes' => Quote::count(),
+            'invoices' => Invoice::count(),
+            'outstanding' => Invoice::whereIn('status',['unpaid','partial','overdue'])->sum(DB::raw('total-paid')),
             'total' => Lead::count(),
             'new' => Lead::where('status', 'new')->count(),
             'progress' => Lead::where('status', 'in_progress')->count(),
@@ -90,6 +103,28 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/dashboard/customers/{customer}', [CustomerAdminController::class, 'show'])->name('admin.customers.show');
     Route::put('/dashboard/customers/{customer}', [CustomerAdminController::class, 'update'])->name('admin.customers.update');
     Route::delete('/dashboard/customers/{customer}', [CustomerAdminController::class, 'destroy'])->name('admin.customers.destroy');
+    Route::get('/dashboard/quotes', [BusinessAdminController::class, 'quotes'])->name('admin.quotes.index');
+    Route::get('/dashboard/quotes/create', [BusinessAdminController::class, 'quoteCreate'])->name('admin.quotes.create');
+    Route::post('/dashboard/quotes', [BusinessAdminController::class, 'quoteStore'])->name('admin.quotes.store');
+    Route::get('/dashboard/quotes/{quote}', [BusinessAdminController::class, 'quoteShow'])->name('admin.quotes.show');
+    Route::get('/dashboard/quotes/{quote}/edit', [BusinessAdminController::class, 'quoteEdit'])->name('admin.quotes.edit');
+    Route::put('/dashboard/quotes/{quote}', [BusinessAdminController::class, 'quoteUpdate'])->name('admin.quotes.update');
+    Route::delete('/dashboard/quotes/{quote}', [BusinessAdminController::class, 'quoteDelete'])->name('admin.quotes.destroy');
+    Route::get('/dashboard/invoices', [BusinessAdminController::class, 'invoices'])->name('admin.invoices.index');
+    Route::get('/dashboard/invoices/create', [BusinessAdminController::class, 'invoiceCreate'])->name('admin.invoices.create');
+    Route::post('/dashboard/invoices', [BusinessAdminController::class, 'invoiceStore'])->name('admin.invoices.store');
+    Route::get('/dashboard/invoices/{invoice}', [BusinessAdminController::class, 'invoiceShow'])->name('admin.invoices.show');
+    Route::get('/dashboard/invoices/{invoice}/edit', [BusinessAdminController::class, 'invoiceEdit'])->name('admin.invoices.edit');
+    Route::put('/dashboard/invoices/{invoice}', [BusinessAdminController::class, 'invoiceUpdate'])->name('admin.invoices.update');
+    Route::delete('/dashboard/invoices/{invoice}', [BusinessAdminController::class, 'invoiceDelete'])->name('admin.invoices.destroy');
+    Route::get('/dashboard/settings', [BusinessAdminController::class, 'settings'])->name('admin.settings');
+    Route::post('/dashboard/settings', [BusinessAdminController::class, 'settingsSave'])->name('admin.settings.save');
+    Route::get('/dashboard/blog', [BusinessAdminController::class, 'posts'])->name('admin.blog.index');
+    Route::get('/dashboard/blog/create', [BusinessAdminController::class, 'postCreate'])->name('admin.blog.create');
+    Route::post('/dashboard/blog', [BusinessAdminController::class, 'postStore'])->name('admin.blog.store');
+    Route::get('/dashboard/blog/{post}/edit', [BusinessAdminController::class, 'postEdit'])->name('admin.blog.edit');
+    Route::put('/dashboard/blog/{post}', [BusinessAdminController::class, 'postUpdate'])->name('admin.blog.update');
+    Route::delete('/dashboard/blog/{post}', [BusinessAdminController::class, 'postDelete'])->name('admin.blog.destroy');
     Route::get('/dashboard/projects', [ProjectAdminController::class, 'index'])->name('admin.projects.index');
     Route::get('/dashboard/projects/create', [ProjectAdminController::class, 'create'])->name('admin.projects.create');
     Route::post('/dashboard/projects', [ProjectAdminController::class, 'store'])->name('admin.projects.store');

@@ -16,11 +16,14 @@ class Project extends Model
         'project_url',
         'status',
         'featured',
-        'completed_at',
+        'completed_at','customer_id','start_date','due_date','progress',
     ];
 
     protected $casts = [
         'featured' => 'boolean',
         'completed_at' => 'date',
+        'start_date' => 'date',
+        'due_date' => 'date',
+        'progress' => 'integer',
     ];
 }
