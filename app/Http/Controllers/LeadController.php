@@ -16,6 +16,7 @@ class LeadController extends Controller
             'phone' => ['nullable', 'string', 'max:30'],
             'project_type' => ['required', 'string', 'max:80'],
             'message' => ['required', 'string', 'max:5000'],
+            'website' => ['nullable', 'string', 'max:0'],
         ]);
 
         $data['status'] = 'new';
