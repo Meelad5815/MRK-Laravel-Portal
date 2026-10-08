@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Project;
+use App\Models\Service;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
