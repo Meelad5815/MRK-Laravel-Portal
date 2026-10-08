@@ -14,6 +14,8 @@
         <a class="button primary" href="{{ route('admin.customers.create') }}">Add Customer</a>
     </div>
 
+    <div class="stats crm-stats"><div><span>Total customers</span><strong>{{ $customers->total() }}</strong></div><div><span>Due follow-ups</span><strong>{{ $dueCount }}</strong></div><div><span>Next 7 days</span><strong>{{ $upcomingCount }}</strong></div></div>
+
     <form class="filter-bar" method="get">
         <input type="search" name="search" value="{{ request('search') }}" placeholder="Search name, email, phone or company">
         <select name="status">
@@ -38,13 +40,13 @@
                 <tbody>
                 @foreach($customers as $customer)
                     <tr>
-                        <td><strong>{{ $customer->name }}</strong><br><small>{{ $customer->company }}</small></td>
+                        <td><a class="text-link" href="{{ route('admin.customers.show', $customer) }}"><strong>{{ $customer->name }}</strong></a><br><small>{{ $customer->company }}</small></td>
                         <td>{{ $customer->email }}<br>{{ $customer->phone }}</td>
                         <td>{{ ucfirst($customer->status) }}</td>
                         <td>{{ ucfirst($customer->priority) }}</td>
                         <td>{{ $customer->next_follow_up_at?->format('d M Y H:i') ?? '—' }}</td>
                         <td>
-                            <a class="button secondary" href="{{ route('admin.customers.edit', $customer) }}">Edit</a>
+                            <a class="button secondary" href="{{ route('admin.customers.show', $customer) }}">View</a> <a class="button secondary" href="{{ route('admin.customers.edit', $customer) }}">Edit</a>
                             <form method="post" action="{{ route('admin.customers.destroy', $customer) }}" style="display:inline" onsubmit="return confirm('Delete this customer?')">
                                 @csrf @method('DELETE')
                                 <button class="button danger" type="submit">Delete</button>
