@@ -14,6 +14,8 @@
 <meta property="og:url" content="{{ url()->current() }}">
 <meta name="twitter:card" content="summary">
 @vite(['resources/css/app.css','resources/js/app.js'])
+<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'ProfessionalService','name'=>'MRK Digital','description'=>'Professional websites, web applications, automation and digital services.','url'=>url('/')], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'WebSite','name'=>'MRK Digital','url'=>url('/')], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 </head>
 <body>
 <header class="site-header"><div class="container nav">
