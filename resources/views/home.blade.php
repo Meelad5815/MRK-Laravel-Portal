@@ -15,9 +15,9 @@
 </div></section>
 <section class="section"><div class="container"><div class="section-heading"><span class="eyebrow">CORE SERVICES</span><h2>One professional place for digital work.</h2><p>From a business website to a custom management portal, the goal is simple: clean technology that solves a real problem.</p></div>
 <div class="cards">
-<article><div class="icon">01</div><h3>Web Development</h3><p>Laravel, PHP, WordPress and responsive business websites.</p></article>
-<article><div class="icon">02</div><h3>Web Applications</h3><p>Dashboards, management systems, portals, forms and APIs.</p></article>
-<article><div class="icon">03</div><h3>Automation</h3><p>Arduino, PLC and practical industrial automation projects.</p></article>
+@foreach($services as $service)
+<article><div class="icon">{{ $service->icon ?: "MRK" }}</div><h3>{{ $service->title }}</h3><p>{{ $service->summary }}</p><a class="text-link" href="{{ route('services.show', $service->slug) }}">Learn more</a></article>
+@endforeach
 </div></div></section>
 <section class="cta"><div class="container cta-box"><div><span class="eyebrow">HAVE A PROJECT?</span><h2>Let's turn your idea into a working system.</h2></div><a class="button primary" href="{{ route('contact') }}">Contact MRK Digital</a></div></section>
 </main>
