@@ -27,6 +27,8 @@ jobs:
           node-version: '20'
       - name: Install frontend dependencies
         run: npm install
+      - name: Build frontend assets
+        run: npm run build
       - name: Prepare application
         run: |
           cp .env.example .env
