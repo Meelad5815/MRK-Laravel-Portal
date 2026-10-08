@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Project;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -49,6 +50,8 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($projects as $project) {
+            $project['slug'] = Str::slug($project['title']);
+
             Project::updateOrCreate(
                 ['title' => $project['title']],
                 $project
