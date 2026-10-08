@@ -9,7 +9,7 @@ Route::view('/', 'home')->name('home');
 Route::view('/about', 'about')->name('about');
 Route::view('/services', 'services')->name('services');
 Route::view('/contact', 'contact')->name('contact');
-Route::post('/contact', [LeadController::class, 'store'])->name('contact.store');
+Route::post('/contact', [LeadController::class, 'store'])->middleware('throttle:5,10')->name('contact.store');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

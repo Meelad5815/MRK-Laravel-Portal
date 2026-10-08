@@ -1,16 +1,7 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MRK Digital | Full Stack Website Developer</title>
-<meta name="description" content="MRK Digital — Laravel, WordPress, web applications, automation and digital services.">
-@vite(['resources/css/app.css','resources/js/app.js'])
-</head>
-<body>
-<header class="site-header"><div class="container nav">
-<a class="brand" href="{{ route('home') }}"><span>MRK</span> Digital</a>
-<nav><a href="{{ route('home') }}">Home</a><a href="{{ route('about') }}">About</a><a href="{{ route('services') }}">Services</a><a href="{{ route('contact') }}">Contact</a></nav>
-</div></header>
+@extends('layouts.app')
+@section('title','MRK Digital | Full Stack Website Developer')
+@section('description','MRK Digital builds responsive Laravel and WordPress websites, custom web applications and practical automation solutions.')
+@section('content')
 <main>
 <section class="hero"><div class="container hero-grid">
 <div><span class="eyebrow">FULL STACK WEBSITE DEVELOPER</span>
@@ -29,5 +20,4 @@
 </div></div></section>
 <section class="cta"><div class="container cta-box"><div><span class="eyebrow">HAVE A PROJECT?</span><h2>Let's turn your idea into a working system.</h2></div><a class="button primary" href="{{ route('contact') }}">Contact MRK Digital</a></div></section>
 </main>
-<footer><div class="container footer-inner"><span>© {{ date('Y') }} MRK Digital</span><span>Full Stack Website Developer</span></div></footer>
-</body></html>
+@endsection
