@@ -37,5 +37,4 @@
 @if($errors->any())<div class="container"><div class="alert error"><strong>Please fix the following:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>@endif
 @yield('content')
 <footer><div class="container footer-inner"><span>© {{ date('Y') }} MRK Digital</span><span>Full Stack Website Developer</span></div></footer>
-@vite(['resources/js/app.js'])
 </body></html>
