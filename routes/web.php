@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\ProjectController;
+use App\Models\Project;
 use App\Models\Lead;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -10,6 +12,8 @@ Route::view('/', 'home')->name('home');
 Route::view('/about', 'about')->name('about');
 Route::view('/services', 'services')->name('services');
 Route::view('/contact', 'contact')->name('contact');
+Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+Route::get('/projects/{slug}', [ProjectController::class, 'show'])->where('slug', '[A-Za-z0-9-]+')->name('projects.show');
 
 Route::get('/robots.txt', function () {
     return response("User-agent: *\nAllow: /\nDisallow: /dashboard\nDisallow: /login\nDisallow: /register\n\nSitemap: " . url('/sitemap.xml') . "\n", 200)
@@ -17,7 +21,10 @@ Route::get('/robots.txt', function () {
 })->name('robots');
 
 Route::get('/sitemap.xml', function () {
-    $urls = [route('home'), route('about'), route('services'), route('contact')];
+    $urls = [route('home'), route('about'), route('services'), route('contact'), route('projects.index')];
+    foreach (Project::query()->where('status', 'published')->get(['slug']) as $project) {
+        $urls[] = route('projects.show', $project->slug);
+    }
     $xml = '<?xml version="1.0" encoding="UTF-8"?>';
     $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
     foreach ($urls as $url) {
