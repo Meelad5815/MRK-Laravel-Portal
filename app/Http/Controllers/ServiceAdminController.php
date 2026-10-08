@@ -46,16 +46,12 @@ class ServiceAdminController extends Controller
         $data['slug'] = $this->uniqueSlug($data['title']);
         Service::create($data);
 
-        return redirect()->route('admin.services.index')
-            ->with('success', 'Service created successfully.');
+        return redirect()->route('admin.services.index')->with('success', 'Service created successfully.');
     }
 
     public function edit(Service $service)
     {
-        return view('admin.services.form', [
-            'service' => $service,
-            'mode' => 'edit',
-        ]);
+        return view('admin.services.form', ['service' => $service, 'mode' => 'edit']);
     }
 
     public function update(Request $request, Service $service)
@@ -64,15 +60,13 @@ class ServiceAdminController extends Controller
         $data['slug'] = $this->uniqueSlug($data['title'], $service);
         $service->update($data);
 
-        return redirect()->route('admin.services.index')
-            ->with('success', 'Service updated successfully.');
+        return redirect()->route('admin.services.index')->with('success', 'Service updated successfully.');
     }
 
     public function destroy(Service $service)
     {
         $service->delete();
-
-        return back()->with('success', 'Service deleted successfully.');
+        return redirect()->route('admin.services.index')->with('success', 'Service deleted successfully.');
     }
 
     private function validated(Request $request): array
@@ -83,7 +77,7 @@ class ServiceAdminController extends Controller
             'description' => ['required', 'string', 'max:15000'],
             'category' => ['required', 'string', 'max:80'],
             'icon' => ['nullable', 'string', 'max:30'],
-            'status' => ['required', Rule::in(['draft', 'published'])],
+            'status' => ['required', Rule::in(['published', 'draft'])],
             'featured' => ['nullable', 'boolean'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
             'cta_label' => ['nullable', 'string', 'max:80'],
