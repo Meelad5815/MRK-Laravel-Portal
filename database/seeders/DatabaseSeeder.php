@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(ServiceSeeder::class);
         $projects = [
             [
                 'title' => 'MRK Digital Business Website — Demo',
