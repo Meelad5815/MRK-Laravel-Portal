@@ -31,6 +31,7 @@ class ProjectAdminController extends Controller
     {
         $data = $this->validated($request);
         $data['slug'] = $this->uniqueSlug($data['title']);
+        $data['progress'] = $data['progress'] ?? 0;
         Project::create($data);
         return redirect()->route('admin.projects.index')->with('success', 'Project created successfully.');
     }
@@ -44,6 +45,7 @@ class ProjectAdminController extends Controller
     {
         $data = $this->validated($request, $project);
         $data['slug'] = $this->uniqueSlug($data['title'], $project);
+        $data['progress'] = $data['progress'] ?? $project->progress ?? 0;
         $project->update($data);
         return redirect()->route('admin.projects.index')->with('success', 'Project updated successfully.');
     }
@@ -69,7 +71,7 @@ class ProjectAdminController extends Controller
             'customer_id' => ['nullable','exists:customers,id'],
             'start_date' => ['nullable','date'],
             'due_date' => ['nullable','date','after_or_equal:start_date'],
-            'progress' => ['required','integer','min:0','max:100'],
+            'progress' => ['nullable','integer','min:0','max:100'],
         ]) + ['featured' => $request->boolean('featured')];
     }
 
