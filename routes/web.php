@@ -39,10 +39,11 @@ Route::get('/robots.txt', function () {
 })->name('robots');
 
 Route::get('/sitemap.xml', function () {
-    $urls = [route('home'), route('about'), route('services'), route('contact'), route('projects.index')];
+    $urls = [route('home'), route('about'), route('services'), route('contact'), route('projects.index'), route('blog.index')];
     foreach (Service::query()->where('status', 'published')->get(['slug']) as $service) {
         $urls[] = route('services.show', $service->slug);
     }
+    foreach (BlogPost::query()->where('status', 'published')->get(['slug']) as $post) { $urls[] = route('blog.show', $post->slug); }
     foreach (Project::query()->where('status', 'published')->get(['slug']) as $project) {
         $urls[] = route('projects.show', $project->slug);
     }
