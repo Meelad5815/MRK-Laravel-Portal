@@ -4,6 +4,7 @@ use App\Models\{Customer,Quote,Invoice,SiteSetting,BlogPost,Project};
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 class BusinessAdminController extends Controller {
  public function quotes(Request $r){$q=Quote::with('customer')->latest();if($s=trim((string)$r->query('search')))$q->where(function($query)use($s){$query->where('number','like',"%$s%")->orWhere('title','like',"%$s%");});return view('admin.quotes.index',['quotes'=>$q->paginate(25)->withQueryString()]);}
  public function quoteCreate(){return view('admin.quotes.form',['quote'=>new Quote(['status'=>'draft','items'=>[]]),'customers'=>Customer::orderBy('name')->get(),'projects'=>Project::orderBy('title')->get(),'mode'=>'create']);}
@@ -13,7 +14,7 @@ class BusinessAdminController extends Controller {
  public function quoteDelete(Quote $quote){$quote->delete();return redirect()->route('admin.quotes.index')->with('success','Quotation deleted.');}
  public function quoteShow(Quote $quote){$quote->load(['customer','project']);return view('admin.quotes.show',compact('quote'));}
 
- public function invoices(Request $r){$q=Invoice::with('customer')->latest();if($s=trim((string)$r->query('search')))$q->where('number','like',"%$s%")->orWhere('title','like',"%$s%");return view('admin.invoices.index',['invoices'=>$q->paginate(25)->withQueryString()]);}
+ public function invoices(Request $r){$q=Invoice::with('customer')->latest();if($s=trim((string)$r->query('search')))$q->where(function($query)use($s){$query->where('number','like',"%$s%")->orWhere('title','like',"%$s%");});return view('admin.invoices.index',['invoices'=>$q->paginate(25)->withQueryString()]);}
  public function invoiceCreate(){return view('admin.invoices.form',['invoice'=>new Invoice(['status'=>'unpaid','items'=>[]]),'customers'=>Customer::orderBy('name')->get(),'projects'=>Project::orderBy('title')->get(),'mode'=>'create']);}
  public function invoiceStore(Request $r){$d=$this->documentData($r);$d['number']=$this->nextNumber('INV');$d['items']=$this->items($r);$d['subtotal']=$this->subtotal($d['items']);$d['paid']=0;$d['total']=max(0,$d['subtotal']-$d['discount']+$d['tax']);Invoice::create($d);return redirect()->route('admin.invoices.index')->with('success','Invoice created.');}
  public function invoiceEdit(Invoice $invoice){return view('admin.invoices.form',compact('invoice')+['customers'=>Customer::orderBy('name')->get(),'projects'=>Project::orderBy('title')->get(),'mode'=>'edit']);}
@@ -32,7 +33,7 @@ class BusinessAdminController extends Controller {
  public function postDelete(BlogPost $post){$post->delete();return redirect()->route('admin.blog.index')->with('success','Post deleted.');}
  public function postShow(string $slug){$post=BlogPost::where('slug',$slug)->where('status','published')->firstOrFail();return view('blog.show',compact('post'));}
 
- private function documentData(Request $r):array{return $r->validate(['customer_id'=>['nullable','exists:customers,id'],'project_id'=>['nullable','exists:projects,id'],'title'=>['required','string','max:180'],'discount'=>['nullable','numeric','min:0'],'tax'=>['nullable','numeric','min:0'],'status'=>['required','string','max:30'],'valid_until'=>['nullable','date'],'due_date'=>['nullable','date'],'paid'=>['nullable','numeric','min:0'],'notes'=>['nullable','string','max:10000']])+['discount'=>(float)$r->input('discount',0),'tax'=>(float)$r->input('tax',0)];}
+ private function documentData(Request $r):array{return $r->validate(['customer_id'=>['nullable','exists:customers,id'],'project_id'=>['nullable','exists:projects,id'],'title'=>['required','string','max:180'],'discount'=>['nullable','numeric','min:0'],'tax'=>['nullable','numeric','min:0'],'status'=>['required',Rule::in(['draft','sent','accepted','rejected','expired','unpaid','partial','paid','overdue','cancelled'])],'valid_until'=>['nullable','date'],'due_date'=>['nullable','date'],'paid'=>['nullable','numeric','min:0'],'notes'=>['nullable','string','max:10000']])+['discount'=>(float)$r->input('discount',0),'tax'=>(float)$r->input('tax',0)];}
  private function items(Request $r):array{$names=$r->input('item_name',[]);$qty=$r->input('item_qty',[]);$price=$r->input('item_price',[]);$out=[];foreach($names as $i=>$name){if(trim((string)$name)==='')continue;$q=max(0,(float)($qty[$i]??1));$p=max(0,(float)($price[$i]??0));$out[]=['name'=>trim($name),'qty'=>$q,'price'=>$p,'total'=>round($q*$p,2)];}return $out;}
  private function subtotal(array $items):float{return round(array_sum(array_column($items,'total')),2);}
  private function nextNumber(string $prefix):string{$year=date('Y');$last=$prefix==='Q'?Quote::where('number','like',"$prefix-$year-%")->latest('id')->value('number'):Invoice::where('number','like',"$prefix-$year-%")->latest('id')->value('number');$n=$last?(int)substr($last,-4)+1:1;return sprintf('%s-%s-%04d',$prefix,$year,$n);}
