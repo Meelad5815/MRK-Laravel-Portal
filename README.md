@@ -1,5 +1,6 @@
-# MRK Laravel Portal
+# MRK Digital
 
-This repository will contain the source code of the deployed MRK Laravel Portal and the automation needed to connect development/deployment workflows.
+Professional Laravel portal for MRK Digital / Online Services Center.
 
-> Secrets such as `.env`, database passwords, and FTP passwords must never be committed.
+## Automatic delivery
+GitHub Actions is configured to test, build and deploy the production package to InfinityFree when `main` changes.
