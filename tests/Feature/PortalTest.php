@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Lead;
+use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -50,6 +51,36 @@ class PortalTest extends TestCase
         $user = User::factory()->create(['is_admin' => false]);
 
         $this->actingAs($user)->get('/dashboard')->assertForbidden();
+    }
+
+    public function test_public_projects_are_visible(): void
+    {
+        Project::create([
+            'title' => 'Demo Project', 'slug' => 'demo-project', 'summary' => 'Demo summary',
+            'description' => 'Demo description', 'category' => 'Web Development', 'status' => 'published',
+            'featured' => true,
+        ]);
+        $this->get('/projects')->assertOk()->assertSee('Demo Project');
+        $this->get('/projects/demo-project')->assertOk()->assertSee('Demo description');
+    }
+
+    public function test_admin_can_create_and_delete_a_project(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $this->actingAs($admin)->post('/dashboard/projects', [
+            'title' => 'Admin Project', 'summary' => 'A real project summary', 'description' => 'A useful description',
+            'category' => 'Web Development', 'technologies' => 'Laravel, PHP', 'status' => 'published', 'featured' => '1',
+        ])->assertRedirect('/dashboard/projects');
+        $project = Project::first();
+        $this->assertNotNull($project);
+        $this->actingAs($admin)->delete('/dashboard/projects/'.$project->id)->assertRedirect();
+        $this->assertDatabaseMissing('projects', ['id' => $project->id]);
+    }
+
+    public function test_non_admin_cannot_manage_projects(): void
+    {
+        $user = User::factory()->create(['is_admin' => false]);
+        $this->actingAs($user)->get('/dashboard/projects')->assertForbidden();
     }
 
     public function test_admin_can_update_lead_status(): void

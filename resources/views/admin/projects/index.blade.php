@@ -1,0 +1,11 @@
+@extends('layouts.app')
+@section('title','Manage Projects | MRK Digital')
+@section('robots','noindex,nofollow')
+@section('content')
+<section class="page-hero"><div class="container narrow"><span class="eyebrow">ADMIN CMS</span><h1>Projects</h1><p>Manage your portfolio without editing code.</p><div class="actions"><a class="button primary" href="{{ route('admin.projects.create') }}">+ Add Project</a><a class="button secondary" href="{{ route('projects.index') }}">View Portfolio</a></div></div></section>
+<section class="section"><div class="container">
+<form method="GET" class="dashboard-filters"><label>Search<input name="search" value="{{ request('search') }}" placeholder="Project or category"></label><label>Status<select name="status"><option value="">All</option><option value="published" @selected(request('status')==='published')>Published</option><option value="draft" @selected(request('status')==='draft')>Draft</option></select></label><button class="button primary">Filter</button><a class="button secondary" href="{{ route('admin.projects.index') }}">Reset</a></form>
+<div class="table-card"><div class="table-head"><h2>Portfolio content</h2><span>{{ $projects->count() }} projects</span></div><div class="table-wrap"><table><thead><tr><th>Project</th><th>Category</th><th>Status</th><th>Featured</th><th>Actions</th></tr></thead><tbody>
+@forelse($projects as $project)<tr><td><strong>{{ $project->title }}</strong><br><small>{{ $project->summary }}</small></td><td>{{ $project->category }}</td><td><span class="status">{{ ucfirst($project->status) }}</span></td><td>{{ $project->featured ? 'Yes' : 'No' }}</td><td><div class="contact-actions"><a href="{{ route('admin.projects.edit',$project) }}">Edit</a>@if($project->status==='published')<a href="{{ route('projects.show',$project->slug) }}">View</a>@endif<form method="POST" action="{{ route('admin.projects.destroy',$project) }}" onsubmit="return confirm('Delete this project?')">@csrf @method('DELETE')<button class="danger-button">Delete</button></form></div></td></tr>@empty<tr><td colspan="5" class="empty">No projects yet. Add your first portfolio item.</td></tr>@endforelse
+</tbody></table></div></div></div></section>
+@endsection
