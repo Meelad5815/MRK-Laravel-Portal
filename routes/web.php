@@ -4,14 +4,21 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectAdminController;
+use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\ServiceAdminController;
 use App\Models\Project;
 use App\Models\Lead;
+use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'home')->name('home');
+Route::get('/', function () {
+    $services = Service::query()->where('status', 'published')->where('featured', true)->orderBy('sort_order')->orderBy('title')->limit(6)->get();
+    return view('home', compact('services'));
+})->name('home');
 Route::view('/about', 'about')->name('about');
-Route::view('/services', 'services')->name('services');
+Route::get('/services', [ServiceController::class, 'index'])->name('services');
+Route::get('/services/{slug}', [ServiceController::class, 'show'])->where('slug', '[A-Za-z0-9-]+')->name('services.show');
 Route::view('/contact', 'contact')->name('contact');
 Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
 Route::get('/projects/{slug}', [ProjectController::class, 'show'])->where('slug', '[A-Za-z0-9-]+')->name('projects.show');
@@ -23,6 +30,9 @@ Route::get('/robots.txt', function () {
 
 Route::get('/sitemap.xml', function () {
     $urls = [route('home'), route('about'), route('services'), route('contact'), route('projects.index')];
+    foreach (Service::query()->where('status', 'published')->get(['slug']) as $service) {
+        $urls[] = route('services.show', $service->slug);
+    }
     foreach (Project::query()->where('status', 'published')->get(['slug']) as $project) {
         $urls[] = route('projects.show', $project->slug);
     }
@@ -77,6 +87,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/dashboard/projects/{project}/edit', [ProjectAdminController::class, 'edit'])->name('admin.projects.edit');
     Route::put('/dashboard/projects/{project}', [ProjectAdminController::class, 'update'])->name('admin.projects.update');
     Route::delete('/dashboard/projects/{project}', [ProjectAdminController::class, 'destroy'])->name('admin.projects.destroy');
+    Route::get('/dashboard/services', [ServiceAdminController::class, 'index'])->name('admin.services.index');
+    Route::get('/dashboard/services/create', [ServiceAdminController::class, 'create'])->name('admin.services.create');
+    Route::post('/dashboard/services', [ServiceAdminController::class, 'store'])->name('admin.services.store');
+    Route::get('/dashboard/services/{service}/edit', [ServiceAdminController::class, 'edit'])->name('admin.services.edit');
+    Route::put('/dashboard/services/{service}', [ServiceAdminController::class, 'update'])->name('admin.services.update');
+    Route::delete('/dashboard/services/{service}', [ServiceAdminController::class, 'destroy'])->name('admin.services.destroy');
 });
 
 Route::middleware('auth')->group(function () {

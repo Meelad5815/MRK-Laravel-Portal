@@ -84,7 +84,7 @@ jobs:
           MAIL_MAILER=log
           EOF
 
-          cat > deploy/public/.mrk-deploy-migrate.php <<'PHP'
+          cat > public/.mrk-deploy-migrate.php <<'PHP'
           <?php
           declare(strict_types=1);
           require __DIR__ . '/../vendor/autoload.php';
