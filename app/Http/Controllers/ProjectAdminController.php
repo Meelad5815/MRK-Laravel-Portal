@@ -72,7 +72,7 @@ class ProjectAdminController extends Controller
     {
         $base = Str::slug($title) ?: 'project';
         $slug = $base; $n = 2;
-        while (Project::where('slug',$slug)->when($ignore,fn($q)=>$q->whereKeyNot($ignore->id))->exists()) {
+        while (Project::where('slug',$slug)->when($ignore,fn($q)=>$q->where('id','!=',$ignore->id))->exists()) {
             $slug = $base.'-'.$n++;
         }
         return $slug;
