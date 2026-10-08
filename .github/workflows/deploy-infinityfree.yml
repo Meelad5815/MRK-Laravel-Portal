@@ -17,12 +17,13 @@ jobs:
           extensions: mbstring, xml, ctype, fileinfo, openssl, pdo, pdo_mysql, pdo_sqlite
           coverage: none
       - name: Install production dependencies
-        run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader=false
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
       - name: Build frontend
-        run: npm install && npm run build
+        run: npm ci && npm run build
       - name: Prepare production environment
         env:
           APP_KEY: ${{ secrets.APP_KEY }}
@@ -73,9 +74,13 @@ jobs:
           mkdir -p deploy/storage/app/public deploy/storage/framework/cache deploy/storage/framework/sessions deploy/storage/framework/views deploy/storage/logs
           touch deploy/storage/app/public/.gitignore deploy/storage/framework/cache/.gitignore deploy/storage/framework/sessions/.gitignore deploy/storage/framework/views/.gitignore deploy/storage/logs/.gitignore
           cat > deploy/.htaccess <<'EOF'
-          RewriteEngine On
-          RewriteRule ^storage/(.*)$ /storage/app/public/$1 [END]
-          RewriteRule (.*) /public/$1 [L]
+          <IfModule mod_rewrite.c>
+              RewriteEngine On
+              RewriteRule ^(?:\.env|\.env\..*|composer\.(?:json|lock)|artisan)$ - [F,L]
+              RewriteRule ^(?:app|bootstrap|config|database|resources|routes|storage|vendor)(?:/|$) - [F,L]
+              RewriteRule ^public(?:/|$) - [L]
+              RewriteRule ^(.*)$ public/$1 [L]
+          </IfModule>
           EOF
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
