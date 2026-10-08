@@ -88,6 +88,8 @@ jobs:
 
           declare(strict_types=1);
 
+          require __DIR__ . '/../vendor/autoload.php';
+
           $provided = $_SERVER['HTTP_X_MRK_DEPLOY_KEY'] ?? '';
           $expected = (string) env('APP_KEY', '');
 
@@ -96,10 +98,8 @@ jobs:
               exit;
           }
 
-          require __DIR__ . '/../vendor/autoload.php';
-
           $app = require __DIR__ . '/../bootstrap/app.php';
-          $kernel = $app->make(Illuminate\\Contracts\\Console\\Kernel::class);
+          $kernel = $app->make(Illuminate\Contracts\\Console\\Kernel::class);
 
           $status = $kernel->call('migrate', ['--force' => true]);
 
@@ -110,13 +110,13 @@ jobs:
           }
 
           $projectsCount = 0;
-          if (Illuminate\\Support\\Facades\\Schema::hasTable('projects')) {
-              $projectsCount = Illuminate\\Support\\Facades\\DB::table('projects')->count();
+          if (Illuminate\Support\Facades\\Schema::hasTable('projects')) {
+              $projectsCount = Illuminate\Support\Facades\\DB::table('projects')->count();
           }
 
           if ($projectsCount === 0) {
               $status = $kernel->call('db:seed', [
-                  '--class' => 'Database\\Seeders\\DatabaseSeeder',
+                  '--class' => 'Database\Seeders\\DatabaseSeeder',
                   '--force' => true,
               ]);
 
