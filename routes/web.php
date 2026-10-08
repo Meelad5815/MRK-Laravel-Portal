@@ -4,14 +4,20 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectAdminController;
+use App\Http\Controllers\ServiceController;
 use App\Models\Project;
 use App\Models\Lead;
+use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'home')->name('home');
+Route::get('/', function () {
+    $services = Service::query()->where('status', 'published')->where('featured', true)->orderBy('sort_order')->orderBy('title')->limit(6)->get();
+    return view('home', compact('services'));
+})->name('home');
 Route::view('/about', 'about')->name('about');
-Route::view('/services', 'services')->name('services');
+Route::get('/services', [ServiceController::class, 'index'])->name('services');
+Route::get('/services/{slug}', [ServiceController::class, 'show'])->where('slug', '[A-Za-z0-9-]+')->name('services.show');
 Route::view('/contact', 'contact')->name('contact');
 Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
 Route::get('/projects/{slug}', [ProjectController::class, 'show'])->where('slug', '[A-Za-z0-9-]+')->name('projects.show');
@@ -23,6 +29,9 @@ Route::get('/robots.txt', function () {
 
 Route::get('/sitemap.xml', function () {
     $urls = [route('home'), route('about'), route('services'), route('contact'), route('projects.index')];
+    foreach (Service::query()->where('status', 'published')->get(['slug']) as $service) {
+        $urls[] = route('services.show', $service->slug);
+    }
     foreach (Project::query()->where('status', 'published')->get(['slug']) as $project) {
         $urls[] = route('projects.show', $project->slug);
     }
