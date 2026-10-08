@@ -18,7 +18,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->name('register.store');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/dashboard', function () {
         $stats = [
             'total' => Lead::count(),
@@ -26,8 +26,17 @@ Route::middleware('auth')->group(function () {
             'progress' => Lead::where('status', 'in_progress')->count(),
             'completed' => Lead::where('status', 'completed')->count(),
         ];
-        return view('dashboard', ['leads' => Lead::latest()->limit(25)->get(), 'stats' => $stats]);
+
+        return view('dashboard', [
+            'leads' => Lead::latest()->limit(25)->get(),
+            'stats' => $stats,
+        ]);
     })->name('dashboard');
 
+    Route::patch('/dashboard/leads/{lead}', [LeadController::class, 'updateStatus'])->name('leads.status');
+    Route::delete('/dashboard/leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
+});
+
+Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
