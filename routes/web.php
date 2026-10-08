@@ -5,6 +5,7 @@ use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectAdminController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\ServiceAdminController;
 use App\Models\Project;
 use App\Models\Lead;
 use App\Models\Service;
@@ -86,6 +87,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/dashboard/projects/{project}/edit', [ProjectAdminController::class, 'edit'])->name('admin.projects.edit');
     Route::put('/dashboard/projects/{project}', [ProjectAdminController::class, 'update'])->name('admin.projects.update');
     Route::delete('/dashboard/projects/{project}', [ProjectAdminController::class, 'destroy'])->name('admin.projects.destroy');
+    Route::get('/dashboard/services', [ServiceAdminController::class, 'index'])->name('admin.services.index');
+    Route::get('/dashboard/services/create', [ServiceAdminController::class, 'create'])->name('admin.services.create');
+    Route::post('/dashboard/services', [ServiceAdminController::class, 'store'])->name('admin.services.store');
+    Route::get('/dashboard/services/{service}/edit', [ServiceAdminController::class, 'edit'])->name('admin.services.edit');
+    Route::put('/dashboard/services/{service}', [ServiceAdminController::class, 'update'])->name('admin.services.update');
+    Route::delete('/dashboard/services/{service}', [ServiceAdminController::class, 'destroy'])->name('admin.services.destroy');
 });
 
 Route::middleware('auth')->group(function () {
