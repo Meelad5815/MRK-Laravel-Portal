@@ -80,6 +80,56 @@ jobs:
           CACHE_STORE=file
           MAIL_MAILER=log
           EOF
+
+          # One-time web runner used only during this deployment to execute
+          # outstanding Laravel migrations on shared hosting without SSH.
+          cat > deploy/public/.mrk-deploy-migrate.php <<'PHP'
+          <?php
+
+          declare(strict_types=1);
+
+          $provided = $_SERVER['HTTP_X_MRK_DEPLOY_KEY'] ?? '';
+          $expected = (string) env('APP_KEY', '');
+
+          if ($expected === '' || !hash_equals($expected, $provided)) {
+              http_response_code(404);
+              exit;
+          }
+
+          require __DIR__ . '/../vendor/autoload.php';
+
+          $app = require __DIR__ . '/../bootstrap/app.php';
+          $kernel = $app->make(Illuminate\\Contracts\\Console\\Kernel::class);
+
+          $status = $kernel->call('migrate', ['--force' => true]);
+
+          if ($status !== 0) {
+              http_response_code(500);
+              echo $kernel->output();
+              exit;
+          }
+
+          $projectsCount = 0;
+          if (Illuminate\\Support\\Facades\\Schema::hasTable('projects')) {
+              $projectsCount = Illuminate\\Support\\Facades\\DB::table('projects')->count();
+          }
+
+          if ($projectsCount === 0) {
+              $status = $kernel->call('db:seed', [
+                  '--class' => 'Database\\Seeders\\DatabaseSeeder',
+                  '--force' => true,
+              ]);
+
+              if ($status !== 0) {
+                  http_response_code(500);
+                  echo $kernel->output();
+                  exit;
+              }
+          }
+
+          echo "Database migration completed.";
+          @unlink(__FILE__);
+          PHP
           php artisan about
       - name: Prepare shared-hosting package
         run: |
@@ -110,3 +160,19 @@ jobs:
           server-dir: /htdocs/
           dangerous-clean-slate: false
           log-level: standard
+
+      - name: Run production database migrations
+        env:
+          APP_KEY: \${{ secrets.APP_KEY }}
+          APP_URL: \${{ secrets.APP_URL }}
+        run: |
+          test -n "$APP_KEY"
+          test -n "$APP_URL"
+          case "$APP_URL" in
+            https://*) ;;
+            *) echo "APP_URL must use HTTPS for the deployment migration endpoint."; exit 1 ;;
+          esac
+          curl --fail --silent --show-error --retry 3 \
+            -X POST \
+            -H "X-MRK-Deploy-Key: $APP_KEY" \
+            "$APP_URL/.mrk-deploy-migrate.php"
