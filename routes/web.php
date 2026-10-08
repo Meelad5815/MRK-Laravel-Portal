@@ -81,6 +81,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
     })->name('dashboard');
     Route::patch('/dashboard/leads/{lead}', [LeadController::class, 'updateStatus'])->name('leads.status');
     Route::delete('/dashboard/leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
+    Route::get('/dashboard/customers', [CustomerAdminController::class, 'index'])->name('admin.customers.index');
+    Route::get('/dashboard/customers/create', [CustomerAdminController::class, 'create'])->name('admin.customers.create');
+    Route::post('/dashboard/customers', [CustomerAdminController::class, 'store'])->name('admin.customers.store');
+    Route::get('/dashboard/customers/{customer}/edit', [CustomerAdminController::class, 'edit'])->name('admin.customers.edit');
+    Route::put('/dashboard/customers/{customer}', [CustomerAdminController::class, 'update'])->name('admin.customers.update');
+    Route::delete('/dashboard/customers/{customer}', [CustomerAdminController::class, 'destroy'])->name('admin.customers.destroy');
     Route::get('/dashboard/projects', [ProjectAdminController::class, 'index'])->name('admin.projects.index');
     Route::get('/dashboard/projects/create', [ProjectAdminController::class, 'create'])->name('admin.projects.create');
     Route::post('/dashboard/projects', [ProjectAdminController::class, 'store'])->name('admin.projects.store');
