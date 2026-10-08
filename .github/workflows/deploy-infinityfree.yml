@@ -40,9 +40,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Build frontend
-        run: npm install --no-audit --no-fund && npm run build
-
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund
       - name: Prepare production environment
         env:
           APP_KEY: ${{ secrets.APP_KEY }}
