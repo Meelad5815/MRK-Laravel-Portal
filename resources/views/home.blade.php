@@ -7,7 +7,8 @@
 <div><span class="eyebrow">FULL STACK WEBSITE DEVELOPER</span>
 <h1>Websites, web apps & digital systems that work for your business.</h1>
 <p>MRK Digital creates responsive Laravel and WordPress websites, custom web applications and practical automation solutions.</p>
-<div class="actions"><a class="button primary" href="{{ route('services') }}">View Services</a><a class="button secondary" href="{{ route('contact') }}">Start a Project</a></div>
+<div class="actions"><a class="button primary" href="{{ route('services') }}">View Services</a><a class="button secondary" href="{{ route('contact') }}">Start a Project</a>
+<a class="text-link hero-project-link" href="{{ route('projects.index') }}">Explore Portfolio →</a></div>
 <div class="trust-row"><span>Laravel</span><span>WordPress</span><span>PHP</span><span>Automation</span></div>
 </div>
 <div class="hero-card"><div class="orb">MRK</div><h2>Digital Solutions</h2><p>Development • Automation • Online Services</p><div class="mini-grid"><div><b>Web</b><small>Modern & responsive</small></div><div><b>Apps</b><small>Custom systems</small></div><div><b>Automation</b><small>PLC & Arduino</small></div><div><b>Support</b><small>Practical solutions</small></div></div></div>
