@@ -1,11 +1,12 @@
 <!doctype html>
 <html lang="en">
 <head>
+@php($siteSettings = \App\Models\SiteSetting::whereIn('key',['site_name','seo_title','seo_description','tagline'])->pluck('value','key'))
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>@yield('title','MRK Digital')</title>
-<meta name="description" content="@yield('description','MRK Digital — professional websites, web applications, automation and digital services.')">
+<title>@yield('title',$siteSettings['seo_title'] ?? ($siteSettings['site_name'] ?? 'MRK Digital'))</title>
+<meta name="description" content="@yield('description',$siteSettings['seo_description'] ?? 'MRK Digital — professional websites, web applications, automation and digital services.')">
 <meta name="robots" content="@yield('robots','index,follow')">
 <link rel="canonical" href="{{ url()->current() }}">
 <meta property="og:type" content="website">
@@ -39,5 +40,5 @@
 @if(session('success'))<div class="container"><div class="alert success">{{ session('success') }}</div></div>@endif
 @if($errors->any())<div class="container"><div class="alert error"><strong>Please fix the following:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>@endif
 @yield('content')
-<footer><div class="container footer-inner"><span>© {{ date('Y') }} MRK Digital</span><span>Full Stack Website Developer</span></div></footer>
+<footer><div class="container footer-inner"><span>© {{ date('Y') }} {{ $siteSettings['site_name'] ?? 'MRK Digital' }}</span><span>{{ $siteSettings['tagline'] ?? 'Full Stack Website Developer' }}</span></div></footer>
 </body></html>
