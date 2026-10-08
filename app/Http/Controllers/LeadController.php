@@ -34,13 +34,13 @@ class LeadController extends Controller
 
         $lead->update(['status' => $data['status']]);
 
-        return back()->with('success', 'Lead status updated.');
+        return redirect()->route('dashboard')->with('success', 'Lead status updated.');
     }
 
     public function destroy(Lead $lead)
     {
         $lead->delete();
 
-        return back()->with('success', 'Lead deleted.');
+        return redirect()->route('dashboard')->with('success', 'Lead deleted.');
     }
 }
