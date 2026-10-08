@@ -8,7 +8,6 @@ use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceAdminController;
 use App\Http\Controllers\CustomerAdminController;
 use App\Http\Controllers\BusinessAdminController;
-use App\Models\BlogPost;
 use App\Models\Project;
 use App\Models\Lead;
 use App\Models\Service;
