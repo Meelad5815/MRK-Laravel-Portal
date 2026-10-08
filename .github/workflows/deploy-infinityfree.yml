@@ -42,6 +42,8 @@ jobs:
           node-version: '20'
       - name: Install frontend dependencies
         run: npm install --no-audit --no-fund
+      - name: Build frontend assets
+        run: npm run build
       - name: Prepare production environment
         env:
           APP_KEY: ${{ secrets.APP_KEY }}
