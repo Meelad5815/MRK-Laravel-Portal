@@ -14,11 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
-        # PHP runtime for tests and production packaging
         with:
           php-version: '8.2'
           extensions: mbstring, xml, ctype, fileinfo, openssl, pdo, pdo_mysql, pdo_sqlite
           coverage: none
+
       - name: Run automated tests
         env:
           APP_ENV: testing
@@ -31,8 +31,10 @@ jobs:
           cp .env.example .env
           php artisan key:generate --force
           touch database/database.sqlite
+          mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
           php artisan migrate:fresh --force
           php artisan test
+
       - name: Install production dependencies
         run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
       - uses: actions/setup-node@v4
@@ -40,6 +42,7 @@ jobs:
           node-version: '20'
       - name: Build frontend
         run: npm install --no-audit --no-fund && npm run build
+
       - name: Prepare production environment
         env:
           APP_KEY: ${{ secrets.APP_KEY }}
@@ -81,56 +84,44 @@ jobs:
           MAIL_MAILER=log
           EOF
 
-          # One-time web runner used only during this deployment to execute
-          # outstanding Laravel migrations on shared hosting without SSH.
           cat > deploy/public/.mrk-deploy-migrate.php <<'PHP'
           <?php
-
           declare(strict_types=1);
-
           require __DIR__ . '/../vendor/autoload.php';
-
           $provided = $_SERVER['HTTP_X_MRK_DEPLOY_KEY'] ?? '';
           $expected = (string) env('APP_KEY', '');
-
           if ($expected === '' || !hash_equals($expected, $provided)) {
               http_response_code(404);
               exit;
           }
-
           $app = require __DIR__ . '/../bootstrap/app.php';
           $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
-
           $status = $kernel->call('migrate', ['--force' => true]);
-
           if ($status !== 0) {
               http_response_code(500);
               echo $kernel->output();
               exit;
           }
-
           $projectsCount = 0;
           if (Illuminate\Support\Facades\Schema::hasTable('projects')) {
               $projectsCount = Illuminate\Support\Facades\DB::table('projects')->count();
           }
-
           if ($projectsCount === 0) {
               $status = $kernel->call('db:seed', [
-                  '--class' => 'Database\Seeders\DatabaseSeeder',
+                  '--class' => 'Database\\Seeders\\DatabaseSeeder',
                   '--force' => true,
               ]);
-
               if ($status !== 0) {
                   http_response_code(500);
                   echo $kernel->output();
                   exit;
               }
           }
-
           echo "Database migration completed.";
           @unlink(__FILE__);
           PHP
           php artisan about
+
       - name: Prepare shared-hosting package
         run: |
           rm -rf deploy
@@ -148,6 +139,7 @@ jobs:
               RewriteRule ^(.*)$ public/$1 [L]
           </IfModule>
           EOF
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
