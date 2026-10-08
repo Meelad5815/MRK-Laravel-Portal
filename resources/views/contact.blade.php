@@ -1,6 +1,14 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Contact MRK Digital for website development, web applications and automation projects."><title>Contact | MRK Digital</title>@vite(['resources/css/app.css','resources/js/app.js'])</head>
-<body><header class="site-header"><div class="container nav"><a class="brand" href="{{ route('home') }}">MRK Digital</a><nav><a href="{{ route('home') }}">Home</a><a href="{{ route('about') }}">About</a><a href="{{ route('services') }}">Services</a><a class="active" href="{{ route('contact') }}">Contact</a></nav></div></header>
-<main><section class="page-hero"><div class="container narrow"><span class="eyebrow">CONTACT</span><h1>Tell us what you want to build.</h1><p>Share your project requirement, preferred technology and expected outcome. A proper contact form will be connected in the backend stage.</p></div></section>
-<section class="section"><div class="container contact-grid"><div><span class="eyebrow">PROJECT BRIEF</span><h2>Start with the basics.</h2><div class="contact-points"><div><b>Website / Web App</b><span>Describe the pages, features or workflow you need.</span></div><div><b>Automation</b><span>Share the controller, sensors, inputs, outputs and desired operation.</span></div><div><b>Business Support</b><span>Explain the online or digital task you want to simplify.</span></div></div></div><div class="form-card"><label>Name<input type="text" placeholder="Your name"></label><label>Email<input type="email" placeholder="you@example.com"></label><label>Project type<select><option>Website</option><option>Laravel Web App</option><option>WordPress</option><option>Automation</option><option>Other</option></select></label><label>Requirement<textarea rows="6" placeholder="Tell us about your project..."></textarea></label><button class="button primary" type="button">Enquiry form coming next</button><small>This interface is ready for the next backend/contact-form stage.</small></div></div></section></main>
-<footer><div class="container footer-inner"><span>© {{ date('Y') }} MRK Digital</span><span>Full Stack Website Developer</span></div></footer></body></html>
+@extends('layouts.app')
+@section('title','Contact | MRK Digital')
+@section('content')
+<section class="page-hero"><div class="container narrow"><span class="eyebrow">CONTACT</span><h1>Tell us what you want to build.</h1><p>Share your project requirement and MRK Digital will receive a structured enquiry.</p></div></section>
+<section class="section"><div class="container contact-grid"><div><span class="eyebrow">PROJECT BRIEF</span><h2>Start with the basics.</h2><div class="contact-points"><div><b>Website / Web App</b><span>Describe the pages, features or workflow you need.</span></div><div><b>Automation</b><span>Share the controller, sensors, inputs, outputs and desired operation.</span></div><div><b>Business Support</b><span>Explain the online or digital task you want to simplify.</span></div></div></div>
+<form method="POST" action="{{ route('contact.store') }}" class="form-card">@csrf
+<label>Name<input name="name" type="text" value="{{ old('name') }}" required></label>
+<label>Email<input name="email" type="email" value="{{ old('email') }}"></label>
+<label>Phone / WhatsApp<input name="phone" type="text" value="{{ old('phone') }}"></label>
+<label>Project type<select name="project_type" required><option value="">Select</option><option>Website</option><option>Laravel Web App</option><option>WordPress</option><option>Automation</option><option>Digital Services</option><option>Other</option></select></label>
+<label>Requirement<textarea name="message" rows="7" required>{{ old('message') }}</textarea></label>
+<button class="button primary" type="submit">Send Enquiry</button>
+</form></div></section>
+@endsection
