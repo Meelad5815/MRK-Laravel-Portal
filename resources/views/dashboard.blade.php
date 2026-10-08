@@ -19,7 +19,7 @@
 <td class="requirement-cell">{{ Illuminate\Support\Str::limit($lead->message, 90) }}</td>
 <td><span class="status {{ $lead->status }}">{{ ucfirst(str_replace('_',' ',$lead->status)) }}</span></td><td>{{ $lead->created_at->format('d M Y') }}</td>
 <td><div class="action-stack"><form method="POST" action="{{ route('leads.status', $lead) }}" class="status-form">@csrf @method('PATCH')<select name="status" onchange="this.form.submit()">@foreach(['new' => 'New', 'in_progress' => 'In progress', 'completed' => 'Completed'] as $value => $label)<option value="{{ $value }}" @selected($lead->status === $value)>{{ $label }}</option>@endforeach</select></form>
-<form method="POST" action="{{ route('leads.destroy', $lead) }}" class="inline-form" onsubmit="return confirm('Delete this enquiry?')">@csrf @method('DELETE')<button class="danger-button" type="submit">Delete</button></form></div></td>
+<form method="POST" action="{{ route('leads.convert', $lead) }}" class="inline-form">@csrf<button class="button secondary" type="submit">Convert to Customer</button></form><form method="POST" action="{{ route('leads.destroy', $lead) }}" class="inline-form" onsubmit="return confirm('Delete this enquiry?')">@csrf @method('DELETE')<button class="danger-button" type="submit">Delete</button></form></div></td>
 </tr>@endforeach</tbody></table></div>
 @else<div class="empty">No enquiries match the current filters.</div>@endif
 </div></div></section>
