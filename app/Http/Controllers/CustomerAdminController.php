@@ -29,9 +29,18 @@ class CustomerAdminController extends Controller
             $query->where('priority', $request->query('priority'));
         }
 
+        $now = now();
         return view('admin.customers.index', [
             'customers' => $query->latest()->paginate(25)->withQueryString(),
+            'dueCount' => Customer::whereNotNull('next_follow_up_at')->where('next_follow_up_at', '<=', $now)->where('status', 'active')->count(),
+            'upcomingCount' => Customer::whereNotNull('next_follow_up_at')->whereBetween('next_follow_up_at', [$now, $now->copy()->addDays(7)])->where('status', 'active')->count(),
         ]);
+    }
+
+    public function show(Customer $customer)
+    {
+        $customer->load(['leads' => fn ($query) => $query->latest()]);
+        return view('admin.customers.show', compact('customer'));
     }
 
     public function create()
@@ -45,9 +54,7 @@ class CustomerAdminController extends Controller
     public function store(Request $request)
     {
         Customer::create($this->validated($request));
-
-        return redirect()->route('admin.customers.index')
-            ->with('success', 'Customer created successfully.');
+        return redirect()->route('admin.customers.index')->with('success', 'Customer created successfully.');
     }
 
     public function edit(Customer $customer)
@@ -58,17 +65,13 @@ class CustomerAdminController extends Controller
     public function update(Request $request, Customer $customer)
     {
         $customer->update($this->validated($request));
-
-        return redirect()->route('admin.customers.index')
-            ->with('success', 'Customer updated successfully.');
+        return redirect()->route('admin.customers.show', $customer)->with('success', 'Customer updated successfully.');
     }
 
     public function destroy(Customer $customer)
     {
         $customer->delete();
-
-        return redirect()->route('admin.customers.index')
-            ->with('success', 'Customer deleted successfully.');
+        return redirect()->route('admin.customers.index')->with('success', 'Customer deleted successfully.');
     }
 
     private function validated(Request $request): array
