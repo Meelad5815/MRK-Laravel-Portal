@@ -111,7 +111,7 @@ jobs:
 
       - name: Create failure report
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const title = "AUTO-MONITOR: MRK Laravel site health check failed";
