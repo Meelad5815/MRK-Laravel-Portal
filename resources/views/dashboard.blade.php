@@ -4,7 +4,7 @@
 @section('content')
 <section class="page-hero"><div class="container narrow"><span class="eyebrow">MRK PORTAL</span><h1>Dashboard</h1><p>Welcome, {{ auth()->user()->name }}. Manage project enquiries from one place.</p></div></section>
 <section class="section"><div class="container">
-<div class="actions dashboard-actions"><a class="button primary" href="{{ route('admin.projects.index') }}">Manage Projects</a><a class="button secondary" href="/dashboard/services">Manage Services</a><a class="button secondary" href="{{ route('projects.index') }}">View Portfolio</a></div>
+<div class="actions dashboard-actions"><a class="button primary" href="{{ route('admin.projects.index') }}">Manage Projects</a><a class="button secondary" href="{{ route('admin.services.index') }}">Manage Services</a><a class="button secondary" href="{{ route('admin.customers.index') }}">Manage Customers</a><a class="button secondary" href="{{ route('projects.index') }}">View Portfolio</a></div>
 <div class="stats"><div><span>Total enquiries</span><strong>{{ $stats['total'] }}</strong></div><div><span>New</span><strong>{{ $stats['new'] }}</strong></div><div><span>In progress</span><strong>{{ $stats['progress'] }}</strong></div><div><span>Completed</span><strong>{{ $stats['completed'] }}</strong></div></div>
 <form method="GET" action="{{ route('dashboard') }}" class="dashboard-filters">
 <label>Search<input name="search" value="{{ request('search') }}" placeholder="Name, email, phone or project"></label>
