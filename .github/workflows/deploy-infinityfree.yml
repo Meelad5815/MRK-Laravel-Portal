@@ -1,6 +1,8 @@
 name: Deploy Laravel to InfinityFree
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -12,10 +14,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
+        # PHP runtime for tests and production packaging
         with:
           php-version: '8.2'
           extensions: mbstring, xml, ctype, fileinfo, openssl, pdo, pdo_mysql, pdo_sqlite
           coverage: none
+      - name: Run automated tests
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+          touch database/database.sqlite
+          php artisan migrate:fresh --force
+          php artisan test
       - name: Install production dependencies
         run: composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
       - uses: actions/setup-node@v4
