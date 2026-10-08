@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectAdminController;
 use App\Models\Project;
 use App\Models\Lead;
 use Illuminate\Http\Request;
@@ -70,6 +71,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
     })->name('dashboard');
     Route::patch('/dashboard/leads/{lead}', [LeadController::class, 'updateStatus'])->name('leads.status');
     Route::delete('/dashboard/leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
+    Route::get('/dashboard/projects', [ProjectAdminController::class, 'index'])->name('admin.projects.index');
+    Route::get('/dashboard/projects/create', [ProjectAdminController::class, 'create'])->name('admin.projects.create');
+    Route::post('/dashboard/projects', [ProjectAdminController::class, 'store'])->name('admin.projects.store');
+    Route::get('/dashboard/projects/{project}/edit', [ProjectAdminController::class, 'edit'])->name('admin.projects.edit');
+    Route::put('/dashboard/projects/{project}', [ProjectAdminController::class, 'update'])->name('admin.projects.update');
+    Route::delete('/dashboard/projects/{project}', [ProjectAdminController::class, 'destroy'])->name('admin.projects.destroy');
 });
 
 Route::middleware('auth')->group(function () {
