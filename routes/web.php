@@ -12,8 +12,13 @@ use App\Models\BlogPost;
 use App\Models\Project;
 use App\Models\Lead;
 use App\Models\Service;
+use App\Models\Customer;
+use App\Models\Quote;
+use App\Models\Invoice;
+use App\Models\BlogPost;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 
 Route::get('/', function () {
     $services = Service::query()->where('status', 'published')->where('featured', true)->orderBy('sort_order')->orderBy('title')->limit(6)->get();
@@ -74,6 +79,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
             $query->where('status', $request->query('status'));
         }
         $stats = [
+            'customers' => Customer::count(),
+            'quotes' => Quote::count(),
+            'invoices' => Invoice::count(),
+            'outstanding' => Invoice::whereIn('status',['unpaid','partial','overdue'])->sum(DB::raw('total-paid')),
             'total' => Lead::count(),
             'new' => Lead::where('status', 'new')->count(),
             'progress' => Lead::where('status', 'in_progress')->count(),
