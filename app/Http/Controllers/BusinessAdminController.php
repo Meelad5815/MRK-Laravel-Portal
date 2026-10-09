@@ -23,7 +23,25 @@ class BusinessAdminController extends Controller {
  public function invoiceShow(Invoice $invoice){$invoice->load(['customer','project']);return view('admin.invoices.show',compact('invoice'));}
 
  public function settings(){ $defaults=['site_name'=>'MRK Digital','tagline'=>'Full Stack Website Developer','email'=>'','phone'=>'','whatsapp'=>'','address'=>'','facebook'=>'','instagram'=>'','linkedin'=>'','seo_title'=>'MRK Digital — Full Stack Website Developer','seo_description'=>'Professional websites, web applications, automation and digital services.'];$settings=SiteSetting::pluck('value','key')->all();return view('admin.settings',compact('settings','defaults'));}
- public function settingsSave(Request $r){foreach($r->except('_token') as $k=>$v)SiteSetting::updateOrCreate(['key'=>$k],['value'=>$v]);return back()->with('success','Site settings saved.');}
+ public function settingsSave(Request $r){
+  $data=$r->validate([
+   'site_name'=>['required','string','max:120'],
+   'tagline'=>['nullable','string','max:180'],
+   'email'=>['nullable','email','max:190'],
+   'phone'=>['nullable','string','max:40'],
+   'whatsapp'=>['nullable','string','max:40'],
+   'address'=>['nullable','string','max:255'],
+   'facebook'=>['nullable','url','max:255'],
+   'instagram'=>['nullable','url','max:255'],
+   'linkedin'=>['nullable','url','max:255'],
+   'seo_title'=>['nullable','string','max:180'],
+   'seo_description'=>['nullable','string','max:320'],
+  ]);
+  foreach($data as $key=>$value){
+   SiteSetting::updateOrCreate(['key'=>$key],['value'=>$value ?? '']);
+  }
+  return back()->with('success','Site settings saved.');
+ }
 
  public function posts(Request $r){$q=BlogPost::latest();if($s=trim((string)$r->query('search')))$q->where('title','like',"%$s%");return view('admin.blog.index',['posts'=>$q->paginate(25)->withQueryString()]);}
  public function postCreate(){return view('admin.blog.form',['post'=>new BlogPost(['status'=>'draft']),'mode'=>'create']);}
@@ -37,5 +55,5 @@ class BusinessAdminController extends Controller {
  private function items(Request $r):array{$names=$r->input('item_name',[]);$qty=$r->input('item_qty',[]);$price=$r->input('item_price',[]);$out=[];foreach($names as $i=>$name){if(trim((string)$name)==='')continue;$q=max(0,(float)($qty[$i]??1));$p=max(0,(float)($price[$i]??0));$out[]=['name'=>trim($name),'qty'=>$q,'price'=>$p,'total'=>round($q*$p,2)];}return $out;}
  private function subtotal(array $items):float{return round(array_sum(array_column($items,'total')),2);}
  private function nextNumber(string $prefix):string{$year=date('Y');$last=$prefix==='Q'?Quote::where('number','like',"$prefix-$year-%")->latest('id')->value('number'):Invoice::where('number','like',"$prefix-$year-%")->latest('id')->value('number');$n=$last?(int)substr($last,-4)+1:1;return sprintf('%s-%s-%04d',$prefix,$year,$n);}
- private function postData(Request $r,?BlogPost $post=null):array{$d=$r->validate(['title'=>['required','string','max:180'],'category'=>['nullable','string','max:80'],'excerpt'=>['required','string','max:320'],'content'=>['required','string','max:50000'],'status'=>['required','in:draft,published'],'featured'=>['nullable','boolean'],'seo_title'=>['nullable','string','max:180'],'seo_description'=>['nullable','string','max:320'],'published_at'=>['nullable','date']]);$base=Str::slug($d['title'])?:'post';$slug=$base;$n=2;while(BlogPost::where('slug',$slug)->when($post,fn($q)=>$q->where('id','!=',$post->id))->exists())$slug=$base.'-'.$n++;$d['slug']=$slug;$d['featured']=$r->boolean('featured');if($d['status']==='published'&&!$d['published_at'])$d['published_at']=now();return $d;}
+ private function postData(Request $r,?BlogPost $post=null):array{$d=$r->validate(['title'=>['required','string','max:180'],'category'=>['nullable','string','max:80'],'excerpt'=>['required','string','max:320'],'content'=>['required','string','max:50000'],'status'=>['required','in:draft,published'],'featured'=>['nullable','boolean'],'seo_title'=>['nullable','string','max:180'],'seo_description'=>['nullable','string','max:320'],'published_at'=>['nullable','date']]);$slug=$post?->slug;if(!$slug){$base=Str::slug($d['title'])?:'post';$slug=$base;$n=2;while(BlogPost::where('slug',$slug)->exists())$slug=$base.'-'.$n++;}$d['slug']=$slug;$d['featured']=$r->boolean('featured');if($d['status']==='published'&&!$d['published_at'])$d['published_at']=now();return $d;}
 }
