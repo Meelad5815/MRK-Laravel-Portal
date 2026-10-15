@@ -26,7 +26,7 @@ jobs:
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
           missing=0
-          for name in APP_KEY APP_URL DB_HOST DB_DATABASE DB_USERNAME FTP_USERNAME FTP_PASSWORD; do
+          for name in APP_KEY APP_URL DB_HOST DB_DATABASE DB_USERNAME DB_PASSWORD FTP_USERNAME FTP_PASSWORD; do
             if [ -z "${!name}" ]; then
               echo "::error::Required GitHub Actions secret is missing: $name"
               missing=1
