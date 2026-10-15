@@ -21,6 +21,7 @@ jobs:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
@@ -31,10 +32,6 @@ jobs:
               missing=1
             fi
           done
-          if [ -z "${DB_PASSWORD+x}" ]; then
-            echo "::error::DB_PASSWORD secret is missing"
-            missing=1
-          fi
           if [ "$missing" -ne 0 ]; then
             echo "Open Settings > Secrets and variables > Actions in the repository and add the missing deployment secrets."
             exit 1
