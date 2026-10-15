@@ -24,7 +24,7 @@ class ProjectAdminController extends Controller
 
     public function create()
     {
-        return view('admin.projects.create', ['project' => new Project(['status' => 'draft','progress'=>0]), 'customers' => Customer::orderBy('name')->get()]);
+        return view('admin.projects.create', ['project' => new Project(['status' => 'draft', 'progress' => 0]), 'customers' => Customer::orderBy('name')->get()]);
     }
 
     public function store(Request $request)
@@ -56,6 +56,8 @@ class ProjectAdminController extends Controller
 
     private function validated(Request $request, ?Project $project = null): array
     {
+        $request->merge(['progress' => $request->input('progress', $project?->progress ?? 0)]);
+
         return $request->validate([
             'title' => ['required', 'string', 'max:160'],
             'summary' => ['required', 'string', 'max:300'],
@@ -66,10 +68,10 @@ class ProjectAdminController extends Controller
             'status' => ['required', Rule::in(['draft', 'published'])],
             'featured' => ['nullable', 'boolean'],
             'completed_at' => ['nullable', 'date'],
-            'customer_id' => ['nullable','exists:customers,id'],
-            'start_date' => ['nullable','date'],
-            'due_date' => ['nullable','date','after_or_equal:start_date'],
-            'progress' => ['required','integer','min:0','max:100'],
+            'customer_id' => ['nullable', 'exists:customers,id'],
+            'start_date' => ['nullable', 'date'],
+            'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'progress' => ['required', 'integer', 'min:0', 'max:100'],
         ]) + ['featured' => $request->boolean('featured')];
     }
 
