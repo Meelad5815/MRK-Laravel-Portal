@@ -26,17 +26,38 @@ jobs:
         with:
           node-version: '20'
       - name: Install frontend dependencies
-        run: npm install
-      - name: Build frontend assets
-        run: npm run build
+        run: npm install --no-audit --no-fund
       - name: Prepare application
         run: |
           cp .env.example .env
-          php artisan key:generate --force
+          touch database/database.sqlite
           mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
-      - name: Run tests
-        run: php artisan test
-      - name: Build frontend
+          php artisan key:generate --force
+      - name: Build frontend assets
         run: npm run build
+      - name: Run tests
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+        run: php artisan test
       - name: Verify Laravel
-        run: php artisan about
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+        run: |
+          php artisan about
+          php artisan route:list --except-vendor
+      - name: Compile Blade views
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+        run: php artisan view:cache
