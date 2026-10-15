@@ -120,14 +120,15 @@ jobs:
           <?php
           declare(strict_types=1);
           require __DIR__ . '/../vendor/autoload.php';
+          $app = require __DIR__ . '/../bootstrap/app.php';
+          $kernel = $app->make(Illuminate\\Contracts\\Console\\Kernel::class);
+          $kernel->bootstrap();
           $provided = $_SERVER['HTTP_X_MRK_DEPLOY_KEY'] ?? '';
-          $expected = (string) env('APP_KEY', '');
+          $expected = (string) config('app.key', '');
           if ($expected === '' || !hash_equals($expected, $provided)) {
               http_response_code(404);
               exit;
           }
-          $app = require __DIR__ . '/../bootstrap/app.php';
-          $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
           $status = $kernel->call('migrate', ['--force' => true]);
           if ($status !== 0) {
               http_response_code(500);
