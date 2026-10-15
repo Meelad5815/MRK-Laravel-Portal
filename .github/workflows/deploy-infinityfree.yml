@@ -19,6 +19,9 @@ jobs:
           extensions: mbstring, xml, ctype, fileinfo, openssl, pdo, pdo_mysql, pdo_sqlite
           coverage: none
 
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
       - name: Run automated tests
         env:
           APP_ENV: testing
