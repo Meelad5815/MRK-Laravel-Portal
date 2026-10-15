@@ -131,8 +131,9 @@ jobs:
           }
           $status = $kernel->call('migrate', ['--force' => true]);
           if ($status !== 0) {
+              error_log('MRK deployment migration failed: ' . $kernel->output());
               http_response_code(500);
-              echo $kernel->output();
+              echo "Database migration failed. Check the server error log.";
               exit;
           }
           $projectsCount = 0;
@@ -145,8 +146,9 @@ jobs:
                   '--force' => true,
               ]);
               if ($status !== 0) {
+                  error_log('MRK deployment seeding failed: ' . $kernel->output());
                   http_response_code(500);
-                  echo $kernel->output();
+                  echo "Database initialization failed. Check the server error log.";
                   exit;
               }
           }
