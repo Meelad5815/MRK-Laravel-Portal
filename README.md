@@ -23,9 +23,18 @@ Before the first successful deployment, add these **repository Actions secrets**
 
 Keep these values private. The workflow intentionally stops before deployment if the required application/database secrets are missing. Database credentials and FTP details cannot safely be guessed; get them from the hosting control panel. The deployment workflow uploads the app and then calls a protected migration endpoint, so the hosting account must also be reachable for deployment to complete.
 
-## Hosting availability
+## Hosting availability and migration troubleshooting
 
-The automated monitor checks the public site and static/PHP probes. If it reports `curl: (52) Empty reply from server` for all probes, even static files, this indicates the host/web layer is not returning HTTP responses; application code changes alone cannot resolve that. Check the InfinityFree account/domain status and hosting service, then rerun the monitor.
+The automated monitor validates the response body, not just HTTP status. InfinityFree may return HTTP 200 with a JavaScript/AES browser-verification page instead of the requested file. If logs contain `slowAES`, `__test=`, or `HOSTING_BOT_CHALLENGE`, the runner has not reached the actual website/PHP script. A browser-like user-agent alone does not bypass this challenge.
+
+If deployment logs report `Production migration is NOT verified`, do not treat the database migration as successful. The protected endpoint must return the exact Laravel success marker; an HTTP 200 challenge page is not sufficient. The temporary migration endpoint is removed by the workflow cleanup step even when the migration check fails.
+
+To resolve this on InfinityFree:
+1. Open the site in a normal browser and complete any hosting verification page.
+2. Sign in to the InfinityFree Client Area and check the hosting account/domain status and any security/abuse restrictions.
+3. Review the hosting PHP error log and verify PHP 8.2 compatibility and the configured document root.
+4. If the browser-verification challenge is applied to all requests, ask InfinityFree support whether automated requests can be exempted or whether the challenge can be disabled for the site. Do not expose the deployment key in a URL or remove the endpoint's authentication.
+5. Re-run the GitHub Actions deployment after the hosting layer allows the protected PHP endpoint to execute. The deployment is only complete when the migration success marker is verified.
 
 ## Planned platform modules
 
