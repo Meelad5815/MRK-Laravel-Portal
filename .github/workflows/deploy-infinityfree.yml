@@ -258,7 +258,13 @@ jobs:
             echo "::error::Production migration endpoint did not return HTTP 200. Check hosting PHP/web-server error logs; deployment is not considered complete."
             exit 1
           fi
-          echo "Production migration endpoint returned HTTP 200."
+
+          if ! grep -Fq "Database migration completed." /tmp/mrk-migrate-post.txt 2>/dev/null; then
+            echo "::error::HTTP 200 did not contain the migration success marker. The response may be an InfinityFree JavaScript/AES bot challenge, not a Laravel response."
+            echo "::error::Production database migration is NOT verified; do not treat this deployment as complete."
+            exit 1
+          fi
+          echo "Production migration success marker verified."
 
       - name: Remove temporary migration endpoint from hosting
         if: always()
