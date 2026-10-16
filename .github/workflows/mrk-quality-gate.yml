@@ -1,10 +1,8 @@
 name: MRK Quality Gate
 
+# Keep the extended quality gate for nightly and manual audits.
+# Push/PR validation is handled by ci-check.yml to avoid duplicate runs.
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
   workflow_dispatch:
   schedule:
     - cron: '17 2 * * *'

@@ -32,7 +32,7 @@ jobs:
             body="/tmp/body"
             meta="/tmp/meta"
             rm -f "$body" "$meta"
-            curl -L --max-time 20 -sS -o "$body" -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\nSIZE=%{size_download}\n" "$url" > "$meta" 2>/tmp/curl-error
+            curl -L --max-time 20 -sS -o "$body" -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\nSIZE=%{size_download}\nREMOTE_IP=%{remote_ip}\n" "$url" > "$meta" 2>/tmp/curl-error
             rc=$?
             echo "===== $label ====="
             echo "URL=$url"
