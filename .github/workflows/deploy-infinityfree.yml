@@ -181,11 +181,11 @@ jobs:
           APP_URL: ${{ secrets.APP_URL }}
         run: |
           set +e
-          status=$(curl --location --connect-timeout 10 --max-time 20 --retry 1 --retry-all-errors \
+          status=$(curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" --location --connect-timeout 10 --max-time 20 --retry 1 --retry-all-errors \
             --silent --show-error --output /tmp/mrk-host-preflight.html \
             --write-out '%{http_code}' "$APP_URL/server-check.html")
           curl_rc=$?
-          remote_ip=$(curl --location --connect-timeout 10 --max-time 20 --silent --show-error --output /dev/null --write-out '%{remote_ip}' "$APP_URL/server-check.html" 2>/dev/null || true)
+          remote_ip=$(curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" --location --connect-timeout 10 --max-time 20 --silent --show-error --output /dev/null --write-out '%{remote_ip}' "$APP_URL/server-check.html" 2>/dev/null || true)
           set -e
 
           echo "Hosting HTTP diagnostic: curl_exit=$curl_rc http_status=$status remote_ip=${remote_ip:-unknown}"
@@ -224,7 +224,7 @@ jobs:
           endpoint="${APP_URL%/}/.mrk-deploy-migrate.php"
           echo "Checking migration endpoint with a non-secret GET request."
           set +e
-          get_code=$(curl --location --connect-timeout 10 --max-time 30 --retry 1 --silent --show-error \
+          get_code=$(curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" --location --connect-timeout 10 --max-time 30 --retry 1 --silent --show-error \
             --output /tmp/mrk-migrate-get.txt --write-out '%{http_code}' "$endpoint")
           get_rc=$?
           set -e
@@ -239,7 +239,7 @@ jobs:
 
           echo "Posting authenticated migration request (secret header will not be printed)."
           set +e
-          post_code=$(curl --location --connect-timeout 10 --max-time 120 --retry 2 --retry-delay 2 \
+          post_code=$(curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" --location --connect-timeout 10 --max-time 120 --retry 2 --retry-delay 2 \
             --silent --show-error --request POST \
             --header "X-MRK-Deploy-Key: $APP_KEY" \
             --output /tmp/mrk-migrate-post.txt --write-out '%{http_code}' "$endpoint")
