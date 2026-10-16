@@ -121,7 +121,7 @@ jobs:
           declare(strict_types=1);
           require __DIR__ . '/../vendor/autoload.php';
           $app = require __DIR__ . '/../bootstrap/app.php';
-          $kernel = $app->make(Illuminate\\Contracts\\Console\\Kernel::class);
+          $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
           $kernel->bootstrap();
           $provided = $_SERVER['HTTP_X_MRK_DEPLOY_KEY'] ?? '';
           $expected = (string) config('app.key', '');
@@ -155,6 +155,7 @@ jobs:
           echo "Database migration completed.";
           @unlink(__FILE__);
           PHP
+          php -l public/.mrk-deploy-migrate.php
           php artisan about
 
       - name: Prepare shared-hosting package
