@@ -175,6 +175,38 @@ jobs:
           </IfModule>
           EOF
 
+      - name: Preflight hosting HTTP response before FTP upload
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          set +e
+          status=$(curl --location --connect-timeout 10 --max-time 20 --retry 2 --retry-all-errors \
+            --silent --show-error --output /tmp/mrk-host-preflight.html \
+            --write-out '%{http_code}' "$APP_URL/server-check.html")
+          curl_rc=$?
+          set -e
+
+          if [ "$curl_rc" -ne 0 ]; then
+            echo "::error::Hosting preflight failed before FTP upload (curl exit $curl_rc, HTTP $status)."
+            echo "The host did not return a usable response for /server-check.html; refusing to upload a deployment while production is unreachable."
+            exit 1
+          fi
+
+          case "$status" in
+            2*) ;;
+            *)
+              echo "::error::Hosting preflight returned HTTP $status; refusing to upload."
+              exit 1
+              ;;
+          esac
+
+          if ! grep -q 'MRK_SERVER_STATIC_OK' /tmp/mrk-host-preflight.html; then
+            echo "::error::Hosting preflight did not return the expected static probe marker."
+            exit 1
+          fi
+
+          echo "Hosting preflight passed; static HTTP response is healthy."
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
