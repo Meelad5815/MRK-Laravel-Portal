@@ -207,18 +207,88 @@ jobs:
           dangerous-clean-slate: false
           log-level: standard
 
-      - name: Run production database migrations
+      - name: Diagnose and run production database migrations
         env:
           APP_KEY: ${{ secrets.APP_KEY }}
           APP_URL: ${{ secrets.APP_URL }}
         run: |
+          set -u
           test -n "$APP_KEY"
           test -n "$APP_URL"
           case "$APP_URL" in
             https://*) ;;
-            *) echo "APP_URL must use HTTPS for the deployment migration endpoint."; exit 1 ;;
+            *) echo "::error::APP_URL must use HTTPS for the deployment migration endpoint."; exit 1 ;;
           esac
-          curl --fail --silent --show-error --retry 3 \
-            -X POST \
-            -H "X-MRK-Deploy-Key: $APP_KEY" \
-            "$APP_URL/.mrk-deploy-migrate.php"
+
+          endpoint="${APP_URL%/}/.mrk-deploy-migrate.php"
+          echo "Checking migration endpoint with a non-secret GET request."
+          set +e
+          get_code=$(curl --location --connect-timeout 10 --max-time 30 --retry 1 --silent --show-error \
+            --output /tmp/mrk-migrate-get.txt --write-out '%{http_code}' "$endpoint")
+          get_rc=$?
+          set -e
+          echo "MIGRATION_GET_CURL_RC=$get_rc HTTP_STATUS=${get_code:-000}"
+          if [ -s /tmp/mrk-migrate-get.txt ]; then
+            echo "GET_BODY_PREVIEW:"
+            head -c 400 /tmp/mrk-migrate-get.txt
+            echo
+          else
+            echo "GET_BODY_EMPTY"
+          fi
+
+          echo "Posting authenticated migration request (secret header will not be printed)."
+          set +e
+          post_code=$(curl --location --connect-timeout 10 --max-time 120 --retry 2 --retry-delay 2 \
+            --silent --show-error --request POST \
+            --header "X-MRK-Deploy-Key: $APP_KEY" \
+            --output /tmp/mrk-migrate-post.txt --write-out '%{http_code}' "$endpoint")
+          post_rc=$?
+          set -e
+          echo "MIGRATION_POST_CURL_RC=$post_rc HTTP_STATUS=${post_code:-000}"
+          if [ -s /tmp/mrk-migrate-post.txt ]; then
+            echo "POST_BODY_PREVIEW:"
+            head -c 1000 /tmp/mrk-migrate-post.txt
+            echo
+          else
+            echo "POST_BODY_EMPTY"
+          fi
+
+          if [ "$post_rc" -ne 0 ] || [ "${post_code:-000}" != "200" ]; then
+            echo "::error::Production migration endpoint did not return HTTP 200. Check hosting PHP/web-server error logs; deployment is not considered complete."
+            exit 1
+          fi
+          echo "Production migration endpoint returned HTTP 200."
+
+      - name: Remove temporary migration endpoint from hosting
+        if: always()
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import ftplib
+          import os
+          import sys
+
+          host = "ftp.infinityfree.com"
+          username = os.environ.get("FTP_USERNAME", "")
+          password = os.environ.get("FTP_PASSWORD", "")
+          if not username or not password:
+              print("Cleanup skipped: FTP credentials unavailable.")
+              sys.exit(0)
+
+          try:
+              with ftplib.FTP(host, timeout=20) as ftp:
+                  ftp.login(username, password)
+                  ftp.cwd("/htdocs/public")
+                  try:
+                      ftp.delete(".mrk-deploy-migrate.php")
+                      print("Temporary migration endpoint removed from /htdocs/public.")
+                  except ftplib.error_perm as exc:
+                      if str(exc).startswith("550"):
+                          print("Temporary migration endpoint is already absent.")
+                      else:
+                          raise
+          except Exception as exc:
+              print(f"::warning::Could not confirm removal of the temporary migration endpoint ({type(exc).__name__}). Check /htdocs/public in the hosting file manager.")
+          PY
