@@ -184,10 +184,13 @@ jobs:
             --silent --show-error --output /tmp/mrk-host-preflight.html \
             --write-out '%{http_code}' "$APP_URL/server-check.html")
           curl_rc=$?
+          remote_ip=$(curl --location --connect-timeout 10 --max-time 20 --silent --show-error --output /dev/null --write-out '%{remote_ip}' "$APP_URL/server-check.html" 2>/dev/null || true)
           set -e
 
+          echo "Hosting preflight diagnostics: curl_exit=$curl_rc http_status=$status remote_ip=${remote_ip:-unknown}"
+
           if [ "$curl_rc" -ne 0 ]; then
-            echo "::error::Hosting preflight failed before FTP upload (curl exit $curl_rc, HTTP $status)."
+            echo "::error::Hosting preflight failed before FTP upload (curl exit $curl_rc, HTTP $status, remote IP ${remote_ip:-unknown})."
             echo "The host did not return a usable response for /server-check.html; refusing to upload a deployment while production is unreachable."
             exit 1
           fi
