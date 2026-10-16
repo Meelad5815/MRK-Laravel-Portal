@@ -71,12 +71,26 @@ jobs:
             exit 1
           fi
 
+          if ! grep -q 'MRK_SERVER_STATIC_OK' /tmp/public-static 2>/dev/null; then
+            if grep -qiE 'slowAES|__test=|enable Javascript|requires Javascript' /tmp/public-static 2>/dev/null; then
+              echo "HOSTING_BOT_CHALLENGE: HTTP returned success but InfinityFree JavaScript/AES challenge replaced the static file."
+            else
+              echo "HOSTING_STATIC_MARKER_MISSING: HTTP returned success but expected static file content was not served."
+            fi
+            exit 1
+          fi
+
           if [ "$root_static" -ne 0 ]; then
             echo "ROOT_REWRITE_LAYER_FAILED: /public works but root rewrite does not."
             exit 1
           fi
 
-          echo "STATIC_LAYER_OK"
+          if ! grep -q 'MRK_SERVER_STATIC_OK' /tmp/root-static 2>/dev/null; then
+            echo "ROOT_BOT_CHALLENGE_OR_REWRITE_FAILURE: root URL did not return the expected static marker."
+            exit 1
+          fi
+
+          echo "STATIC_LAYER_OK: both paths returned the expected marker."
 
       - name: Check PHP and Laravel bootstrap
         shell: bash
