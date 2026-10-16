@@ -32,7 +32,7 @@ jobs:
             body="/tmp/body"
             meta="/tmp/meta"
             rm -f "$body" "$meta"
-            curl -L --max-time 20 -sS -o "$body" -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\nSIZE=%{size_download}\nREMOTE_IP=%{remote_ip}\n" "$url" > "$meta" 2>/tmp/curl-error
+            curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" -L --max-time 20 -sS -o "$body" -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\nSIZE=%{size_download}\nREMOTE_IP=%{remote_ip}\n" "$url" > "$meta" 2>/tmp/curl-error
             rc=$?
             echo "===== $label ====="
             echo "URL=$url"
@@ -56,10 +56,10 @@ jobs:
           probe "ROOT LARAVEL" "$base/?i=1"
           probe "PUBLIC LARAVEL" "$base/public/?i=1"
 
-          root_static=$(curl -L --max-time 20 -sS -o /tmp/root-static "$base/server-check.html" 2>/dev/null; echo $?)
-          public_static=$(curl -L --max-time 20 -sS -o /tmp/public-static "$base/public/server-check.html" 2>/dev/null; echo $?)
-          root_php=$(curl -L --max-time 30 -sS -o /tmp/root-php "$base/diagnostic.php" 2>/dev/null; echo $?)
-          public_php=$(curl -L --max-time 30 -sS -o /tmp/public-php "$base/public/diagnostic.php" 2>/dev/null; echo $?)
+          root_static=$(curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" -L --max-time 20 -sS -o /tmp/root-static "$base/server-check.html" 2>/dev/null; echo $?)
+          public_static=$(curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" -L --max-time 20 -sS -o /tmp/public-static "$base/public/server-check.html" 2>/dev/null; echo $?)
+          root_php=$(curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" -L --max-time 30 -sS -o /tmp/root-php "$base/diagnostic.php" 2>/dev/null; echo $?)
+          public_php=$(curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" -L --max-time 30 -sS -o /tmp/public-php "$base/public/diagnostic.php" 2>/dev/null; echo $?)
 
           echo "SUMMARY_ROOT_STATIC_CURL_RC=$root_static"
           echo "SUMMARY_PUBLIC_STATIC_CURL_RC=$public_static"
@@ -85,7 +85,7 @@ jobs:
           base="https://meeladrazakhokhar786.freehosting.dev"
           for url in "$base/diagnostic.php" "$base/public/diagnostic.php"; do
             echo "===== PHP DIAGNOSTIC: $url ====="
-            curl -L --max-time 30 -sS -o diagnostic.txt -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\n" "$url" | tee diagnostic.status
+            curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" -L --max-time 30 -sS -o diagnostic.txt -w "HTTP_STATUS=%{http_code}\nTIME=%{time_total}\n" "$url" | tee diagnostic.status
             cat diagnostic.txt 2>/dev/null || true
             status=$(grep 'HTTP_STATUS=' diagnostic.status | cut -d= -f2)
             if [ "$status" = "200" ] && grep -q "DIAGNOSTIC=OK" diagnostic.txt 2>/dev/null; then
@@ -102,7 +102,7 @@ jobs:
           set -euo pipefail
           base="https://meeladrazakhokhar786.freehosting.dev"
           for path in "/" "/about" "/services" "/contact"; do
-            code=$(curl -L --max-time 20 -sS -o /dev/null -w "%{http_code}" "$base$path")
+            code=$(curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" -L --max-time 20 -sS -o /dev/null -w "%{http_code}" "$base$path")
             echo "$path => $code"
             if [ "$code" != "200" ]; then
               exit 1
