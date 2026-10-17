@@ -15,9 +15,11 @@
 </div></section>
 <section class="section"><div class="container"><div class="section-heading"><span class="eyebrow">CORE SERVICES</span><h2>One professional place for digital work.</h2><p>From a business website to a custom management portal, the goal is simple: clean technology that solves a real problem.</p></div>
 <div class="cards">
-@foreach($services as $service)
-<article><div class="icon">{{ $service->icon ?: "MRK" }}</div><h3>{{ $service->title }}</h3><p>{{ $service->summary }}</p><a class="text-link" href="{{ route('services.show', $service->slug) }}">Learn more</a></article>
-@endforeach
+@forelse($services as $service)
+<article><div class="icon">{{ $service->icon ?: 'MRK' }}</div><h3>{{ $service->title }}</h3><p>{{ $service->summary }}</p><a class="text-link" href="{{ route('services.show', $service->slug) }}">Learn more</a></article>
+@empty
+<article><div class="icon">MRK</div><h3>Let’s discuss your project</h3><p>Tell us what you want to build and we’ll help define a suitable solution.</p><a class="text-link" href="{{ route('contact') }}">Start a project</a></article>
+@endforelse
 </div></div></section>
 <section class="cta"><div class="container cta-box"><div><span class="eyebrow">HAVE A PROJECT?</span><h2>Let's turn your idea into a working system.</h2></div><a class="button primary" href="{{ route('contact') }}">Contact MRK Digital</a></div></section>
 </main>
