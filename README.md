@@ -21,7 +21,7 @@ Before the first successful deployment, add these **repository Actions secrets**
 | `FTP_USERNAME` | The FTP username shown in the InfinityFree account/control panel. |
 | `FTP_PASSWORD` | The matching FTP password. |
 
-Keep these values private. The workflow intentionally stops before deployment if the required application/database secrets are missing. Database credentials and FTP details cannot safely be guessed; get them from the hosting control panel. The deployment workflow uploads the app and then calls a protected migration endpoint, so the hosting account must also be reachable for deployment to complete.
+Keep these values private. The workflow intentionally stops before deployment if the required application/database secrets are missing. Database credentials and FTP details cannot safely be guessed; get them from the hosting control panel. The deployment workflow uploads the app and then calls a protected migration endpoint, so the hosting platform must permit automated HTTP requests to reach PHP.
 
 ## Hosting availability and migration troubleshooting
 
@@ -29,12 +29,14 @@ The automated monitor validates the response body, not just HTTP status. Infinit
 
 If deployment logs report `Production migration is NOT verified`, do not treat the database migration as successful. The protected endpoint must return the exact Laravel success marker; an HTTP 200 challenge page is not sufficient. The temporary migration endpoint is removed by the workflow cleanup step even when the migration check fails.
 
-To resolve this on InfinityFree:
-1. Open the site in a normal browser and complete any hosting verification page.
-2. Sign in to the InfinityFree Client Area and check the hosting account/domain status and any security/abuse restrictions.
-3. Review the hosting PHP error log and verify PHP 8.2 compatibility and the configured document root.
-4. If the browser-verification challenge is applied to all requests, ask InfinityFree support whether automated requests can be exempted or whether the challenge can be disabled for the site. Do not expose the deployment key in a URL or remove the endpoint's authentication.
-5. Re-run the GitHub Actions deployment after the hosting layer allows the protected PHP endpoint to execute. The deployment is only complete when the migration success marker is verified.
+**Important: this is a known limitation of InfinityFree free hosting, not a Laravel bug.** InfinityFree's published browser-security policy says the JavaScript/cookie challenge is mandatory on free accounts, cannot be disabled, and blocks cURL and other automated HTTP clients. A support request cannot create an exception for this on the free plan. See the [official browser-security policy](https://forum.infinityfree.com/t/browser-security-system-features-and-limitations/49353) and [official support options](https://www.infinityfree.com/contact/).
+
+Available paths:
+1. **Recommended for automatic Laravel deployment:** move this application to a host that supports automated HTTP requests and Laravel production commands (SSH/CLI), then configure the new hosting credentials in GitHub Actions.
+2. **Stay on InfinityFree:** FTP upload may work, but automated monitoring and the protected HTTP migration step will remain blocked by the browser challenge. Database migrations must be handled manually through a supported database tool such as phpMyAdmin, after reviewing/backing up the database and applying the migration SQL carefully. Do not assume migrations ran just because FTP upload succeeded.
+3. Check the InfinityFree Client Area for account/domain status and use the community forum for questions, but do not expect the mandatory free-plan challenge to be disabled.
+
+Do not expose the deployment key in a URL or remove the migration endpoint's authentication. The deployment is only complete when the migration success marker is verified.
 
 ## Planned platform modules
 
