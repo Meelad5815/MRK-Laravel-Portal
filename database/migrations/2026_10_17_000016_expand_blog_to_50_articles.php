@@ -16,7 +16,7 @@ return new class extends Migration
         $posts = [
             [
                 'title' => 'How to Plan a Business Website Before Development',
-                'slug' => 'how-to-plan-a-business-website-before-development',
+                'slug' => 'plan-business-website-before-development',
                 'category' => 'Web Development',
                 'excerpt' => 'A practical checklist for goals, pages, content, features and launch readiness.',
                 'content' => 'Start by defining the one main action a visitor should take. A clear goal makes page structure and content decisions easier.\n\nList the audience, required pages, contact route, content owner and launch constraints before choosing a theme or framework.\n\nBefore starting, write down the goal, the information or access available, the expected output and how success will be checked. Keep a copy of important source data and test changes on a small sample before applying them broadly.\n\nThe best next step is to review the actual requirements and constraints. Tools and techniques vary by platform, scale and risk, so verify current documentation and avoid assuming that one workflow fits every project.',
@@ -30,7 +30,7 @@ return new class extends Migration
             ],
             [
                 'title' => 'Laravel or WordPress: Which Should a Business Choose?',
-                'slug' => 'laravel-or-wordpress-which-should-a-business-choose',
+                'slug' => 'laravel-or-wordpress-for-business',
                 'category' => 'Web Development',
                 'excerpt' => 'Compare content publishing needs with custom application requirements.',
                 'content' => 'WordPress often suits content-led websites; Laravel is often better when custom workflows, permissions or application logic are central.\n\nCompare the total maintenance effort, integrations, editing workflow and required business rules instead of choosing by popularity.\n\nBefore starting, write down the goal, the information or access available, the expected output and how success will be checked. Keep a copy of important source data and test changes on a small sample before applying them broadly.\n\nThe best next step is to review the actual requirements and constraints. Tools and techniques vary by platform, scale and risk, so verify current documentation and avoid assuming that one workflow fits every project.',
@@ -44,7 +44,7 @@ return new class extends Migration
             ],
             [
                 'title' => 'E-commerce Product Listing: A Quality Checklist',
-                'slug' => 'e-commerce-product-listing-a-quality-checklist',
+                'slug' => 'ecommerce-product-listing-quality-checklist',
                 'category' => 'E-commerce Support',
                 'excerpt' => 'Improve catalog consistency with better titles, attributes, descriptions and image checks.',
                 'content' => 'A useful product listing answers the buyer\'s practical questions without inventing specifications or claims.\n\nCheck SKU, category, attributes, variations, image accuracy, stock fields and consistency against approved source data.\n\nBefore starting, write down the goal, the information or access available, the expected output and how success will be checked. Keep a copy of important source data and test changes on a small sample before applying them broadly.\n\nThe best next step is to review the actual requirements and constraints. Tools and techniques vary by platform, scale and risk, so verify current documentation and avoid assuming that one workflow fits every project.',
@@ -58,7 +58,7 @@ return new class extends Migration
             ],
             [
                 'title' => 'Virtual Assistant Tasks: How to Define a Clear Project',
-                'slug' => 'virtual-assistant-tasks-how-to-define-a-clear-project',
+                'slug' => 'define-virtual-assistant-project',
                 'category' => 'Virtual Assistance',
                 'excerpt' => 'Document task steps, expected outputs, deadlines and quality checks.',
                 'content' => 'Remote work becomes easier to estimate when a request defines the task, sample output and rules for unclear records.\n\nProvide a sample, approved sources, delivery format, expected volume, deadline and a review method.\n\nBefore starting, write down the goal, the information or access available, the expected output and how success will be checked. Keep a copy of important source data and test changes on a small sample before applying them broadly.\n\nThe best next step is to review the actual requirements and constraints. Tools and techniques vary by platform, scale and risk, so verify current documentation and avoid assuming that one workflow fits every project.',
@@ -72,7 +72,7 @@ return new class extends Migration
             ],
             [
                 'title' => 'Basic Technical SEO Checks for a New Website',
-                'slug' => 'basic-technical-seo-checks-for-a-new-website',
+                'slug' => 'basic-technical-seo-checks-new-website',
                 'category' => 'SEO',
                 'excerpt' => 'Review indexability, metadata, canonical URLs, internal links and sitemap setup.',
                 'content' => 'Technical SEO makes useful pages easier to discover, but no checklist can guarantee rankings.\n\nCheck status codes, index directives, titles, descriptions, canonical URLs, internal links and sitemap coverage.\n\nBefore starting, write down the goal, the information or access available, the expected output and how success will be checked. Keep a copy of important source data and test changes on a small sample before applying them broadly.\n\nThe best next step is to review the actual requirements and constraints. Tools and techniques vary by platform, scale and risk, so verify current documentation and avoid assuming that one workflow fits every project.',
@@ -86,7 +86,7 @@ return new class extends Migration
             ],
             [
                 'title' => 'How a Website Contact Form Can Generate Better Leads',
-                'slug' => 'how-a-website-contact-form-can-generate-better-leads',
+                'slug' => 'website-contact-form-better-leads',
                 'category' => 'Business Systems',
                 'excerpt' => 'Collect useful project details without overwhelming visitors.',
                 'content' => 'A form should ask only for the details needed to respond and should explain what happens after submission.\n\nUse clear labels, server-side validation, spam controls, a confirmation message and a reliable follow-up process.\n\nBefore starting, write down the goal, the information or access available, the expected output and how success will be checked. Keep a copy of important source data and test changes on a small sample before applying them broadly.\n\nThe best next step is to review the actual requirements and constraints. Tools and techniques vary by platform, scale and risk, so verify current documentation and avoid assuming that one workflow fits every project.',
@@ -100,7 +100,7 @@ return new class extends Migration
             ],
             [
                 'title' => 'Planning a Simple Arduino Automation Project',
-                'slug' => 'planning-a-simple-arduino-automation-project',
+                'slug' => 'plan-simple-arduino-automation-project',
                 'category' => 'Automation',
                 'excerpt' => 'Document inputs, outputs, operating states, failure behavior and safety before prototyping.',
                 'content' => 'A controller project should be described as a sequence of expected states, not just a wiring diagram.\n\nList the controller, sensors, power requirements, loads, safe state, manual override and test procedure.\n\nBefore starting, write down the goal, the information or access available, the expected output and how success will be checked. Keep a copy of important source data and test changes on a small sample before applying them broadly.\n\nThe best next step is to review the actual requirements and constraints. Tools and techniques vary by platform, scale and risk, so verify current documentation and avoid assuming that one workflow fits every project.',
@@ -114,7 +114,7 @@ return new class extends Migration
             ],
             [
                 'title' => 'What to Include in a Website Development Quote',
-                'slug' => 'what-to-include-in-a-website-development-quote',
+                'slug' => 'what-to-include-website-development-quote',
                 'category' => 'Business Systems',
                 'excerpt' => 'Define deliverables, exclusions, milestones, payment terms and support.',
                 'content' => 'A clear quotation records what will be delivered and what assumptions the estimate depends on.\n\nSpecify pages, features, revisions, third-party costs, client responsibilities, payment milestones and post-launch support.\n\nBefore starting, write down the goal, the information or access available, the expected output and how success will be checked. Keep a copy of important source data and test changes on a small sample before applying them broadly.\n\nThe best next step is to review the actual requirements and constraints. Tools and techniques vary by platform, scale and risk, so verify current documentation and avoid assuming that one workflow fits every project.',
