@@ -798,7 +798,7 @@ return new class extends Migration
             ],
             [
                 'title' => 'Virtual Assistant and Data Entry',
-                'slug' => 'virtual-assistant-and-data-entry',
+                'slug' => 'virtual-assistant-data-entry',
                 'summary' => 'Online research, spreadsheet updates, data entry and routine administrative support.',
                 'description' => 'Remote support for clearly defined tasks such as spreadsheet formatting, data entry, web research, document organization and data cleanup.\n\nThe work begins with a review of the current situation, requirements, available access and desired outcome. The proposed scope, deliverables, timeline and price should be agreed before work starts.\n\nTo request an estimate, use the contact form and describe the platform, current issue and expected result. Do not send passwords or sensitive credentials through the public form.',
                 'category' => 'Virtual Assistance',
@@ -832,7 +832,7 @@ return new class extends Migration
             ],
             [
                 'title' => 'PLC and Arduino Automation',
-                'slug' => 'plc-and-arduino-automation',
+                'slug' => 'plc-arduino-automation',
                 'summary' => 'Controller logic, sensors, relays and automation prototypes for defined requirements.',
                 'description' => 'Plan Arduino or PLC-related control logic, sensors, relays, input/output behavior and prototype troubleshooting. Safety-critical systems require qualified assessment.\n\nThe work begins with a review of the current situation, requirements, available access and desired outcome. The proposed scope, deliverables, timeline and price should be agreed before work starts.\n\nTo request an estimate, use the contact form and describe the platform, current issue and expected result. Do not send passwords or sensitive credentials through the public form.',
                 'category' => 'Automation',
@@ -849,7 +849,7 @@ return new class extends Migration
             ],
             [
                 'title' => 'API Integration and Technical Support',
-                'slug' => 'api-integration-and-technical-support',
+                'slug' => 'api-integration-technical-support',
                 'summary' => 'Connect supported services, troubleshoot workflows and plan maintainable integrations.',
                 'description' => 'Plan API connections and troubleshoot workflows based on documented third-party support, permissions, authentication and rate limits.\n\nThe work begins with a review of the current situation, requirements, available access and desired outcome. The proposed scope, deliverables, timeline and price should be agreed before work starts.\n\nTo request an estimate, use the contact form and describe the platform, current issue and expected result. Do not send passwords or sensitive credentials through the public form.',
                 'category' => 'Integration',
