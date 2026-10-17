@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ContentPageController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectAdminController;
@@ -15,6 +16,7 @@ use App\Models\Customer;
 use App\Models\Quote;
 use App\Models\Invoice;
 use App\Models\BlogPost;
+use App\Models\ContentPage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +28,8 @@ Route::get('/', function () {
 Route::view('/about', 'about')->name('about');
 Route::view('/privacy-policy', 'privacy-policy')->name('privacy-policy');
 Route::view('/terms', 'terms')->name('terms');
+Route::get('/pages', [ContentPageController::class, 'index'])->name('pages.index');
+Route::get('/pages/{slug}', [ContentPageController::class, 'show'])->where('slug', '[A-Za-z0-9-]+')->name('pages.show');
 Route::get('/services', [ServiceController::class, 'index'])->name('services');
 Route::get('/services/{slug}', [ServiceController::class, 'show'])->where('slug', '[A-Za-z0-9-]+')->name('services.show');
 Route::view('/contact', 'contact')->name('contact');
@@ -40,11 +44,12 @@ Route::get('/robots.txt', function () {
 })->name('robots');
 
 Route::get('/sitemap.xml', function () {
-    $urls = [route('home'), route('about'), route('privacy-policy'), route('terms'), route('services'), route('contact'), route('projects.index'), route('blog.index')];
+    $urls = [route('home'), route('about'), route('privacy-policy'), route('terms'), route('pages.index'), route('services'), route('contact'), route('projects.index'), route('blog.index')];
     foreach (Service::query()->where('status', 'published')->get(['slug']) as $service) {
         $urls[] = route('services.show', $service->slug);
     }
     foreach (BlogPost::query()->where('status', 'published')->get(['slug']) as $post) { $urls[] = route('blog.show', $post->slug); }
+    foreach (ContentPage::query()->where('status', 'published')->get(['slug']) as $page) { $urls[] = route('pages.show', $page->slug); }
     foreach (Project::query()->where('status', 'published')->get(['slug']) as $project) {
         $urls[] = route('projects.show', $project->slug);
     }
