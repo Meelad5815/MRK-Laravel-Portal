@@ -14,9 +14,9 @@ class ContentCatalogueTest extends TestCase
 
     public function test_catalogue_migrations_create_fifty_services_articles_and_pages(): void
     {
-        $this->assertSame(50, Service::count());
-        $this->assertSame(50, BlogPost::count());
-        $this->assertSame(50, ContentPage::count());
+        $this->assertSame(60, Service::count());
+        $this->assertSame(60, BlogPost::count());
+        $this->assertSame(60, ContentPage::count());
     }
 
     public function test_public_resources_index_and_detail_are_available(): void
