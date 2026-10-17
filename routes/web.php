@@ -81,7 +81,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
             }
 
             return redirect()->route('dashboard')->with('success', 'Pending database updates completed.');
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             report($exception);
 
             return back()->withErrors(['database' => 'Database updates failed. Check the hosting PHP error log.']);
