@@ -881,7 +881,6 @@ return new class extends Migration
         DB::table('services')->whereIn('slug', [
             'laravel-website-development',
             'wordpress-business-websites',
-            'custom-web-applications',
             'business-admin-dashboards',
             'customer-relationship-management-setup',
             'lead-management-systems',
@@ -922,13 +921,7 @@ return new class extends Migration
             'relay-control-logic-planning',
             'plc-workflow-consultation',
             'technical-documentation',
-            'digital-service-workflow-consultation',
-            'laravel-development',
-            'wordpress-development',
-            'virtual-assistant-and-data-entry',
-            'technical-seo-setup',
-            'plc-and-arduino-automation',
-            'api-integration-and-technical-support'
+            'digital-service-workflow-consultation'
 
         ])->delete();
     }
