@@ -20,8 +20,18 @@ jobs:
           extensions: mbstring, bcmath, sqlite3, pdo_sqlite, xml, curl, fileinfo
           coverage: none
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Build frontend assets
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
 
       - name: Prepare test environment
         run: |
