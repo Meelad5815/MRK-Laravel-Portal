@@ -24,6 +24,8 @@ Route::get('/', function () {
     return view('home', compact('services'));
 })->name('home');
 Route::view('/about', 'about')->name('about');
+Route::view('/privacy-policy', 'privacy-policy')->name('privacy-policy');
+Route::view('/terms', 'terms')->name('terms');
 Route::get('/services', [ServiceController::class, 'index'])->name('services');
 Route::get('/services/{slug}', [ServiceController::class, 'show'])->where('slug', '[A-Za-z0-9-]+')->name('services.show');
 Route::view('/contact', 'contact')->name('contact');
@@ -38,7 +40,7 @@ Route::get('/robots.txt', function () {
 })->name('robots');
 
 Route::get('/sitemap.xml', function () {
-    $urls = [route('home'), route('about'), route('services'), route('contact'), route('projects.index'), route('blog.index')];
+    $urls = [route('home'), route('about'), route('privacy-policy'), route('terms'), route('services'), route('contact'), route('projects.index'), route('blog.index')];
     foreach (Service::query()->where('status', 'published')->get(['slug']) as $service) {
         $urls[] = route('services.show', $service->slug);
     }
