@@ -676,33 +676,8 @@ return new class extends Migration
                 'seo_description' => 'Show genuine work samples and label demo projects, concepts and client work accurately.',
                 'created_at' => $now,
                 'updated_at' => $now,
-            ],
-            [
-                'title' => 'New Client Enquiry Response Checklist',
-                'slug' => 'new-client-enquiry-response-checklist',
-                'category' => 'Sales Operations',
-                'excerpt' => 'Acknowledge the request, clarify essential details and agree on the next step.',
-                'content' => 'Acknowledge the request, clarify essential details and agree on the next step.\n\nSummarize the client\'s goal, ask only the questions needed to scope the work and explain when they can expect a proposal. Avoid promising outcomes before checking feasibility.\n\nRecommended steps:\n1. Confirm the current situation and the intended outcome.\n2. Record the requirements, constraints and information that still needs verification.\n3. Test the proposed workflow with a small, representative example.\n4. Document the result, unresolved questions and maintenance owner.\n\nThis page is general guidance. Exact requirements vary by platform, hosting plan, business context and applicable rules. Confirm details before making production changes, and use qualified professionals for safety-critical, legal or regulated work.',
-                'status' => 'published',
-                'featured' => false,
-                'seo_title' => 'New Client Enquiry Response Checklist | MRK Digital',
-                'seo_description' => 'Acknowledge the request, clarify essential details and agree on the next step.',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            [
-                'title' => 'Digital Services Center Operations Checklist',
-                'slug' => 'digital-services-center-operations-checklist',
-                'category' => 'Business Operations',
-                'excerpt' => 'Organize service categories, enquiry handling, recordkeeping and quality checks.',
-                'content' => 'Organize service categories, enquiry handling, recordkeeping and quality checks.\n\nPublish only services the team can actually deliver, keep contact information accurate, track every enquiry to a next action and review recurring customer questions for process improvements.\n\nRecommended steps:\n1. Confirm the current situation and the intended outcome.\n2. Record the requirements, constraints and information that still needs verification.\n3. Test the proposed workflow with a small, representative example.\n4. Document the result, unresolved questions and maintenance owner.\n\nThis page is general guidance. Exact requirements vary by platform, hosting plan, business context and applicable rules. Confirm details before making production changes, and use qualified professionals for safety-critical, legal or regulated work.',
-                'status' => 'published',
-                'featured' => false,
-                'seo_title' => 'Digital Services Center Operations Checklist | MRK Digital',
-                'seo_description' => 'Organize service categories, enquiry handling, recordkeeping and quality checks.',
-                'created_at' => $now,
-                'updated_at' => $now,
             ]
+
         ];
 
         foreach ($pages as $page) {
