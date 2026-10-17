@@ -27,10 +27,6 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
-          touch database/testing.sqlite
 
-      - name: Run migrations and automated tests
-        env:
-          DB_CONNECTION: sqlite
-          DB_DATABASE: database/testing.sqlite
+      - name: Run automated tests
         run: php artisan test
