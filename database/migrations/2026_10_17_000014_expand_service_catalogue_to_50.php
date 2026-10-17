@@ -322,7 +322,7 @@ return new class extends Migration
             ],
             [
                 'title' => 'E-commerce Product Listing',
-                'slug' => 'e-commerce-product-listing',
+                'slug' => 'ecommerce-product-listing',
                 'summary' => 'Organize product titles, descriptions, attributes and listing data.',
                 'description' => 'Organize product titles, descriptions, attributes and listing data.\n\nThe work begins with a review of the current situation, requirements, available access and desired outcome. The proposed scope, deliverables, timeline and price should be agreed before work starts.\n\nTo request an estimate, use the contact form and describe the platform, current issue, expected result and any deadline. Do not send passwords or sensitive credentials through the public form.',
                 'category' => 'E-commerce Support',
