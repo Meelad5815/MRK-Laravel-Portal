@@ -896,7 +896,6 @@ return new class extends Migration
             'xml-sitemap-and-robots-review',
             'website-content-migration',
             'blog-setup-and-formatting',
-            'e-commerce-product-listing',
             'online-store-setup-planning',
             'product-data-entry',
             'virtual-assistant-research',
