@@ -18,6 +18,7 @@ use App\Models\Invoice;
 use App\Models\BlogPost;
 use App\Models\ContentPage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 
@@ -72,6 +73,21 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'admin'])->group(function () {
+    Route::post('/dashboard/system/run-pending-migrations', function () {
+        try {
+            $exitCode = Artisan::call('migrate', ['--force' => true]);
+            if ($exitCode !== 0) {
+                return back()->withErrors(['database' => 'Database updates did not complete. Check the hosting PHP error log.']);
+            }
+
+            return redirect()->route('dashboard')->with('success', 'Pending database updates completed.');
+        } catch (\\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors(['database' => 'Database updates failed. Check the hosting PHP error log.']);
+        }
+    })->middleware('throttle:1,5')->name('admin.system.migrate');
+
     Route::get('/dashboard', function (Request $request) {
         $query = Lead::query();
         if ($search = trim((string) $request->query('search'))) {
