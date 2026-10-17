@@ -729,14 +729,6 @@ return new class extends Migration
         }
 
         DB::table('blog_posts')->whereIn('slug', [
-            'how-to-plan-a-business-website-before-development',
-            'laravel-or-wordpress-which-should-a-business-choose',
-            'e-commerce-product-listing-a-quality-checklist',
-            'virtual-assistant-tasks-how-to-define-a-clear-project',
-            'basic-technical-seo-checks-for-a-new-website',
-            'how-a-website-contact-form-can-generate-better-leads',
-            'planning-a-simple-arduino-automation-project',
-            'what-to-include-in-a-website-development-quote',
             'how-to-write-a-useful-website-homepage',
             'a-practical-website-launch-checklist',
             'how-to-choose-a-domain-name-for-a-small-business',
