@@ -3,6 +3,9 @@
 <head>
 @php($siteSettings = \App\Models\SiteSetting::whereIn('key',['site_name','seo_title','seo_description','tagline'])->pluck('value','key'))
 <meta charset="utf-8">
+<link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+<link rel="apple-touch-icon" href="{{ asset('images/mrk-digital-logo.svg') }}">
+<meta name="theme-color" content="#082b5b">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>@yield('title',$siteSettings['seo_title'] ?? ($siteSettings['site_name'] ?? 'MRK Digital'))</title>
@@ -10,6 +13,7 @@
 <meta name="robots" content="@yield('robots','index,follow')">
 <link rel="canonical" href="{{ url()->current() }}">
 <meta property="og:type" content="website">
+<meta property="og:image" content="{{ asset('images/mrk-digital-logo.svg') }}">
 <meta property="og:title" content="@yield('title','MRK Digital')">
 <meta property="og:description" content="@yield('description','MRK Digital — professional websites, web applications, automation and digital services.')">
 <meta property="og:url" content="{{ url()->current() }}">
@@ -20,7 +24,7 @@
 </head>
 <body>
 <header class="site-header"><div class="container nav">
-<a class="brand" href="{{ route('home') }}" aria-label="MRK Digital home"><span>MRK</span> Digital</a>
+<a class="brand" href="{{ route('home') }}" aria-label="MRK Digital home" style="display:inline-flex;align-items:center;gap:.65rem;text-decoration:none"><img src="{{ asset('images/mrk-digital-logo.svg') }}" alt="MRK Digital &amp; Online Services Center" width="54" height="54" style="display:block;width:54px;height:54px;object-fit:contain"><span><strong style="display:block;line-height:1.1">MRK Digital</strong><small style="display:block;font-size:.68em;letter-spacing:.04em">ONLINE SERVICES CENTER</small></span></a>
 <button class="menu-toggle" type="button" aria-controls="primary-navigation" aria-expanded="false">Menu</button>
 <nav id="primary-navigation" class="primary-navigation">
 <a class="{{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Home</a>
