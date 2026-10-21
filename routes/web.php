@@ -28,6 +28,7 @@ Route::get('/', function () {
 })->name('home');
 Route::view('/about', 'about')->name('about');
 Route::view('/tools', 'tools')->name('tools');
+Route::view('/developer-tools', 'developer-tools')->name('developer-tools');
 Route::view('/privacy-policy', 'privacy-policy')->name('privacy-policy');
 Route::view('/terms', 'terms')->name('terms');
 Route::get('/pages', [ContentPageController::class, 'index'])->name('pages.index');
@@ -46,7 +47,7 @@ Route::get('/robots.txt', function () {
 })->name('robots');
 
 Route::get('/sitemap.xml', function () {
-    $urls = [route('home'), route('about'), route('tools'), route('privacy-policy'), route('terms'), route('pages.index'), route('services'), route('contact'), route('projects.index'), route('blog.index')];
+    $urls = [route('home'), route('about'), route('tools'), route('developer-tools'), route('privacy-policy'), route('terms'), route('pages.index'), route('services'), route('contact'), route('projects.index'), route('blog.index')];
     foreach (Service::query()->where('status', 'published')->get(['slug']) as $service) {
         $urls[] = route('services.show', $service->slug);
     }
