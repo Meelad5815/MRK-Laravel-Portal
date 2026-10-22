@@ -14,7 +14,7 @@ services:
       - key: APP_URL
         sync: false
       - key: APP_KEY
-        sync: false
+        generateValue: true
       - key: LOG_CHANNEL
         value: stderr
       - key: LOG_LEVEL
