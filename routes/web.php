@@ -73,7 +73,9 @@ Route::get('/robots.txt', function () {
 })->name('robots');
 
 Route::get('/sitemap.xml', function () {
+    $toolSlugs = ['qr-code-generator','csv-json-converter','xml-formatter','html-formatter','javascript-formatter','markdown-preview','sha256-hash-generator','password-strength-checker','email-validator','url-parser','seo-meta-tag-generator','robots-txt-generator','xml-sitemap-generator','favicon-svg-generator','color-contrast-checker','reading-time-calculator','duplicate-line-remover','line-sorter','text-difference-checker','image-filter-grayscale'];
     $urls = [route('home'), route('about'), route('tools'), route('privacy-policy'), route('terms'), route('pages.index'), route('services'), route('contact'), route('projects.index'), route('blog.index')];
+    foreach ($toolSlugs as $toolSlug) { $urls[] = route('tools.show', $toolSlug); }
     foreach (Service::query()->where('status', 'published')->get(['slug']) as $service) {
         $urls[] = route('services.show', $service->slug);
     }
