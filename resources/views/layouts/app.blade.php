@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-@php($siteSettings = \App\Models\SiteSetting::whereIn('key',['site_name','seo_title','seo_description','tagline'])->pluck('value','key'))
+@php($siteSettings = \Illuminate\Support\Facades\Schema::hasTable('site_settings') ? \App\Models\SiteSetting::whereIn('key',['site_name','seo_title','seo_description','tagline'])->pluck('value','key') : collect())
 <meta charset="utf-8">
 <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
 <link rel="apple-touch-icon" href="{{ asset('images/mrk-digital-logo.svg') }}">
