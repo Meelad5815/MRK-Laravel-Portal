@@ -1,0 +1,13 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+node_modules
+vendor
+storage/logs/*.log
+database/*.sqlite
+database/*.sqlite-*
+tests
+phpunit.xml
+README.md
