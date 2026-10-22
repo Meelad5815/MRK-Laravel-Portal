@@ -28,7 +28,7 @@ Route::get('/', function () {
 })->name('home');
 Route::view('/about', 'about')->name('about');
 Route::view('/tools', 'tools')->name('tools');
-Route::view('/developer-tools', 'developer-tools')->name('developer-tools');
+Route::redirect('/developer-tools', '/tools', 301)->name('developer-tools');
 Route::view('/privacy-policy', 'privacy-policy')->name('privacy-policy');
 Route::view('/terms', 'terms')->name('terms');
 Route::get('/pages', [ContentPageController::class, 'index'])->name('pages.index');
