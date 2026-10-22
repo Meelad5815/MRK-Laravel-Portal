@@ -262,16 +262,6 @@ class AdditionalContentSeeder extends Seeder
                 'category' => 'Pakistan Digital Services',
                 'body' => 'Use the relevant provincial government portal to verify current fees, eligibility, documents and appointment instructions.'
             ],
-            [
-                'title' => 'Privacy Policy Essentials for a Small Website',
-                'category' => 'Legal Basics',
-                'body' => 'Describe what information is collected, why it is used, retention, third-party services, contact details and user rights relevant to your operation.'
-            ],
-            [
-                'title' => 'How to Turn Website Visitors into Enquiries',
-                'category' => 'Business',
-                'body' => 'Make services clear, show a trustworthy process, reduce unnecessary form fields and measure completed enquiries rather than clicks alone.'
-            ]
         ];
 
         foreach ($posts as $index => $item) {
@@ -588,12 +578,6 @@ class AdditionalContentSeeder extends Seeder
                 'body' => 'Improve service descriptions, deliverables and profile clarity for freelance platforms without promising orders or earnings.',
                 'icon' => 'Freelancing'
             ],
-            [
-                'title' => 'Small Business Digital Setup Consultation',
-                'category' => 'Business',
-                'body' => 'Help plan a practical online presence, service catalogue, enquiry process and low-cost digital workflow.',
-                'icon' => 'Consulting'
-            ]
         ];
 
         foreach ($services as $index => $item) {
