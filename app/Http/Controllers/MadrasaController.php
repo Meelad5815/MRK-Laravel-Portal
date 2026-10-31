@@ -62,8 +62,15 @@ class MadrasaController extends Controller
         $parentUsers = $role === 'admin'
             ? DB::table('users')->where('madrasa_role', 'parent')->where('madrasa_id', self::MADRASA_ID)->orderBy('name')->get(['id', 'name', 'email'])
             : collect();
+        $exams = DB::table('madrasa_exams')->whereIn('student_id', $studentIds)
+            ->when($role === 'parent', fn ($q) => $q->where('parent_visible', true))
+            ->orderByDesc('exam_date')->limit(100)->get();
+        $certificates = DB::table('madrasa_certificates')->whereIn('student_id', $studentIds)->orderByDesc('issued_on')->get();
+        $announcements = DB::table('madrasa_announcements')->where('is_published', true)
+            ->when($role !== 'admin', fn ($q) => $q->whereIn('audience', ['all', $role]))
+            ->orderByDesc('published_at')->limit(30)->get();
 
-        return view('madrasa.index', compact('role', 'studentRows', 'attendance', 'progress', 'qariUsers', 'parentUsers'));
+        return view('madrasa.index', compact('role', 'studentRows', 'attendance', 'progress', 'qariUsers', 'parentUsers', 'exams', 'certificates', 'announcements'));
     }
 
     public function storeStudent(Request $request): RedirectResponse
@@ -197,6 +204,102 @@ class MadrasaController extends Controller
         DB::table('madrasa_daily_progress')->where('id', $progress)->update(['parent_visible' => (bool) $data['parent_visible'], 'updated_at' => now()]);
         $this->audit($request, 'progress.visibility_changed', 'madrasa_daily_progress', $progress);
         return back()->with('success', 'والدین کے لیے پیش رفت کی نمائش کی ترتیب محفوظ ہو گئی۔');
+    }
+
+    public function storeExam(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'student_id' => ['required', 'integer', 'exists:madrasa_students,id'],
+            'exam_type' => ['required', 'string', 'max:40'],
+            'exam_date' => ['required', 'date'],
+            'total_marks' => ['required', 'numeric', 'min:1', 'max:99999'],
+            'obtained_marks' => ['required', 'numeric', 'min:0', 'lte:total_marks'],
+            'grade' => ['nullable', 'string', 'max:20'],
+            'remarks' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $this->canTeach($request, (int) $data['student_id']);
+        $id = DB::table('madrasa_exams')->insertGetId([
+            ...$data,
+            'examiner_user_id' => $request->user()->id,
+            'parent_visible' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->audit($request, 'exam.recorded', 'madrasa_exams', $id);
+        return back()->with('success', 'امتحان کا نتیجہ محفوظ ہو گیا۔ والدین کو دکھانے سے پہلے انتظامیہ کی منظوری ضروری ہے۔');
+    }
+
+    public function setExamVisibility(Request $request, int $exam): RedirectResponse
+    {
+        $this->admin($request);
+        $data = $request->validate(['parent_visible' => ['required', 'boolean']]);
+        abort_unless(DB::table('madrasa_exams')->where('id', $exam)->exists(), 404);
+        DB::table('madrasa_exams')->where('id', $exam)->update(['parent_visible' => (bool) $data['parent_visible'], 'updated_at' => now()]);
+        $this->audit($request, 'exam.visibility_changed', 'madrasa_exams', $exam);
+        return back()->with('success', 'امتحان کے نتیجے کی منظوری محفوظ ہو گئی۔');
+    }
+
+    public function issueCertificate(Request $request): RedirectResponse
+    {
+        $this->admin($request);
+        $data = $request->validate([
+            'student_id' => ['required', 'integer', 'exists:madrasa_students,id'],
+            'certificate_type' => ['required', 'string', 'max:40'],
+            'issued_on' => ['required', 'date'],
+            'issued_by_name' => ['nullable', 'string', 'max:150'],
+        ]);
+        abort_unless(DB::table('madrasa_students')->where('id', $data['student_id'])->where('madrasa_id', self::MADRASA_ID)->exists(), 422);
+        $id = DB::table('madrasa_certificates')->insertGetId([
+            ...$data,
+            'certificate_number' => 'MRK58-CERT-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
+            'verification_token' => Str::random(48),
+            'status' => 'valid',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->audit($request, 'certificate.issued', 'madrasa_certificates', $id);
+        return back()->with('success', 'سرٹیفکیٹ جاری ہو گیا۔ تصدیقی لنک سرٹیفکیٹ کی فہرست میں موجود ہے۔');
+    }
+
+    public function storeAnnouncement(Request $request): RedirectResponse
+    {
+        $this->admin($request);
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:180'],
+            'body' => ['required', 'string', 'max:10000'],
+            'audience' => ['required', 'in:all,qari,parent'],
+            'is_published' => ['nullable', 'boolean'],
+        ]);
+        $published = (bool) ($data['is_published'] ?? false);
+        $id = DB::table('madrasa_announcements')->insertGetId([
+            'title' => $data['title'],
+            'body' => $data['body'],
+            'audience' => $data['audience'],
+            'is_published' => $published,
+            'published_at' => $published ? now() : null,
+            'created_by' => $request->user()->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->audit($request, 'announcement.created', 'madrasa_announcements', $id);
+        return back()->with('success', $published ? 'اعلان شائع کر دیا گیا۔' : 'اعلان بطور مسودہ محفوظ ہو گیا۔');
+    }
+
+    public function verifyCertificate(string $token): View
+    {
+        $certificate = DB::table('madrasa_certificates')
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_certificates.student_id')
+            ->where('madrasa_certificates.verification_token', $token)
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)
+            ->first([
+                'madrasa_certificates.certificate_number',
+                'madrasa_certificates.certificate_type',
+                'madrasa_certificates.issued_on',
+                'madrasa_certificates.status',
+                'madrasa_students.full_name',
+                'madrasa_students.program',
+            ]);
+        return view('madrasa.certificate-verify', compact('certificate'));
     }
 
     private function audit(Request $request, string $action, string $type, int $id): void

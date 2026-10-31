@@ -197,6 +197,8 @@ Route::middleware('auth')->group(function () {
 });
 
 
+Route::get('/madrasa/certificates/verify/{token}', [\App\Http\Controllers\MadrasaController::class, 'verifyCertificate'])->name('madrasa.certificates.verify');
+
 // MRK Madrasa Management System — embedded Vercel application.
 Route::middleware('auth')->group(function () {
     Route::get('/madrasa', [\App\Http\Controllers\MadrasaController::class, 'index'])->name('madrasa');
@@ -207,4 +209,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/madrasa/attendance', [\App\Http\Controllers\MadrasaController::class, 'storeAttendance'])->name('madrasa.attendance.store');
     Route::post('/madrasa/progress', [\App\Http\Controllers\MadrasaController::class, 'storeProgress'])->name('madrasa.progress.store');
     Route::post('/madrasa/progress/{progress}/visibility', [\App\Http\Controllers\MadrasaController::class, 'setProgressVisibility'])->whereNumber('progress')->name('madrasa.progress.visibility');
+    Route::post('/madrasa/exams', [\App\Http\Controllers\MadrasaController::class, 'storeExam'])->name('madrasa.exams.store');
+    Route::post('/madrasa/exams/{exam}/visibility', [\App\Http\Controllers\MadrasaController::class, 'setExamVisibility'])->whereNumber('exam')->name('madrasa.exams.visibility');
+    Route::post('/madrasa/certificates', [\App\Http\Controllers\MadrasaController::class, 'issueCertificate'])->name('madrasa.certificates.store');
+    Route::post('/madrasa/announcements', [\App\Http\Controllers\MadrasaController::class, 'storeAnnouncement'])->name('madrasa.announcements.store');
 });
