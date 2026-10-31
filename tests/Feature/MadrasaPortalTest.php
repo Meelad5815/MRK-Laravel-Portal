@@ -122,6 +122,89 @@ class MadrasaPortalTest extends TestCase
             ->assertDontSee('Private lesson');
     }
 
+    public function test_qari_can_record_exam_but_parent_visibility_requires_admin_approval(): void
+    {
+        $qari = User::factory()->create([
+            'is_admin' => false,
+            'madrasa_role' => 'qari',
+            'madrasa_id' => 'mrk-madrasa-58',
+        ]);
+        $studentId = $this->createStudent('Exam Student');
+        DB::table('madrasa_qari_assignments')->insert([
+            'student_id' => $studentId,
+            'qari_user_id' => $qari->id,
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($qari)->post('/madrasa/exams', [
+            'student_id' => $studentId,
+            'exam_type' => 'hifz',
+            'exam_date' => '2026-10-31',
+            'total_marks' => 100,
+            'obtained_marks' => 87,
+            'grade' => 'A',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('madrasa_exams', [
+            'student_id' => $studentId,
+            'obtained_marks' => 87,
+            'parent_visible' => false,
+        ]);
+    }
+
+    public function test_admin_can_issue_certificate_and_public_verification_checks_token(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $studentId = $this->createStudent('Certificate Student');
+
+        $this->actingAs($admin)->post('/madrasa/certificates', [
+            'student_id' => $studentId,
+            'certificate_type' => 'hifz',
+            'issued_on' => '2026-10-31',
+            'issued_by_name' => 'Head Qari',
+        ])->assertRedirect();
+
+        $certificate = DB::table('madrasa_certificates')->where('student_id', $studentId)->first();
+        $this->assertNotNull($certificate);
+        $this->get('/madrasa/certificates/verify/' . $certificate->verification_token)
+            ->assertOk()
+            ->assertSee('Certificate Student')
+            ->assertSee($certificate->certificate_number);
+        $this->get('/madrasa/certificates/verify/not-a-valid-token')
+            ->assertOk()
+            ->assertSee('یہ تصدیقی کوڈ درست نہیں');
+    }
+
+    public function test_admin_can_publish_announcement_for_selected_audience(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $this->actingAs($admin)->post('/madrasa/announcements', [
+            'title' => 'Parent Meeting',
+            'body' => 'Meeting on Friday after Asr.',
+            'audience' => 'parent',
+            'is_published' => 1,
+        ])->assertRedirect();
+
+        $parent = User::factory()->create([
+            'is_admin' => false,
+            'madrasa_role' => 'parent',
+            'madrasa_id' => 'mrk-madrasa-58',
+        ]);
+        $this->actingAs($parent)->get('/madrasa')
+            ->assertOk()
+            ->assertSee('Parent Meeting');
+        $qari = User::factory()->create([
+            'is_admin' => false,
+            'madrasa_role' => 'qari',
+            'madrasa_id' => 'mrk-madrasa-58',
+        ]);
+        $this->actingAs($qari)->get('/madrasa')
+            ->assertOk()
+            ->assertDontSee('Parent Meeting');
+    }
+
     private function createStudent(string $name): int
     {
         return DB::table('madrasa_students')->insertGetId([
