@@ -195,3 +195,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
+
+
+// MRK Madrasa Management System — embedded Vercel application.
+Route::view('/madrasa', 'madrasa')->name('madrasa');
