@@ -124,6 +124,27 @@ class MadrasaController extends Controller
         return back()->with('success', 'اکاؤنٹ بن گیا۔ عارضی پاس ورڈ صرف اسی سیشن میں دکھایا جائے گا۔');
     }
 
+    public function resetAccountPassword(Request $request, int $user): RedirectResponse
+    {
+        $this->admin($request);
+        $account = DB::table('users')
+            ->where('id', $user)
+            ->where('madrasa_id', self::MADRASA_ID)
+            ->whereIn('madrasa_role', ['qari', 'parent'])
+            ->first();
+        abort_unless($account, 404);
+
+        $temporaryPassword = Str::password(16, true, true, false, false);
+        DB::table('users')->where('id', $user)->update([
+            'password' => Hash::make($temporaryPassword),
+            'updated_at' => now(),
+        ]);
+        $request->session()->flash('temporary_account_password', $temporaryPassword);
+        $this->audit($request, 'account.password_reset', 'users', $user);
+
+        return back()->with('success', 'نیا عارضی پاس ورڈ بنا دیا گیا ہے۔ اسے قاری تک محفوظ طریقے سے پہنچائیں۔');
+    }
+
     public function assignQari(Request $request): RedirectResponse
     {
         $this->admin($request);
