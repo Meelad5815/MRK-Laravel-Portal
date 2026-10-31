@@ -208,6 +208,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/madrasa', [\App\Http\Controllers\MadrasaController::class, 'index'])->name('madrasa');
     Route::post('/madrasa/students', [\App\Http\Controllers\MadrasaController::class, 'storeStudent'])->name('madrasa.students.store');
     Route::post('/madrasa/accounts', [\App\Http\Controllers\MadrasaController::class, 'storeAccount'])->name('madrasa.accounts.store');
+    Route::post('/madrasa/accounts/{user}/reset-password', [\App\Http\Controllers\MadrasaController::class, 'resetAccountPassword'])->whereNumber('user')->name('madrasa.accounts.reset-password');
     Route::post('/madrasa/assign-qari', [\App\Http\Controllers\MadrasaController::class, 'assignQari'])->name('madrasa.assign-qari');
     Route::post('/madrasa/link-parent', [\App\Http\Controllers\MadrasaController::class, 'linkParent'])->name('madrasa.link-parent');
     Route::post('/madrasa/attendance', [\App\Http\Controllers\MadrasaController::class, 'storeAttendance'])->name('madrasa.attendance.store');
