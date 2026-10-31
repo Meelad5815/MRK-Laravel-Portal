@@ -9,12 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'madrasa_role')) {
-                $table->string('madrasa_role', 20)->nullable()->index();
-            }
-            if (!Schema::hasColumn('users', 'madrasa_id')) {
-                $table->string('madrasa_id', 64)->nullable()->index();
-            }
+            $table->string('madrasa_role', 20)->nullable()->index();
+            $table->string('madrasa_id', 64)->nullable()->index();
         });
 
         Schema::create('madrasa_students', function (Blueprint $table) {
@@ -167,12 +163,7 @@ return new class extends Migration
         Schema::dropIfExists('madrasa_students');
 
         Schema::table('users', function (Blueprint $table) {
-            if (Schema::hasColumn('users', 'madrasa_role')) {
-                $table->dropColumn('madrasa_role');
-            }
-            if (Schema::hasColumn('users', 'madrasa_id')) {
-                $table->dropColumn('madrasa_id');
-            }
+            $table->dropColumn(['madrasa_role', 'madrasa_id']);
         });
     }
 };
