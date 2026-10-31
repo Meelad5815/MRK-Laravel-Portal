@@ -42,7 +42,7 @@ class MadrasaController extends Controller
     {
         $role = $this->role($request);
         $userId = (int) $request->user()->id;
-        $students = DB::table('madrasa_students')->orderBy('full_name');
+        $students = DB::table('madrasa_students')->where('madrasa_id', self::MADRASA_ID)->orderBy('full_name');
         if ($role === 'qari') {
             $ids = DB::table('madrasa_qari_assignments')->where('qari_user_id', $userId)->where('status', 'active')->pluck('student_id');
             $students->whereIn('id', $ids);
