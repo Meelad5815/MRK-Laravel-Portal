@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContentPageController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\PersonalCloudController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectAdminController;
 use App\Http\Controllers\ServiceController;
@@ -194,4 +195,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+});
+
+
+Route::middleware('auth')->prefix('cloud')->name('cloud.')->group(function () {
+    Route::get('/', [PersonalCloudController::class, 'index'])->name('index');
+    Route::post('/upload', [PersonalCloudController::class, 'store'])->middleware('throttle:10,1')->name('store');
+    Route::get('/{cloudFile}/download', [PersonalCloudController::class, 'download'])->name('download');
+    Route::delete('/{cloudFile}', [PersonalCloudController::class, 'destroy'])->name('destroy');
 });
