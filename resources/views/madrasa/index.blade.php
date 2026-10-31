@@ -119,5 +119,78 @@
 </tbody></table></div>
 @endif
 </div>
+
+<div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
+<h2>امتحانات اور نتائج</h2>
+@if(in_array($role, ['admin','qari'], true))
+<form method="POST" action="{{ route('madrasa.exams.store') }}" class="form-grid">@csrf
+<label>طالب علم<select name="student_id" required>@foreach($studentRows as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
+<label>امتحان کی قسم<select name="exam_type"><option value="hifz">حفظ</option><option value="nazra">ناظرہ</option><option value="qaida">قاعدہ</option><option value="monthly">ماہانہ</option><option value="annual">سالانہ</option></select></label>
+<label>تاریخ<input type="date" name="exam_date" value="{{ now()->toDateString() }}" required></label>
+<label>کل نمبر<input type="number" name="total_marks" min="1" max="99999" step="0.01" value="100" required></label>
+<label>حاصل کردہ نمبر<input type="number" name="obtained_marks" min="0" max="99999" step="0.01" required></label>
+<label>گریڈ<input name="grade" maxlength="20" placeholder="مثلاً A+"></label>
+<label>تبصرہ<input name="remarks" maxlength="2000"></label>
+<div><button class="button primary" type="submit">نتیجہ محفوظ کریں</button></div>
+</form>
+@endif
+@if($exams->isEmpty())<p class="empty">امتحان کا ریکارڈ موجود نہیں۔</p>@else
+<div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>قسم</th><th>تاریخ</th><th>نمبر</th><th>گریڈ</th><th>والدین</th></tr></thead><tbody>
+@foreach($exams as $exam)
+@php($student = $studentRows->firstWhere('id', $exam->student_id))
+<tr><td>{{ $student?->full_name ?? 'طالب علم' }}</td><td>{{ $exam->exam_type }}</td><td>{{ $exam->exam_date }}</td><td>{{ $exam->obtained_marks }} / {{ $exam->total_marks }}</td><td>{{ $exam->grade ?: '—' }}</td><td>
+@if($role === 'admin')
+<form method="POST" action="{{ route('madrasa.exams.visibility', $exam->id) }}">@csrf<input type="hidden" name="parent_visible" value="{{ $exam->parent_visible ? 0 : 1 }}"><button class="button secondary" type="submit">{{ $exam->parent_visible ? 'منظوری واپس لیں' : 'والدین کو دکھائیں' }}</button></form>
+@else{{ $role === 'parent' ? 'منظور شدہ' : ($exam->parent_visible ? 'منظور شدہ' : 'منظوری باقی') }}@endif
+</td></tr>
+@endforeach
+</tbody></table></div>
+@endif
+</div>
+
+@if($role === 'admin')
+<div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
+<h2>سرٹیفکیٹ جاری کریں</h2>
+<form method="POST" action="{{ route('madrasa.certificates.store') }}" class="form-grid">@csrf
+<label>طالب علم<select name="student_id" required>@foreach($studentRows as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
+<label>سرٹیفکیٹ کی قسم<select name="certificate_type"><option value="hifz">حفظ مکمل</option><option value="nazra">ناظرہ مکمل</option><option value="qaida">قاعدہ مکمل</option><option value="participation">شرکت</option></select></label>
+<label>اجراء کی تاریخ<input type="date" name="issued_on" value="{{ now()->toDateString() }}" required></label>
+<label>جاری کرنے والے کا نام<input name="issued_by_name" maxlength="150"></label>
+<div><button class="button primary" type="submit">سرٹیفکیٹ جاری کریں</button></div>
+</form>
+</div>
+@endif
+<div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
+<h2>سرٹیفکیٹس اور آن لائن تصدیق</h2>
+@if($certificates->isEmpty())<p class="empty">ابھی کوئی سرٹیفکیٹ جاری نہیں ہوا۔</p>@else
+<div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>سرٹیفکیٹ نمبر</th><th>قسم</th><th>تاریخ</th><th>تصدیق</th></tr></thead><tbody>
+@foreach($certificates as $cert)
+@php($student = $studentRows->firstWhere('id', $cert->student_id))
+<tr><td>{{ $student?->full_name ?? 'طالب علم' }}</td><td>{{ $cert->certificate_number }}</td><td>{{ $cert->certificate_type }}</td><td>{{ $cert->issued_on }}</td><td><a href="{{ route('madrasa.certificates.verify', $cert->verification_token) }}" target="_blank" rel="noopener">تصدیقی صفحہ</a></td></tr>
+@endforeach
+</tbody></table></div>
+@endif
+</div>
+
+@if($role === 'admin')
+<div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
+<h2>اعلانات شائع کریں</h2>
+<form method="POST" action="{{ route('madrasa.announcements.store') }}" class="form-grid">@csrf
+<label>عنوان<input name="title" maxlength="180" required></label>
+<label>کس کے لیے؟<select name="audience"><option value="all">سب صارفین</option><option value="qari">صرف قاری</option><option value="parent">صرف والدین</option></select></label>
+<label style="grid-column:1/-1">اعلان<textarea name="body" rows="4" maxlength="10000" required></textarea></label>
+<label><input type="checkbox" name="is_published" value="1"> ابھی شائع کریں</label>
+<div><button class="button primary" type="submit">اعلان محفوظ کریں</button></div>
+</form>
+</div>
+@endif
+<div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
+<h2>اہم اعلانات</h2>
+@if($announcements->isEmpty())<p class="empty">فی الحال کوئی شائع شدہ اعلان نہیں۔</p>@else
+@foreach($announcements as $announcement)
+<article style="padding:.75rem 0;border-bottom:1px solid #ddd"><h3>{{ $announcement->title }}</h3><p>{{ $announcement->body }}</p><small>{{ $announcement->published_at }}</small></article>
+@endforeach
+@endif
+</div>
 </div></section>
 @endsection
