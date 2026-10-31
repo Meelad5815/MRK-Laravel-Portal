@@ -67,7 +67,8 @@ class MadrasaController extends Controller
             ->orderByDesc('exam_date')->limit(100)->get();
         $certificates = DB::table('madrasa_certificates')->whereIn('student_id', $studentIds)->orderByDesc('issued_on')->get();
         $announcements = DB::table('madrasa_announcements')->where('is_published', true)
-            ->whereIn('audience', ['all', $role])->orderByDesc('published_at')->limit(30)->get();
+            ->when($role !== 'admin', fn ($q) => $q->whereIn('audience', ['all', $role]))
+            ->orderByDesc('published_at')->limit(30)->get();
 
         return view('madrasa.index', compact('role', 'studentRows', 'attendance', 'progress', 'qariUsers', 'parentUsers', 'exams', 'certificates', 'announcements'));
     }
