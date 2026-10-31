@@ -35,6 +35,7 @@
 <a class="{{ request()->routeIs('blog.*') ? 'active' : '' }}" href="{{ route('blog.index') }}">Blog</a>
 <a class="{{ request()->routeIs('pages.*') ? 'active' : '' }}" href="{{ route('pages.index') }}">Resources</a>
 <a class="{{ request()->routeIs('contact') ? 'active' : '' }}" href="{{ route('contact') }}">Contact</a>
+<a class="{{ request()->routeIs('madrasa') ? 'active' : '' }}" href="{{ route('madrasa') }}">Madrasa Portal</a>
 @auth
 <a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">Dashboard</a>
 <form class="inline-form" method="POST" action="{{ route('logout') }}">@csrf<button class="nav-button" type="submit">Logout</button></form>
