@@ -103,7 +103,11 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'admin'])->group(function () {
-    Route::post('/dashboard/system/run-pending-migrations', function () {
+    Route::post('/dashboard/system/run-pending-migrations', function (Request $request) {
+        $request->validate([
+            'backup_confirmed' => ['required', 'accepted'],
+        ]);
+
         try {
             $exitCode = Artisan::call('migrate', ['--force' => true]);
             if ($exitCode !== 0) {
