@@ -31,6 +31,9 @@
 <a class="{{ request()->routeIs('about') ? 'active' : '' }}" href="{{ route('about') }}">About</a>
 <a class="{{ request()->routeIs('services') ? 'active' : '' }}" href="{{ route('services') }}">Services</a>
 <a class="{{ request()->routeIs('tools', 'developer-tools') ? 'active' : '' }}" href="{{ route('tools') }}">Free Tools</a>
+@auth
+<a class="{{ request()->routeIs('cloud.*') ? 'active' : '' }}" href="{{ route('cloud.index') }}">Personal Cloud</a>
+@endauth
 <a class="{{ request()->routeIs('projects.*') ? 'active' : '' }}" href="{{ route('projects.index') }}">Projects</a>
 <a class="{{ request()->routeIs('blog.*') ? 'active' : '' }}" href="{{ route('blog.index') }}">Blog</a>
 <a class="{{ request()->routeIs('pages.*') ? 'active' : '' }}" href="{{ route('pages.index') }}">Resources</a>
