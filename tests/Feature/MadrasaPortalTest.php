@@ -205,6 +205,26 @@ class MadrasaPortalTest extends TestCase
             ->assertDontSee('Parent Meeting');
     }
 
+    public function test_admin_can_reset_a_madrasa_account_password_and_new_password_authenticates(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $qari = User::factory()->create([
+            'is_admin' => false,
+            'madrasa_role' => 'qari',
+            'madrasa_id' => 'mrk-madrasa-58',
+            'password' => 'OldPassword123',
+        ]);
+
+        $response = $this->actingAs($admin)->post('/madrasa/accounts/' . $qari->id . '/reset-password');
+        $response->assertRedirect();
+        $response->assertSessionHas('temporary_account_password', function ($password) use ($qari) {
+            $fresh = User::findOrFail($qari->id);
+            return is_string($password)
+                && strlen($password) === 16
+                && password_verify($password, $fresh->password);
+        });
+    }
+
     private function createStudent(string $name): int
     {
         return DB::table('madrasa_students')->insertGetId([
