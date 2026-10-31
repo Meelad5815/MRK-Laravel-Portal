@@ -34,6 +34,18 @@
 </form></div>
 
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
+<h2>قاری / والدین کے اکاؤنٹس</h2>
+<p>اگر کسی صارف کا پاس ورڈ کام نہ کرے تو صرف اسی اکاؤنٹ کا نیا عارضی پاس ورڈ بنائیں۔ پرانا پاس ورڈ فوراً غیر مؤثر ہو جائے گا۔</p>
+<div class="table-wrap"><table><thead><tr><th>نام</th><th>ای میل</th><th>کردار</th><th>پاس ورڈ</th></tr></thead><tbody>
+@foreach($qariUsers->concat($parentUsers) as $account)
+<tr><td>{{ $account->name }}</td><td dir="ltr">{{ $account->email }}</td><td>{{ $account->madrasa_role === 'qari' ? 'قاری' : 'والدین' }}</td><td>
+<form method="POST" action="{{ route('madrasa.accounts.reset-password', $account->id) }}" onsubmit="return confirm('اس اکاؤنٹ کا موجودہ پاس ورڈ تبدیل ہو جائے گا۔ جاری رکھیں؟')">@csrf<button class="button secondary" type="submit">نیا پاس ورڈ بنائیں</button></form>
+</td></tr>
+@endforeach
+</tbody></table></div>
+</div>
+
+<div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
 <h2>قاری کو طالب علم تفویض کریں</h2>
 <form method="POST" action="{{ route('madrasa.assign-qari') }}" class="form-grid">@csrf
 <label>طالب علم<select name="student_id" required>@foreach($studentRows as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
