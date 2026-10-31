@@ -198,4 +198,13 @@ Route::middleware('auth')->group(function () {
 
 
 // MRK Madrasa Management System — embedded Vercel application.
-Route::view('/madrasa', 'madrasa')->name('madrasa');
+Route::middleware('auth')->group(function () {
+    Route::get('/madrasa', [\\App\\Http\\Controllers\\MadrasaController::class, 'index'])->name('madrasa');
+    Route::post('/madrasa/students', [\\App\\Http\\Controllers\\MadrasaController::class, 'storeStudent'])->name('madrasa.students.store');
+    Route::post('/madrasa/accounts', [\\App\\Http\\Controllers\\MadrasaController::class, 'storeAccount'])->name('madrasa.accounts.store');
+    Route::post('/madrasa/assign-qari', [\\App\\Http\\Controllers\\MadrasaController::class, 'assignQari'])->name('madrasa.assign-qari');
+    Route::post('/madrasa/link-parent', [\\App\\Http\\Controllers\\MadrasaController::class, 'linkParent'])->name('madrasa.link-parent');
+    Route::post('/madrasa/attendance', [\\App\\Http\\Controllers\\MadrasaController::class, 'storeAttendance'])->name('madrasa.attendance.store');
+    Route::post('/madrasa/progress', [\\App\\Http\\Controllers\\MadrasaController::class, 'storeProgress'])->name('madrasa.progress.store');
+    Route::post('/madrasa/progress/{progress}/visibility', [\\App\\Http\\Controllers\\MadrasaController::class, 'setProgressVisibility'])->whereNumber('progress')->name('madrasa.progress.visibility');
+});
