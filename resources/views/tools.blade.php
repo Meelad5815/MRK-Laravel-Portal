@@ -3,6 +3,15 @@
 @section('description','Use free online image compressor, image converter, ZIP extractor, text-to-image, OCR and developer tools. Fast browser-based utilities with direct links and privacy-friendly processing.')
 @section('content')
 <main class="section tools-page"><div class="container">
+  <section class="tools-hero reveal">
+    <div class="tools-hero-copy">
+      <span class="eyebrow">MRK DIGITAL • SMART WORKSPACE</span>
+      <h1>Powerful tools.<br><span>Simple workflow.</span></h1>
+      <p>Explore practical free utilities for images, files, text, SEO and web development. Most tools work directly in your browser, so your files stay on your device.</p>
+      <div class="tools-hero-actions"><a class="button primary" href="#all-tools">Explore all tools ↓</a><span class="tools-privacy"><span class="privacy-dot"></span> Browser-first processing</span></div>
+    </div>
+    <div class="tools-hero-art" aria-hidden="true"><div class="tools-orbit orbit-one"></div><div class="tools-orbit orbit-two"></div><div class="tools-art-core">MRK<span>✦</span></div><div class="tools-float-card float-card-one">⌘ <b>Developer</b></div><div class="tools-float-card float-card-two">✧ <b>Creative</b></div><div class="tools-float-card float-card-three">⚡ <b>Everyday</b></div></div>
+  </section>
   <div class="section-heading">
     <span class="eyebrow">MRK DIGITAL TOOLKIT</span>
     <h1>Free Online Tools</h1>
@@ -10,7 +19,7 @@
   </div>
   <label for="tool-search"><strong>Find a tool</strong></label>
   <input id="tool-search" type="search" placeholder="Search image compressor, JSON, ZIP..." style="width:100%;padding:.85rem;margin:.5rem 0 1rem">
-  <div class="tool-actions" role="group" aria-label="Tool categories" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+  <div class="tool-actions tool-filter-bar" role="group" aria-label="Tool categories">
     <button class="button primary" data-filter="all" type="button">All Tools</button><button class="button secondary" data-filter="image" type="button">Image Tools</button><button class="button secondary" data-filter="file" type="button">File & OCR</button><button class="button secondary" data-filter="video" type="button">Video & Audio</button><button class="button secondary" data-filter="developer" type="button">Developer Tools</button><button class="button secondary" data-filter="text" type="button">Text & Everyday</button>
   </div>
   <div class="cards tools-grid" id="all-tools">
