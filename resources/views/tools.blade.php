@@ -12,13 +12,12 @@
     </div>
     <div class="tools-hero-art" aria-hidden="true"><div class="tools-orbit orbit-one"></div><div class="tools-orbit orbit-two"></div><div class="tools-art-core">MRK<span>✦</span></div><div class="tools-float-card float-card-one">⌘ <b>Developer</b></div><div class="tools-float-card float-card-two">✧ <b>Creative</b></div><div class="tools-float-card float-card-three">⚡ <b>Everyday</b></div></div>
   </section>
-  <div class="section-heading">
-    <span class="eyebrow">MRK DIGITAL TOOLKIT</span>
-    <h1>Free Online Tools</h1>
-    <p>Free browser-based tools for images, files, text, video information and web development. Choose a category or search for a tool. Where supported, files are processed on your device.</p>
+  <div class="section-heading tools-section-heading">
+    <span class="eyebrow">YOUR DIGITAL TOOLBOX</span>
+    <h2>Find the right tool for the job</h2>
+    <p>Search the collection or choose a category to get started.</p>
   </div>
-  <label for="tool-search"><strong>Find a tool</strong></label>
-  <input id="tool-search" type="search" placeholder="Search image compressor, JSON, ZIP..." style="width:100%;padding:.85rem;margin:.5rem 0 1rem">
+  <div class="tool-search-wrap"><label for="tool-search"><strong>Search tools</strong></label><div class="tool-search-box"><span aria-hidden="true">⌕</span><input id="tool-search" type="search" placeholder="Try “image compressor”, “JSON”, “QR code”…"></div></div>
   <div class="tool-actions tool-filter-bar" role="group" aria-label="Tool categories">
     <button class="button primary" data-filter="all" type="button">All Tools</button><button class="button secondary" data-filter="image" type="button">Image Tools</button><button class="button secondary" data-filter="file" type="button">File & OCR</button><button class="button secondary" data-filter="video" type="button">Video & Audio</button><button class="button secondary" data-filter="developer" type="button">Developer Tools</button><button class="button secondary" data-filter="text" type="button">Text & Everyday</button>
   </div>
