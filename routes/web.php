@@ -24,7 +24,19 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 
 Route::get('/', function () {
-    $services = Service::query()->where('status', 'published')->where('featured', true)->orderBy('sort_order')->orderBy('title')->limit(6)->get();
+    try {
+        $services = Service::query()
+            ->where('status', 'published')
+            ->where('featured', true)
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->limit(6)
+            ->get();
+    } catch (\Throwable $exception) {
+        report($exception);
+        $services = collect();
+    }
+
     return view('home', compact('services'));
 })->name('home');
 Route::view('/about', 'about')->name('about');
@@ -76,23 +88,38 @@ Route::get('/robots.txt', function () {
 Route::get('/sitemap.xml', function () {
     $toolSlugs = ['qr-code-generator','csv-json-converter','xml-formatter','html-formatter','javascript-formatter','markdown-preview','sha256-hash-generator','password-strength-checker','email-validator','url-parser','seo-meta-tag-generator','robots-txt-generator','xml-sitemap-generator','favicon-svg-generator','color-contrast-checker','reading-time-calculator','duplicate-line-remover','line-sorter','text-difference-checker','image-filter-grayscale'];
     $urls = [route('home'), route('about'), route('tools'), route('privacy-policy'), route('terms'), route('pages.index'), route('services'), route('contact'), route('projects.index'), route('blog.index')];
-    foreach ($toolSlugs as $toolSlug) { $urls[] = route('tools.show', $toolSlug); }
-    foreach (Service::query()->where('status', 'published')->get(['slug']) as $service) {
-        $urls[] = route('services.show', $service->slug);
+
+    foreach ($toolSlugs as $toolSlug) {
+        $urls[] = route('tools.show', $toolSlug);
     }
-    foreach (BlogPost::query()->where('status', 'published')->get(['slug']) as $post) { $urls[] = route('blog.show', $post->slug); }
-    foreach (ContentPage::query()->where('status', 'published')->get(['slug']) as $page) { $urls[] = route('pages.show', $page->slug); }
-    foreach (Project::query()->where('status', 'published')->get(['slug']) as $project) {
-        $urls[] = route('projects.show', $project->slug);
+
+    try {
+        foreach (Service::query()->where('status', 'published')->get(['slug']) as $service) {
+            $urls[] = route('services.show', $service->slug);
+        }
+        foreach (BlogPost::query()->where('status', 'published')->get(['slug']) as $post) {
+            $urls[] = route('blog.show', $post->slug);
+        }
+        foreach (ContentPage::query()->where('status', 'published')->get(['slug']) as $page) {
+            $urls[] = route('pages.show', $page->slug);
+        }
+        foreach (Project::query()->where('status', 'published')->get(['slug']) as $project) {
+            $urls[] = route('projects.show', $project->slug);
+        }
+    } catch (\Throwable $exception) {
+        report($exception);
+        // Keep the static sitemap available while the production database is being repaired.
     }
+
     $xml = '<?xml version="1.0" encoding="UTF-8"?>';
     $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-    foreach ($urls as $url) {
+    foreach (array_unique($urls) as $url) {
         $xml .= '<url><loc>' . e($url) . '</loc></url>';
     }
     $xml .= '</urlset>';
+
     return response($xml, 200)->header('Content-Type', 'application/xml');
-})->name('sitemap');
+})->name('sitemap');;
 
 Route::post('/contact', [LeadController::class, 'store'])->middleware('throttle:5,10')->name('contact.store');
 
