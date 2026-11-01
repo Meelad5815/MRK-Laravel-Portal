@@ -32,7 +32,7 @@ Route::get('/', function () {
             ->orderBy('title')
             ->limit(6)
             ->get();
-    } catch (\\Throwable $exception) {
+    } catch (\Throwable $exception) {
         report($exception);
         $services = collect();
     }
@@ -106,7 +106,7 @@ Route::get('/sitemap.xml', function () {
         foreach (Project::query()->where('status', 'published')->get(['slug']) as $project) {
             $urls[] = route('projects.show', $project->slug);
         }
-    } catch (\\Throwable $exception) {
+    } catch (\Throwable $exception) {
         report($exception);
         // Keep the static sitemap available while the production database is being repaired.
     }
