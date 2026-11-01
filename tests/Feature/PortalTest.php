@@ -23,6 +23,16 @@ class PortalTest extends TestCase
             ->assertSee('Client Support');
     }
 
+    public function test_free_tools_page_renders_without_database_records(): void
+    {
+        $this->get('/tools')
+            ->assertOk()
+            ->assertSee('Powerful tools.')
+            ->assertSee('Search tools')
+            ->assertSee('Image Compressor')
+            ->assertSee('JSON Formatter');
+    }
+
     public function test_registration_makes_the_first_user_an_admin(): void
     {
         $response = $this->post('/register', [
