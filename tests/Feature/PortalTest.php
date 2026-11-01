@@ -12,9 +12,15 @@ class PortalTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_home_page_is_available(): void
+    public function test_home_page_is_available_and_lists_platform_modules(): void
     {
-        $this->get('/')->assertOk()->assertSee('MRK Digital');
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('MRK Digital')
+            ->assertSee('MRK UNIVERSAL PLATFORM')
+            ->assertSee('Open free tools')
+            ->assertSee('Browse resources')
+            ->assertSee('Client Support');
     }
 
     public function test_registration_makes_the_first_user_an_admin(): void
