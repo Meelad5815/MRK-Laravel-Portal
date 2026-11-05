@@ -33,7 +33,13 @@
 </tbody></table></div>@endif
 </section>
 </div>
-<p class="fitness-muted" style="margin-top:1rem">Tip: export/backup and Google Sheets sync are planned as the next stage. Do not treat this initial version as a backup system.</p>
+<section class="fitness-panel" style="margin-top:1rem">
+<h2>Google Sheets Backup</h2>
+<p class="fitness-muted">MySQL remains your primary database. Sync a separate copy to your private Google Sheet, or let the daily Apps Script backup run automatically after setup.</p>
+@if($errors->has('backup'))<p role="alert" style="color:#b42318">{{ $errors->first('backup') }}</p>@endif
+@if(session('success'))<p role="status" style="color:#08717b">{{ session('success') }}</p>@endif
+<form method="POST" action="{{ route('fitness.backup.sync') }}">@csrf<button type="submit">Sync Google Sheets Backup</button></form>
+</section>
 </div>
 <script>
 (() => {
