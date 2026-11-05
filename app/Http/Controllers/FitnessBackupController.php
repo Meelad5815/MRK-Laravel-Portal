@@ -54,6 +54,7 @@ class FitnessBackupController extends Controller
         try {
             $response = Http::acceptJson()
                 ->asJson()
+                ->withOptions(['allow_redirects' => ['strict' => true, 'max' => 5]])
                 ->timeout(25)
                 ->post($url, ['token' => $token, 'action' => 'sync_now']);
 
