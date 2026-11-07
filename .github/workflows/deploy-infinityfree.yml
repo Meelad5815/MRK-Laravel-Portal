@@ -208,63 +208,62 @@ jobs:
           dangerous-clean-slate: false
           log-level: standard
 
-      - name: Diagnose and run production database migrations
-        env:
-          APP_KEY: ${{ secrets.APP_KEY }}
-          APP_URL: ${{ secrets.APP_URL }}
+      - name: Install browser for InfinityFree JavaScript challenge
         run: |
-          set -u
-          test -n "$APP_KEY"
-          test -n "$APP_URL"
-          case "$APP_URL" in
-            https://*) ;;
-            *) echo "::error::APP_URL must use HTTPS for the deployment migration endpoint."; exit 1 ;;
-          esac
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install chromium --with-deps
 
-          endpoint="${APP_URL%/}/.mrk-deploy-migrate.php"
-          echo "Checking migration endpoint with a non-secret GET request."
-          set +e
-          get_code=$(curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" --location --connect-timeout 10 --max-time 30 --retry 1 --silent --show-error \
-            --output /tmp/mrk-migrate-get.txt --write-out '%{http_code}' "$endpoint")
-          get_rc=$?
-          set -e
-          echo "MIGRATION_GET_CURL_RC=$get_rc HTTP_STATUS=${get_code:-000}"
-          if [ -s /tmp/mrk-migrate-get.txt ]; then
-            echo "GET_BODY_PREVIEW:"
-            head -c 400 /tmp/mrk-migrate-get.txt
-            echo
-          else
-            echo "GET_BODY_EMPTY"
-          fi
+      - name: Resolve hosting challenge and run production database migrations
+        env:
+          APP_KEY: \${{ secrets.APP_KEY }}
+          APP_URL: \${{ secrets.APP_URL }}
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
 
-          echo "Posting authenticated migration request (secret header will not be printed)."
-          set +e
-          post_code=$(curl --http1.1 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" --location --connect-timeout 10 --max-time 120 --retry 2 --retry-delay 2 \
-            --silent --show-error --request POST \
-            --header "X-MRK-Deploy-Key: $APP_KEY" \
-            --output /tmp/mrk-migrate-post.txt --write-out '%{http_code}' "$endpoint")
-          post_rc=$?
-          set -e
-          echo "MIGRATION_POST_CURL_RC=$post_rc HTTP_STATUS=${post_code:-000}"
-          if [ -s /tmp/mrk-migrate-post.txt ]; then
-            echo "POST_BODY_PREVIEW:"
-            head -c 1000 /tmp/mrk-migrate-post.txt
-            echo
-          else
-            echo "POST_BODY_EMPTY"
-          fi
+          (async () => {
+            const appUrl = process.env.APP_URL;
+            const appKey = process.env.APP_KEY;
+            if (!appUrl?.startsWith('https://') || !appKey) {
+              throw new Error('APP_URL or APP_KEY is missing/invalid.');
+            }
 
-          if [ "$post_rc" -ne 0 ] || [ "${post_code:-000}" != "200" ]; then
-            echo "::error::Production migration endpoint did not return HTTP 200. Check hosting PHP/web-server error logs; deployment is not considered complete."
-            exit 1
-          fi
+            const endpoint = appUrl.replace(/\/+$/, '') + '/.mrk-deploy-migrate.php';
+            const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+            try {
+              const context = await browser.newContext();
+              const page = await context.newPage();
+              console.log('Opening the temporary migration endpoint in a real browser to complete the hosting JavaScript challenge.');
+              await page.goto(endpoint, { waitUntil: 'domcontentloaded', timeout: 60000 });
+              await page.waitForFunction(
+                () => new URL(window.location.href).searchParams.get('i') === '1',
+                { timeout: 45000 }
+              );
 
-          if ! grep -Fq "Database migration completed." /tmp/mrk-migrate-post.txt 2>/dev/null; then
-            echo "::error::HTTP 200 did not contain the migration success marker. The response may be an InfinityFree JavaScript/AES bot challenge, not a Laravel response."
-            echo "::error::Production database migration is NOT verified; do not treat this deployment as complete."
-            exit 1
-          fi
-          echo "Production migration success marker verified."
+              const result = await page.evaluate(async (key) => {
+                const response = await fetch(window.location.href, {
+                  method: 'POST',
+                  headers: { 'X-MRK-Deploy-Key': key },
+                  credentials: 'same-origin'
+                });
+                return { status: response.status, body: await response.text() };
+              }, appKey);
+
+              if (result.status !== 200 || !result.body.includes('Database migration completed.')) {
+                console.error('Migration endpoint response status:', result.status);
+                console.error('Migration endpoint response preview:', result.body.slice(0, 700));
+                throw new Error('Production migration success could not be verified.');
+              }
+
+              console.log('Production database migration completed and success marker verified.');
+            } finally {
+              await browser.close();
+            }
+          })().catch((error) => {
+            console.error(error.message || String(error));
+            process.exitCode = 1;
+          });
+          NODE
 
       - name: Remove temporary migration endpoint from hosting
         if: always()
