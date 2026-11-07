@@ -241,7 +241,7 @@ jobs:
               );
 
               const result = await page.evaluate(async (key) => {
-                const response = await fetch(window.location.href, {
+                const response = await fetch(endpoint + '?i=1', {
                   method: 'POST',
                   headers: { 'X-MRK-Deploy-Key': key },
                   credentials: 'same-origin'
