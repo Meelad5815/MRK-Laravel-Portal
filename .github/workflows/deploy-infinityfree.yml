@@ -240,14 +240,14 @@ jobs:
                 { timeout: 45000 }
               );
 
-              const result = await page.evaluate(async (key) => {
+              const result = await page.evaluate(async ({ key, endpoint }) => {
                 const response = await fetch(endpoint + '?i=1', {
                   method: 'POST',
                   headers: { 'X-MRK-Deploy-Key': key },
                   credentials: 'same-origin'
                 });
                 return { status: response.status, body: await response.text() };
-              }, appKey);
+              }, { key: appKey, endpoint });
 
               if (result.status !== 200 || !result.body.includes('Database migration completed.')) {
                 console.error('Migration endpoint response status:', result.status);
