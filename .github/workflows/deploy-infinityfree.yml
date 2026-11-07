@@ -215,8 +215,8 @@ jobs:
 
       - name: Resolve hosting challenge and run production database migrations
         env:
-          APP_KEY: \${{ secrets.APP_KEY }}
-          APP_URL: \${{ secrets.APP_URL }}
+          APP_KEY: ${{ secrets.APP_KEY }}
+          APP_URL: ${{ secrets.APP_URL }}
         run: |
           node <<'NODE'
           const { chromium } = require('playwright');
