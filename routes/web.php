@@ -255,3 +255,15 @@ Route::middleware('auth')->prefix('cloud')->name('cloud.')->group(function () {
     Route::get('/{cloudFile}/download', [PersonalCloudController::class, 'download'])->name('download');
     Route::delete('/{cloudFile}', [PersonalCloudController::class, 'destroy'])->name('destroy');
 });
+
+
+// MRK Fitness Dashboard — personal workout, running and weight logs.
+Route::middleware('auth')->prefix('fitness')->name('fitness.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\FitnessController::class, 'index'])->name('index');
+    Route::post('/entries', [\App\Http\Controllers\FitnessController::class, 'store'])->middleware('throttle:20,1')->name('store');
+    Route::post('/backup/sync', [\App\Http\Controllers\FitnessBackupController::class, 'syncNow'])->middleware('throttle:5,1')->name('backup.sync');
+});
+
+
+// Protected read-only feed for the Google Apps Script daily backup.
+Route::get('/fitness/backup-feed', [\App\Http\Controllers\FitnessBackupController::class, 'feed'])->middleware('throttle:30,1')->name('fitness.backup.feed');
