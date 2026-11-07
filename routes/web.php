@@ -265,4 +265,4 @@ Route::middleware('auth')->prefix('fitness')->name('fitness.')->group(function (
 
 
 // Protected read-only feed for the Google Apps Script daily backup.
-Route::get('/fitness/backup-feed', [\\App\\Http\\Controllers\\FitnessBackupController::class, 'feed'])->middleware('throttle:30,1')->name('fitness.backup.feed');
+Route::get('/fitness/backup-feed', [\App\Http\Controllers\FitnessBackupController::class, 'feed'])->middleware('throttle:30,1')->name('fitness.backup.feed');
