@@ -261,6 +261,7 @@ Route::middleware('auth')->prefix('cloud')->name('cloud.')->group(function () {
 Route::middleware('auth')->prefix('fitness')->name('fitness.')->group(function () {
     Route::get('/', [\App\Http\Controllers\FitnessController::class, 'index'])->name('index');
     Route::post('/entries', [\App\Http\Controllers\FitnessController::class, 'store'])->middleware('throttle:20,1')->name('store');
+    Route::post('/backup/sync', [\App\Http\Controllers\FitnessBackupController::class, 'syncNow'])->middleware('throttle:5,1')->name('backup.sync');
 });
 
 
