@@ -117,6 +117,8 @@ jobs:
           SESSION_SAME_SITE=lax
           QUEUE_CONNECTION=sync
           CACHE_STORE=file
+          EOF
+
           if [ -n "$MAIL_USERNAME" ] && [ -n "$MAIL_PASSWORD" ] && [ -n "$MAIL_FROM_ADDRESS" ]; then
             cat >> .env <<MAIL_EOF
           MAIL_MAILER=smtp
