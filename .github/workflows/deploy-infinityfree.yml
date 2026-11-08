@@ -92,6 +92,7 @@ jobs:
           cat > .env <<EOF
           APP_NAME="MRK Digital"
           APP_ENV=production
+          ALLOW_REGISTRATION=true
           APP_KEY=$APP_KEY
           APP_DEBUG=false
           APP_URL=$APP_URL
