@@ -1,0 +1,62 @@
+name: Diagnose Laravel production error
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-laravel-log.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch production Laravel log over FTP (read-only)
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          set +x
+          if [ -z "$FTP_USERNAME" ] || [ -z "$FTP_PASSWORD" ]; then
+            echo "FTP secrets are unavailable to this workflow."
+            exit 1
+          fi
+          if ! curl --fail --silent --show-error --user "$FTP_USERNAME:$FTP_PASSWORD" \
+            "ftp://ftp.infinityfree.com/htdocs/storage/logs/laravel.log" \
+            --output /tmp/laravel.log; then
+            echo "Primary FTP path unavailable; trying account-root-relative path."
+            if ! curl --fail --silent --show-error --user "$FTP_USERNAME:$FTP_PASSWORD" \
+              "ftp://ftp.infinityfree.com/storage/logs/laravel.log" \
+              --output /tmp/laravel.log; then
+              echo "Could not retrieve storage/logs/laravel.log. Check remote path or whether the file exists."
+              exit 0
+            fi
+          fi
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          p = Path("/tmp/laravel.log")
+          data = p.read_text(errors="replace")[-500000:]
+          lines = data.splitlines()
+          hits = [i for i, line in enumerate(lines) if re.search(r"production\\.(ERROR|CRITICAL|ALERT|EMERGENCY)|local\\.(ERROR|CRITICAL)", line)]
+          if not hits:
+              print("LOG_FETCH_OK: file retrieved; no production ERROR/CRITICAL entries found in the latest 500 KB.")
+              raise SystemExit(0)
+
+          i = hits[-1]
+          block = lines[i:min(i + 18, len(lines))]
+          text = "\\n".join(block)
+          # Never print environment values, credentials, tokens, SQL bindings, or request payloads.
+          text = re.sub(r"(?i)(password|passwd|secret|token|api[_-]?key|authorization)(\\s*[=:]\\s*)([^,; }]+)", r"\\1\\2[REDACTED]", text)
+          text = re.sub(r"(?i)(APP_KEY|DB_PASSWORD|FTP_PASSWORD)=([^\\s]+)", r"\\1=[REDACTED]", text)
+          text = re.sub(r"(?i)bindings?\\s*=>\\s*\\[[^]]*\\]", "bindings => [REDACTED]", text)
+          text = re.sub(r"(?i)(cookie|set-cookie):?\\s*[^\\n]+", r"\\1: [REDACTED]", text)
+          text = text[:5000]
+          print("LATEST_LARAVEL_ERROR_BEGIN")
+          print(text)
+          print("LATEST_LARAVEL_ERROR_END")
+          PY
