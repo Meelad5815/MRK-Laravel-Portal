@@ -25,6 +25,7 @@ class AuthController extends Controller
 
     public function sendResetLink(Request $request)
     {
+        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
         $request->validate(['email' => ['required', 'email']]);
 
         $status = Password::sendResetLink($request->only('email'));
@@ -44,6 +45,7 @@ class AuthController extends Controller
 
     public function resetPassword(Request $request)
     {
+        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],
@@ -75,7 +77,7 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        abort_unless(User::count() === 0 || (bool) config('app.allow_registration', false), 404);
+        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -91,6 +93,7 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
