@@ -57,10 +57,10 @@ class MadrasaController extends Controller
             ->when($role === 'parent', fn ($q) => $q->where('parent_visible', true))
             ->orderByDesc('progress_date')->limit(100)->get();
         $qariUsers = $role === 'admin'
-            ? DB::table('users')->where('madrasa_role', 'qari')->where('madrasa_id', self::MADRASA_ID)->orderBy('name')->get(['id', 'name', 'email'])
+            ? DB::table('users')->where('madrasa_role', 'qari')->where('madrasa_id', self::MADRASA_ID)->orderBy('name')->get(['id', 'name', 'email', 'madrasa_role'])
             : collect();
         $parentUsers = $role === 'admin'
-            ? DB::table('users')->where('madrasa_role', 'parent')->where('madrasa_id', self::MADRASA_ID)->orderBy('name')->get(['id', 'name', 'email'])
+            ? DB::table('users')->where('madrasa_role', 'parent')->where('madrasa_id', self::MADRASA_ID)->orderBy('name')->get(['id', 'name', 'email', 'madrasa_role'])
             : collect();
         $exams = DB::table('madrasa_exams')->whereIn('student_id', $studentIds)
             ->when($role === 'parent', fn ($q) => $q->where('parent_visible', true))
