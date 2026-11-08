@@ -88,7 +88,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard')->with('success', 'Account created successfully.');
+        return redirect()->route($user->is_admin ? 'dashboard' : 'madrasa')->with('success', 'Account created successfully.');
     }
 
     public function login(Request $request)
