@@ -120,13 +120,15 @@ jobs:
           EOF
 
           if [ -n "$MAIL_USERNAME" ] && [ -n "$MAIL_PASSWORD" ] && [ -n "$MAIL_FROM_ADDRESS" ]; then
+            # Gmail app passwords are often displayed in groups separated by spaces.
+            MAIL_PASSWORD_CLEAN=$(printf '%s' "$MAIL_PASSWORD" | tr -d '[:space:]')
             cat >> .env <<MAIL_EOF
           MAIL_MAILER=smtp
           MAIL_SCHEME=smtp
           MAIL_HOST=smtp.gmail.com
           MAIL_PORT=587
           MAIL_USERNAME=$MAIL_USERNAME
-          MAIL_PASSWORD=$MAIL_PASSWORD
+          MAIL_PASSWORD="$MAIL_PASSWORD_CLEAN"
           MAIL_FROM_ADDRESS=$MAIL_FROM_ADDRESS
           MAIL_FROM_NAME="MRK Digital"
           MAIL_EOF
