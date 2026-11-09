@@ -142,8 +142,8 @@ jobs:
           mkdir -p deploy
           cp -a app bootstrap config database resources routes vendor artisan composer.json .env deploy/
           cp -a public deploy/public
-          mkdir -p deploy/storage/app/public deploy/storage/framework/cache deploy/storage/framework/sessions deploy/storage/framework/views deploy/storage/logs
-          touch deploy/storage/app/public/.gitignore deploy/storage/framework/cache/.gitignore deploy/storage/framework/sessions/.gitignore deploy/storage/framework/views/.gitignore deploy/storage/logs/.gitignore
+          mkdir -p deploy/bootstrap/cache deploy/storage/app/public deploy/storage/app/private deploy/storage/framework/cache/data deploy/storage/framework/sessions deploy/storage/framework/views deploy/storage/framework/testing deploy/storage/logs
+          touch deploy/storage/app/public/.gitignore deploy/storage/app/private/.gitignore deploy/storage/framework/cache/data/.gitignore deploy/storage/framework/sessions/.gitignore deploy/storage/framework/views/.gitignore deploy/storage/framework/testing/.gitignore deploy/storage/logs/.gitignore
           cat > deploy/.htaccess <<'EOF'
           <IfModule mod_rewrite.c>
               RewriteEngine On
