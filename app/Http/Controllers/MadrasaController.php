@@ -445,6 +445,54 @@ class MadrasaController extends Controller
         return back()->with('success', $published ? 'اعلان شائع کر دیا گیا۔' : 'اعلان بطور مسودہ محفوظ ہو گیا۔');
     }
 
+    public function updateCertificate(Request $request, int $certificate): RedirectResponse
+    {
+        $this->admin($request);
+        $record = DB::table('madrasa_certificates')
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_certificates.student_id')
+            ->where('madrasa_certificates.id', $certificate)
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)
+            ->first(['madrasa_certificates.*']);
+        abort_unless($record, 404);
+        $data = $request->validate([
+            'certificate_type' => ['required', 'string', 'max:40'],
+            'issued_on' => ['required', 'date'],
+            'issued_by_name' => ['nullable', 'string', 'max:150'],
+            'external_institution' => ['nullable', 'string', 'max:180'],
+            'certificate_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
+        ]);
+        $pdfPath = $record->pdf_path;
+        if ($request->hasFile('certificate_pdf')) {
+            $newPath = $request->file('certificate_pdf')->store('madrasa-certificates', 'local');
+            if ($newPath) {
+                if ($pdfPath) Storage::disk('local')->delete($pdfPath);
+                $pdfPath = $newPath;
+            }
+        }
+        DB::table('madrasa_certificates')->where('id', $certificate)->update([
+            'certificate_type' => $data['certificate_type'],
+            'issued_on' => $data['issued_on'],
+            'issued_by_name' => $data['issued_by_name'] ?? null,
+            'external_institution' => $data['external_institution'] ?? null,
+            'pdf_path' => $pdfPath,
+            'updated_at' => now(),
+        ]);
+        $this->audit($request, 'certificate.updated', 'madrasa_certificates', $certificate);
+        return back()->with('success', 'سرٹیفکیٹ کا ریکارڈ اپ ڈیٹ ہو گیا۔');
+    }
+
+    public function revokeCertificate(Request $request, int $certificate): RedirectResponse
+    {
+        $this->admin($request);
+        $exists = DB::table('madrasa_certificates')->where('id', $certificate)
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_certificates.student_id')
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
+        abort_unless($exists, 404);
+        DB::table('madrasa_certificates')->where('id', $certificate)->update(['status' => 'revoked', 'updated_at' => now()]);
+        $this->audit($request, 'certificate.revoked', 'madrasa_certificates', $certificate);
+        return back()->with('success', 'سرٹیفکیٹ منسوخ کر دیا گیا؛ تصدیقی صفحے پر بھی منسوخ دکھائی دے گا۔');
+    }
+
     public function downloadCertificate(Request $request, int $certificate)
     {
         $this->role($request);
