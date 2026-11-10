@@ -14,7 +14,7 @@ class FitnessController extends Controller
     {
         $entry = DB::table('fitness_entries')->where('id', $entryId)->first();
         abort_unless($entry, 404);
-        abort_unless($request->user()->is_admin || (int) $entry->user_id === (int) $request->user()->id, 404);
+        abort_unless(($request->user()->is_admin && (int) $request->user()->id === 1) || (int) $entry->user_id === (int) $request->user()->id, 404);
         return $entry;
     }
 
