@@ -484,7 +484,7 @@ class MadrasaController extends Controller
     public function revokeCertificate(Request $request, int $certificate): RedirectResponse
     {
         $this->admin($request);
-        $exists = DB::table('madrasa_certificates')->where('id', $certificate)
+        $exists = DB::table('madrasa_certificates')->where('madrasa_certificates.id', $certificate)
             ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_certificates.student_id')
             ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
         abort_unless($exists, 404);
