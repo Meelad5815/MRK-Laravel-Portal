@@ -18,7 +18,7 @@ class MadrasaController extends Controller
     {
         $user = $request->user();
         if (!$user) abort(401);
-        if ($user->is_admin) return 'admin';
+        if ($user->is_admin && (int) $user->id === 1) return 'admin';
         $role = (string) $user->madrasa_role;
         abort_unless(in_array($role, ['admin', 'qari', 'parent'], true) && $user->madrasa_id === self::MADRASA_ID, 403);
         return $role;
