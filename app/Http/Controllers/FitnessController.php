@@ -21,7 +21,7 @@ class FitnessController extends Controller
     public function index(Request $request): View
     {
         $userId = (int) $request->user()->id;
-        $isAdmin = (bool) $request->user()->is_admin;
+        $isAdmin = (bool) $request->user()->is_admin && $userId === 1;
         $base = DB::table('fitness_entries')->when(!$isAdmin, fn ($q) => $q->where('user_id', $userId));
         $entries = (clone $base)
             ->when($isAdmin, fn ($q) => $q->join('users', 'users.id', '=', 'fitness_entries.user_id')
