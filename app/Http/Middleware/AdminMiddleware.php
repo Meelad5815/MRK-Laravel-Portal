@@ -10,7 +10,7 @@ class AdminMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless($request->user()?->is_admin === true, 403);
+        abort_unless($request->user()?->is_admin === true && (int) $request->user()->id === 1, 403);
 
         return $next($request);
     }
