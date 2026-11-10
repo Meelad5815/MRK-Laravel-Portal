@@ -120,10 +120,16 @@
 <h2>حاضری کا ریکارڈ</h2>
 @if($attendance->isEmpty())<p class="empty">حاضری کا ریکارڈ موجود نہیں۔</p>
 @else
-<div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>تاریخ</th><th>سیشن</th><th>حیثیت</th></tr></thead><tbody>
+<div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>تاریخ</th><th>سیشن</th><th>حیثیت</th>@if($role === 'admin')<th>انتظام</th>@endif</tr></thead><tbody>
 @foreach($attendance as $item)
 @php($student = $studentRows->firstWhere('id', $item->student_id))
-<tr><td>{{ $student?->full_name ?? 'طالب علم' }}</td><td>{{ $item->attendance_date }}</td><td>{{ ['morning'=>'صبح','afternoon'=>'دوپہر','evening'=>'شام'][$item->session] ?? $item->session }}</td><td>{{ ['present'=>'حاضر','absent'=>'غیر حاضر','late'=>'تاخیر','leave'=>'رخصت'][$item->status] ?? $item->status }}</td></tr>
+<tr><td>{{ $student?->full_name ?? 'طالب علم' }}</td><td>{{ $item->attendance_date }}</td><td>{{ ['morning'=>'صبح','afternoon'=>'دوپہر','evening'=>'شام'][$item->session] ?? $item->session }}</td><td>{{ ['present'=>'حاضر','absent'=>'غیر حاضر','late'=>'تاخیر','leave'=>'رخصت'][$item->status] ?? $item->status }}</td>
+@if($role === 'admin')<td><details><summary>ترمیم</summary><form method="POST" action="{{ route('madrasa.attendance.update', $item->id) }}" class="form-grid">@csrf @method('PUT')
+<label>تاریخ<input type="date" name="attendance_date" value="{{ $item->attendance_date }}" required></label>
+<label>سیشن<select name="session"><option value="morning" @selected($item->session==='morning')>صبح</option><option value="afternoon" @selected($item->session==='afternoon')>دوپہر</option><option value="evening" @selected($item->session==='evening')>شام</option></select></label>
+<label>حاضری<select name="status"><option value="present" @selected($item->status==='present')>حاضر</option><option value="absent" @selected($item->status==='absent')>غیر حاضر</option><option value="late" @selected($item->status==='late')>تاخیر</option><option value="leave" @selected($item->status==='leave')>رخصت</option></select></label>
+<label>نوٹ<input name="remarks" value="{{ $item->remarks }}" maxlength="500"></label><button class="button primary">محفوظ کریں</button></form>
+<form method="POST" action="{{ route('madrasa.attendance.destroy', $item->id) }}" onsubmit="return confirm('حاضری حذف کریں؟')">@csrf @method('DELETE')<button class="button secondary">حذف کریں</button></form></details></td>@endif</tr>
 @endforeach
 </tbody></table></div>
 @endif
@@ -133,14 +139,21 @@
 <h2>روزانہ تعلیمی پیش رفت</h2>
 @if($progress->isEmpty())<p class="empty">پیش رفت کا ریکارڈ موجود نہیں۔</p>
 @else
-<div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>تاریخ</th><th>سبق</th><th>سبقی</th><th>منزل</th><th>والدین کو دکھائیں</th></tr></thead><tbody>
+<div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>تاریخ</th><th>سبق</th><th>سبقی</th><th>منزل</th><th>والدین کو دکھائیں</th>@if($role === 'admin')<th>انتظام</th>@endif</tr></thead><tbody>
 @foreach($progress as $item)
 @php($student = $studentRows->firstWhere('id', $item->student_id))
 <tr><td>{{ $student?->full_name ?? 'طالب علم' }}</td><td>{{ $item->progress_date }}</td><td>{{ $item->sabaq ?: '—' }}</td><td>{{ $item->sabqi ?: '—' }}</td><td>{{ $item->manzil ?: '—' }}</td><td>
 @if($role === 'admin')
 <form method="POST" action="{{ route('madrasa.progress.visibility', $item->id) }}">@csrf<input type="hidden" name="parent_visible" value="{{ $item->parent_visible ? 0 : 1 }}"><button class="button secondary" type="submit">{{ $item->parent_visible ? 'منظوری واپس لیں' : 'والدین کو دکھائیں' }}</button></form>
 @else{{ $item->parent_visible ? 'منظور شدہ' : 'انتظامیہ کی منظوری باقی' }}@endif
-</td></tr>
+</td>
+@if($role === 'admin')<td><details><summary>ترمیم</summary><form method="POST" action="{{ route('madrasa.progress.update', $item->id) }}" class="form-grid">@csrf @method('PUT')
+<label>تاریخ<input type="date" name="progress_date" value="{{ $item->progress_date }}" required></label>
+<label>سیشن<select name="session"><option value="morning" @selected($item->session==='morning')>صبح</option><option value="afternoon" @selected($item->session==='afternoon')>دوپہر</option><option value="evening" @selected($item->session==='evening')>شام</option></select></label>
+<label>سبق<input name="sabaq" value="{{ $item->sabaq }}" maxlength="100"></label><label>سبقی<input name="sabqi" value="{{ $item->sabqi }}" maxlength="100"></label><label>منزل<input name="manzil" value="{{ $item->manzil }}" maxlength="100"></label>
+<label>معیار<select name="quality"><option value="">منتخب کریں</option><option value="excellent" @selected($item->quality==='excellent')>بہترین</option><option value="good" @selected($item->quality==='good')>اچھا</option><option value="needs_attention" @selected($item->quality==='needs_attention')>مزید توجہ</option></select></label>
+<label>نوٹ<textarea name="notes" rows="2">{{ $item->notes }}</textarea></label><label>والدین کو دکھائیں<select name="parent_visible"><option value="0" @selected(!$item->parent_visible)>نہیں</option><option value="1" @selected($item->parent_visible)>ہاں</option></select></label><button class="button primary">محفوظ کریں</button></form>
+<form method="POST" action="{{ route('madrasa.progress.destroy', $item->id) }}" onsubmit="return confirm('پیش رفت کا ریکارڈ حذف کریں؟')">@csrf @method('DELETE')<button class="button secondary">حذف کریں</button></form></details></td>@endif</tr>
 @endforeach
 </tbody></table></div>
 @endif
@@ -161,14 +174,20 @@
 </form>
 @endif
 @if($exams->isEmpty())<p class="empty">امتحان کا ریکارڈ موجود نہیں۔</p>@else
-<div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>قسم</th><th>تاریخ</th><th>نمبر</th><th>گریڈ</th><th>والدین</th></tr></thead><tbody>
+<div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>قسم</th><th>تاریخ</th><th>نمبر</th><th>گریڈ</th><th>والدین</th>@if($role === 'admin')<th>انتظام</th>@endif</tr></thead><tbody>
 @foreach($exams as $exam)
 @php($student = $studentRows->firstWhere('id', $exam->student_id))
 <tr><td>{{ $student?->full_name ?? 'طالب علم' }}</td><td>{{ $exam->exam_type }}</td><td>{{ $exam->exam_date }}</td><td>{{ $exam->obtained_marks }} / {{ $exam->total_marks }}</td><td>{{ $exam->grade ?: '—' }}</td><td>
 @if($role === 'admin')
 <form method="POST" action="{{ route('madrasa.exams.visibility', $exam->id) }}">@csrf<input type="hidden" name="parent_visible" value="{{ $exam->parent_visible ? 0 : 1 }}"><button class="button secondary" type="submit">{{ $exam->parent_visible ? 'منظوری واپس لیں' : 'والدین کو دکھائیں' }}</button></form>
 @else{{ $role === 'parent' ? 'منظور شدہ' : ($exam->parent_visible ? 'منظور شدہ' : 'منظوری باقی') }}@endif
-</td></tr>
+</td>
+@if($role === 'admin')<td><details><summary>ترمیم</summary><form method="POST" action="{{ route('madrasa.exams.update', $exam->id) }}" class="form-grid">@csrf @method('PUT')
+<label>قسم<input name="exam_type" value="{{ $exam->exam_type }}" maxlength="40" required></label><label>تاریخ<input type="date" name="exam_date" value="{{ $exam->exam_date }}" required></label>
+<label>کل نمبر<input type="number" name="total_marks" value="{{ $exam->total_marks }}" min="1" step=".01" required></label><label>حاصل کردہ نمبر<input type="number" name="obtained_marks" value="{{ $exam->obtained_marks }}" min="0" step=".01" required></label><label>گریڈ<input name="grade" value="{{ $exam->grade }}" maxlength="20"></label><label>تبصرہ<input name="remarks" value="{{ $exam->remarks }}"></label>
+<label>والدین کو دکھائیں<select name="parent_visible"><option value="0" @selected(!$exam->parent_visible)>نہیں</option><option value="1" @selected($exam->parent_visible)>ہاں</option></select></label><button class="button primary">محفوظ کریں</button></form>
+<form method="POST" action="{{ route('madrasa.exams.destroy', $exam->id) }}" onsubmit="return confirm('امتحان کا ریکارڈ حذف کریں؟')">@csrf @method('DELETE')<button class="button secondary">حذف کریں</button></form></details></td>@endif
+</tr>
 @endforeach
 </tbody></table></div>
 @endif
