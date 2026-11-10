@@ -253,7 +253,7 @@ class MadrasaController extends Controller
     public function updateAttendance(Request $request, int $attendance): RedirectResponse
     {
         $this->admin($request);
-        $exists = DB::table('madrasa_attendance')->where('id', $attendance)
+        $exists = DB::table('madrasa_attendance')->where('madrasa_attendance.id', $attendance)
             ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_attendance.student_id')
             ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
         abort_unless($exists, 404);
@@ -294,7 +294,7 @@ class MadrasaController extends Controller
     public function updateProgress(Request $request, int $progress): RedirectResponse
     {
         $this->admin($request);
-        $exists = DB::table('madrasa_daily_progress')->where('id', $progress)
+        $exists = DB::table('madrasa_daily_progress')->where('madrasa_daily_progress.id', $progress)
             ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_daily_progress.student_id')
             ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
         abort_unless($exists, 404);
@@ -351,7 +351,7 @@ class MadrasaController extends Controller
     public function updateExam(Request $request, int $exam): RedirectResponse
     {
         $this->admin($request);
-        $exists = DB::table('madrasa_exams')->where('id', $exam)
+        $exists = DB::table('madrasa_exams')->where('madrasa_exams.id', $exam)
             ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_exams.student_id')
             ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
         abort_unless($exists, 404);
