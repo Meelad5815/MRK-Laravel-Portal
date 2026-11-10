@@ -239,6 +239,8 @@ Route::get('/madrasa/certificates/verify/{token}', [\App\Http\Controllers\Madras
 Route::middleware('auth')->group(function () {
     Route::get('/madrasa', [\App\Http\Controllers\MadrasaController::class, 'index'])->name('madrasa');
     Route::post('/madrasa/students', [\App\Http\Controllers\MadrasaController::class, 'storeStudent'])->name('madrasa.students.store');
+    Route::put('/madrasa/students/{student}', [\App\Http\Controllers\MadrasaController::class, 'updateStudent'])->whereNumber('student')->name('madrasa.students.update');
+    Route::delete('/madrasa/students/{student}', [\App\Http\Controllers\MadrasaController::class, 'archiveStudent'])->whereNumber('student')->name('madrasa.students.destroy');
     Route::post('/madrasa/accounts', [\App\Http\Controllers\MadrasaController::class, 'storeAccount'])->name('madrasa.accounts.store');
     Route::post('/madrasa/accounts/{user}/reset-password', [\App\Http\Controllers\MadrasaController::class, 'resetAccountPassword'])->whereNumber('user')->name('madrasa.accounts.reset-password');
     Route::post('/madrasa/assign-qari', [\App\Http\Controllers\MadrasaController::class, 'assignQari'])->name('madrasa.assign-qari');
@@ -249,6 +251,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/madrasa/exams', [\App\Http\Controllers\MadrasaController::class, 'storeExam'])->name('madrasa.exams.store');
     Route::post('/madrasa/exams/{exam}/visibility', [\App\Http\Controllers\MadrasaController::class, 'setExamVisibility'])->whereNumber('exam')->name('madrasa.exams.visibility');
     Route::post('/madrasa/certificates', [\App\Http\Controllers\MadrasaController::class, 'issueCertificate'])->name('madrasa.certificates.store');
+    Route::get('/madrasa/certificates/{certificate}/download', [\App\Http\Controllers\MadrasaController::class, 'downloadCertificate'])->whereNumber('certificate')->name('madrasa.certificates.download');
+    Route::get('/madrasa/certificates/{certificate}/print', [\App\Http\Controllers\MadrasaController::class, 'printCertificate'])->whereNumber('certificate')->name('madrasa.certificates.print');
     Route::post('/madrasa/announcements', [\App\Http\Controllers\MadrasaController::class, 'storeAnnouncement'])->name('madrasa.announcements.store');
 });
 
