@@ -210,12 +210,23 @@
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
 <h2>سرٹیفکیٹس اور آن لائن تصدیق</h2>
 @if($certificates->isEmpty())<p class="empty">ابھی کوئی سرٹیفکیٹ جاری نہیں ہوا۔</p>@else
-<div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>سرٹیفکیٹ نمبر</th><th>قسم</th><th>تاریخ</th><th>تصدیق</th></tr></thead><tbody>
+<div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>سرٹیفکیٹ نمبر</th><th>قسم</th><th>تاریخ</th><th>حیثیت</th><th>تصدیق / انتظام</th></tr></thead><tbody>
 @foreach($certificates as $cert)
 @php($student = $studentRows->firstWhere('id', $cert->student_id))
-<tr><td>{{ $student?->full_name ?? 'طالب علم' }}</td><td>{{ $cert->certificate_number }}</td><td>{{ $cert->certificate_type }}</td><td>{{ $cert->issued_on }}</td><td><a href="{{ route('madrasa.certificates.verify', $cert->verification_token) }}" target="_blank" rel="noopener">تصدیقی صفحہ</a>
+<tr><td>{{ $student?->full_name ?? 'طالب علم' }}</td><td>{{ $cert->certificate_number }}</td><td>{{ $cert->certificate_type }}</td><td>{{ $cert->issued_on }}</td><td>{{ $cert->status === 'valid' ? 'معتبر' : 'منسوخ' }}</td><td><a href="{{ route('madrasa.certificates.verify', $cert->verification_token) }}" target="_blank" rel="noopener">تصدیقی صفحہ</a>
 @if($cert->pdf_path)<br><a href="{{ route('madrasa.certificates.download', $cert->id) }}">PDF ڈاؤن لوڈ</a>@endif
-@if($role === 'admin')<br><a href="{{ route('madrasa.certificates.print', $cert->id) }}" target="_blank" rel="noopener">PDF تیار / پرنٹ</a>@endif</td></tr>
+@if($role === 'admin')
+<br><a href="{{ route('madrasa.certificates.print', $cert->id) }}" target="_blank" rel="noopener">PDF تیار / پرنٹ</a>
+<details><summary>ترمیم</summary><form method="POST" enctype="multipart/form-data" action="{{ route('madrasa.certificates.update', $cert->id) }}" class="form-grid">@csrf @method('PUT')
+<label>قسم<input name="certificate_type" value="{{ $cert->certificate_type }}" maxlength="40" required></label>
+<label>اجراء تاریخ<input type="date" name="issued_on" value="{{ $cert->issued_on }}" required></label>
+<label>جاری کنندہ<input name="issued_by_name" value="{{ $cert->issued_by_name }}" maxlength="150"></label>
+<label>بیرونی ادارہ<input name="external_institution" value="{{ $cert->external_institution }}" maxlength="180"></label>
+<label>نئی PDF (اختیاری)<input type="file" name="certificate_pdf" accept="application/pdf"></label>
+<button class="button primary">اپ ڈیٹ کریں</button></form>
+@if($cert->status === 'valid')<form method="POST" action="{{ route('madrasa.certificates.destroy', $cert->id) }}" onsubmit="return confirm('سرٹیفکیٹ منسوخ کریں؟')">@csrf @method('DELETE')<button class="button secondary">سرٹیفکیٹ منسوخ کریں</button></form>@endif
+</details>
+@endif</td></tr>
 @endforeach
 </tbody></table></div>
 @endif
