@@ -26,6 +26,15 @@ class AdminDatabaseMaintenanceTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_admin_flag_on_another_account_does_not_grant_owner_admin_access(): void
+    {
+        User::factory()->create(['is_admin' => false]); // Reserve owner account ID 1.
+        $otherAdmin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($otherAdmin)->get('/dashboard')->assertForbidden();
+        $this->actingAs($otherAdmin)->get('/madrasa')->assertForbidden();
+    }
+
     public function test_admin_must_confirm_database_backup_before_migrations(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);

@@ -239,16 +239,28 @@ Route::get('/madrasa/certificates/verify/{token}', [\App\Http\Controllers\Madras
 Route::middleware('auth')->group(function () {
     Route::get('/madrasa', [\App\Http\Controllers\MadrasaController::class, 'index'])->name('madrasa');
     Route::post('/madrasa/students', [\App\Http\Controllers\MadrasaController::class, 'storeStudent'])->name('madrasa.students.store');
+    Route::put('/madrasa/students/{student}', [\App\Http\Controllers\MadrasaController::class, 'updateStudent'])->whereNumber('student')->name('madrasa.students.update');
+    Route::delete('/madrasa/students/{student}', [\App\Http\Controllers\MadrasaController::class, 'archiveStudent'])->whereNumber('student')->name('madrasa.students.destroy');
     Route::post('/madrasa/accounts', [\App\Http\Controllers\MadrasaController::class, 'storeAccount'])->name('madrasa.accounts.store');
     Route::post('/madrasa/accounts/{user}/reset-password', [\App\Http\Controllers\MadrasaController::class, 'resetAccountPassword'])->whereNumber('user')->name('madrasa.accounts.reset-password');
     Route::post('/madrasa/assign-qari', [\App\Http\Controllers\MadrasaController::class, 'assignQari'])->name('madrasa.assign-qari');
     Route::post('/madrasa/link-parent', [\App\Http\Controllers\MadrasaController::class, 'linkParent'])->name('madrasa.link-parent');
+    Route::put('/madrasa/attendance/{attendance}', [\App\Http\Controllers\MadrasaController::class, 'updateAttendance'])->whereNumber('attendance')->name('madrasa.attendance.update');
+    Route::delete('/madrasa/attendance/{attendance}', [\App\Http\Controllers\MadrasaController::class, 'deleteAttendance'])->whereNumber('attendance')->name('madrasa.attendance.destroy');
     Route::post('/madrasa/attendance', [\App\Http\Controllers\MadrasaController::class, 'storeAttendance'])->name('madrasa.attendance.store');
+    Route::put('/madrasa/progress/{progress}', [\App\Http\Controllers\MadrasaController::class, 'updateProgress'])->whereNumber('progress')->name('madrasa.progress.update');
+    Route::delete('/madrasa/progress/{progress}', [\App\Http\Controllers\MadrasaController::class, 'deleteProgress'])->whereNumber('progress')->name('madrasa.progress.destroy');
     Route::post('/madrasa/progress', [\App\Http\Controllers\MadrasaController::class, 'storeProgress'])->name('madrasa.progress.store');
     Route::post('/madrasa/progress/{progress}/visibility', [\App\Http\Controllers\MadrasaController::class, 'setProgressVisibility'])->whereNumber('progress')->name('madrasa.progress.visibility');
+    Route::put('/madrasa/exams/{exam}', [\App\Http\Controllers\MadrasaController::class, 'updateExam'])->whereNumber('exam')->name('madrasa.exams.update');
+    Route::delete('/madrasa/exams/{exam}', [\App\Http\Controllers\MadrasaController::class, 'deleteExam'])->whereNumber('exam')->name('madrasa.exams.destroy');
     Route::post('/madrasa/exams', [\App\Http\Controllers\MadrasaController::class, 'storeExam'])->name('madrasa.exams.store');
     Route::post('/madrasa/exams/{exam}/visibility', [\App\Http\Controllers\MadrasaController::class, 'setExamVisibility'])->whereNumber('exam')->name('madrasa.exams.visibility');
+    Route::put('/madrasa/certificates/{certificate}', [\App\Http\Controllers\MadrasaController::class, 'updateCertificate'])->whereNumber('certificate')->name('madrasa.certificates.update');
+    Route::delete('/madrasa/certificates/{certificate}', [\App\Http\Controllers\MadrasaController::class, 'revokeCertificate'])->whereNumber('certificate')->name('madrasa.certificates.destroy');
     Route::post('/madrasa/certificates', [\App\Http\Controllers\MadrasaController::class, 'issueCertificate'])->name('madrasa.certificates.store');
+    Route::get('/madrasa/certificates/{certificate}/download', [\App\Http\Controllers\MadrasaController::class, 'downloadCertificate'])->whereNumber('certificate')->name('madrasa.certificates.download');
+    Route::get('/madrasa/certificates/{certificate}/print', [\App\Http\Controllers\MadrasaController::class, 'printCertificate'])->whereNumber('certificate')->name('madrasa.certificates.print');
     Route::post('/madrasa/announcements', [\App\Http\Controllers\MadrasaController::class, 'storeAnnouncement'])->name('madrasa.announcements.store');
 });
 
@@ -265,6 +277,8 @@ Route::middleware('auth')->prefix('cloud')->name('cloud.')->group(function () {
 Route::middleware('auth')->prefix('fitness')->name('fitness.')->group(function () {
     Route::get('/', [\App\Http\Controllers\FitnessController::class, 'index'])->name('index');
     Route::post('/entries', [\App\Http\Controllers\FitnessController::class, 'store'])->middleware('throttle:20,1')->name('store');
+    Route::put('/entries/{entry}', [\App\Http\Controllers\FitnessController::class, 'update'])->whereNumber('entry')->name('update');
+    Route::delete('/entries/{entry}', [\App\Http\Controllers\FitnessController::class, 'destroy'])->whereNumber('entry')->name('destroy');
     Route::post('/backup/sync', [\App\Http\Controllers\FitnessBackupController::class, 'syncNow'])->middleware('throttle:5,1')->name('backup.sync');
 });
 
