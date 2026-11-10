@@ -33,7 +33,7 @@
 @else<div style="overflow-x:auto"><table class="fitness-table"><thead><tr>@if($isAdmin)<th>Account</th>@endif<th>Date</th><th>Type</th><th>Details</th><th>Duration</th><th>Notes</th><th>Manage</th></tr></thead><tbody>
 @foreach($entries as $entry)<tr>
 @if($isAdmin)<td>{{ $entry->owner_name }}</td>@endif
-<td>{{ \Illuminate\\Support\\Carbon::parse($entry->entry_date)->format('d M Y') }}</td><td><span class="fitness-tag">{{ ucfirst($entry->type) }}</span></td><td>@if($entry->type === 'run'){{ number_format((float)$entry->distance_km,2) }} km @elseif($entry->type === 'weight'){{ number_format((float)$entry->weight_kg,1) }} kg @else{{ $entry->title }}@endif</td><td>{{ $entry->duration_minutes ? $entry->duration_minutes.' min' : '—' }}</td><td class="fitness-muted">{{ $entry->notes ?: '—' }}</td><td>
+<td>{{ \Illuminate\Support\Carbon::parse($entry->entry_date)->format('d M Y') }}</td><td><span class="fitness-tag">{{ ucfirst($entry->type) }}</span></td><td>@if($entry->type === 'run'){{ number_format((float)$entry->distance_km,2) }} km @elseif($entry->type === 'weight'){{ number_format((float)$entry->weight_kg,1) }} kg @else{{ $entry->title }}@endif</td><td>{{ $entry->duration_minutes ? $entry->duration_minutes.' min' : '—' }}</td><td class="fitness-muted">{{ $entry->notes ?: '—' }}</td><td>
 <details><summary>Edit</summary>
 <form class="fitness-form" method="POST" action="{{ route('fitness.update', $entry->id) }}">@csrf @method('PUT')
 <label>Type<select name="type"><option value="workout" @selected($entry->type==='workout')>Workout</option><option value="run" @selected($entry->type==='run')>Running</option><option value="weight" @selected($entry->type==='weight')>Weight</option></select></label>
