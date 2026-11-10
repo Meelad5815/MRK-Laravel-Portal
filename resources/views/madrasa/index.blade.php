@@ -194,7 +194,9 @@
 <div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>سرٹیفکیٹ نمبر</th><th>قسم</th><th>تاریخ</th><th>تصدیق</th></tr></thead><tbody>
 @foreach($certificates as $cert)
 @php($student = $studentRows->firstWhere('id', $cert->student_id))
-<tr><td>{{ $student?->full_name ?? 'طالب علم' }}</td><td>{{ $cert->certificate_number }}</td><td>{{ $cert->certificate_type }}</td><td>{{ $cert->issued_on }}</td><td><a href="{{ route('madrasa.certificates.verify', $cert->verification_token) }}" target="_blank" rel="noopener">تصدیقی صفحہ</a></td></tr>
+<tr><td>{{ $student?->full_name ?? 'طالب علم' }}</td><td>{{ $cert->certificate_number }}</td><td>{{ $cert->certificate_type }}</td><td>{{ $cert->issued_on }}</td><td><a href="{{ route('madrasa.certificates.verify', $cert->verification_token) }}" target="_blank" rel="noopener">تصدیقی صفحہ</a>
+@if($cert->pdf_path)<br><a href="{{ route('madrasa.certificates.download', $cert->id) }}">PDF ڈاؤن لوڈ</a>@endif
+@if($role === 'admin')<br><a href="{{ route('madrasa.certificates.print', $cert->id) }}" target="_blank" rel="noopener">PDF تیار / پرنٹ</a>@endif</td></tr>
 @endforeach
 </tbody></table></div>
 @endif
