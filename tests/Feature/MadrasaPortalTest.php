@@ -32,6 +32,57 @@ class MadrasaPortalTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_edit_and_archive_student_without_erasing_history(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $studentId = $this->createStudent('Before Edit');
+
+        $this->actingAs($admin)->put('/madrasa/students/' . $studentId, [
+            'full_name' => 'After Edit',
+            'guardian_name' => 'Guardian Updated',
+            'guardian_phone' => '03001234567',
+            'program' => 'nazra',
+            'admission_date' => '2026-11-01',
+            'previous_institution' => 'Previous Madrasa',
+            'status' => 'active',
+            'notes' => 'Updated student notes',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('madrasa_students', [
+            'id' => $studentId,
+            'full_name' => 'After Edit',
+            'previous_institution' => 'Previous Madrasa',
+        ]);
+
+        $this->actingAs($admin)->delete('/madrasa/students/' . $studentId)->assertRedirect();
+        $this->assertDatabaseHas('madrasa_students', ['id' => $studentId, 'status' => 'archived']);
+    }
+
+    public function test_admin_can_upload_existing_certificate_pdf_and_open_printable_certificate(): void
+    {
+        Storage::fake('local');
+        $admin = User::factory()->create(['is_admin' => true]);
+        $studentId = $this->createStudent('PDF Student');
+
+        $this->actingAs($admin)->post('/madrasa/certificates', [
+            'student_id' => $studentId,
+            'certificate_type' => 'hifz',
+            'issued_on' => '2026-11-10',
+            'issued_by_name' => 'Head Qari',
+            'external_institution' => 'Previous Institute',
+            'certificate_pdf' => UploadedFile::fake()->create('previous-certificate.pdf', 100, 'application/pdf'),
+        ])->assertRedirect();
+
+        $certificate = DB::table('madrasa_certificates')->where('student_id', $studentId)->first();
+        $this->assertNotNull($certificate);
+        $this->assertNotNull($certificate->pdf_path);
+        Storage::disk('local')->assertExists($certificate->pdf_path);
+
+        $this->actingAs($admin)->get('/madrasa/certificates/' . $certificate->id . '/download')->assertOk();
+        $this->actingAs($admin)->get('/madrasa/certificates/' . $certificate->id . '/print')
+            ->assertOk()->assertSee('PDF Student')->assertSee('Save as PDF');
+    }
+
     public function test_qari_can_only_see_assigned_students(): void
     {
         $qari = User::factory()->create([
