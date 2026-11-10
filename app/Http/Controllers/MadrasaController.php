@@ -250,6 +250,36 @@ class MadrasaController extends Controller
         return back()->with('success', 'روزانہ تعلیمی پیش رفت محفوظ ہو گئی۔ انتظامیہ کی منظوری کے بعد والدین دیکھ سکیں گے۔');
     }
 
+    public function updateAttendance(Request $request, int $attendance): RedirectResponse
+    {
+        $this->admin($request);
+        $exists = DB::table('madrasa_attendance')->where('id', $attendance)
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_attendance.student_id')
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
+        abort_unless($exists, 404);
+        $data = $request->validate([
+            'attendance_date' => ['required', 'date'],
+            'session' => ['required', 'in:morning,afternoon,evening'],
+            'status' => ['required', 'in:present,absent,late,leave'],
+            'remarks' => ['nullable', 'string', 'max:500'],
+        ]);
+        DB::table('madrasa_attendance')->where('id', $attendance)->update([...$data, 'marked_by' => $request->user()->id, 'updated_at' => now()]);
+        $this->audit($request, 'attendance.updated', 'madrasa_attendance', $attendance);
+        return back()->with('success', 'حاضری کا ریکارڈ اپ ڈیٹ ہو گیا۔');
+    }
+
+    public function deleteAttendance(Request $request, int $attendance): RedirectResponse
+    {
+        $this->admin($request);
+        $exists = DB::table('madrasa_attendance')->where('id', $attendance)
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_attendance.student_id')
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
+        abort_unless($exists, 404);
+        DB::table('madrasa_attendance')->where('id', $attendance)->delete();
+        $this->audit($request, 'attendance.deleted', 'madrasa_attendance', $attendance);
+        return back()->with('success', 'حاضری کا ریکارڈ حذف ہو گیا۔');
+    }
+
     public function setProgressVisibility(Request $request, int $progress): RedirectResponse
     {
         $this->admin($request);
@@ -259,6 +289,40 @@ class MadrasaController extends Controller
         DB::table('madrasa_daily_progress')->where('id', $progress)->update(['parent_visible' => (bool) $data['parent_visible'], 'updated_at' => now()]);
         $this->audit($request, 'progress.visibility_changed', 'madrasa_daily_progress', $progress);
         return back()->with('success', 'والدین کے لیے پیش رفت کی نمائش کی ترتیب محفوظ ہو گئی۔');
+    }
+
+    public function updateProgress(Request $request, int $progress): RedirectResponse
+    {
+        $this->admin($request);
+        $exists = DB::table('madrasa_daily_progress')->where('id', $progress)
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_daily_progress.student_id')
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
+        abort_unless($exists, 404);
+        $data = $request->validate([
+            'progress_date' => ['required', 'date'],
+            'session' => ['required', 'in:morning,afternoon,evening'],
+            'sabaq' => ['nullable', 'string', 'max:100'],
+            'sabqi' => ['nullable', 'string', 'max:100'],
+            'manzil' => ['nullable', 'string', 'max:100'],
+            'quality' => ['nullable', 'in:excellent,good,needs_attention'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+            'parent_visible' => ['required', 'boolean'],
+        ]);
+        DB::table('madrasa_daily_progress')->where('id', $progress)->update([...$data, 'updated_at' => now()]);
+        $this->audit($request, 'progress.updated', 'madrasa_daily_progress', $progress);
+        return back()->with('success', 'تعلیمی پیش رفت اپ ڈیٹ ہو گئی۔');
+    }
+
+    public function deleteProgress(Request $request, int $progress): RedirectResponse
+    {
+        $this->admin($request);
+        $exists = DB::table('madrasa_daily_progress')->where('id', $progress)
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_daily_progress.student_id')
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
+        abort_unless($exists, 404);
+        DB::table('madrasa_daily_progress')->where('id', $progress)->delete();
+        $this->audit($request, 'progress.deleted', 'madrasa_daily_progress', $progress);
+        return back()->with('success', 'تعلیمی پیش رفت کا ریکارڈ حذف ہو گیا۔');
     }
 
     public function storeExam(Request $request): RedirectResponse
@@ -282,6 +346,39 @@ class MadrasaController extends Controller
         ]);
         $this->audit($request, 'exam.recorded', 'madrasa_exams', $id);
         return back()->with('success', 'امتحان کا نتیجہ محفوظ ہو گیا۔ والدین کو دکھانے سے پہلے انتظامیہ کی منظوری ضروری ہے۔');
+    }
+
+    public function updateExam(Request $request, int $exam): RedirectResponse
+    {
+        $this->admin($request);
+        $exists = DB::table('madrasa_exams')->where('id', $exam)
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_exams.student_id')
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
+        abort_unless($exists, 404);
+        $data = $request->validate([
+            'exam_type' => ['required', 'string', 'max:40'],
+            'exam_date' => ['required', 'date'],
+            'total_marks' => ['required', 'numeric', 'min:1', 'max:99999'],
+            'obtained_marks' => ['required', 'numeric', 'min:0', 'lte:total_marks'],
+            'grade' => ['nullable', 'string', 'max:20'],
+            'remarks' => ['nullable', 'string', 'max:2000'],
+            'parent_visible' => ['required', 'boolean'],
+        ]);
+        DB::table('madrasa_exams')->where('id', $exam)->update([...$data, 'examiner_user_id' => $request->user()->id, 'updated_at' => now()]);
+        $this->audit($request, 'exam.updated', 'madrasa_exams', $exam);
+        return back()->with('success', 'امتحان کا نتیجہ اپ ڈیٹ ہو گیا۔');
+    }
+
+    public function deleteExam(Request $request, int $exam): RedirectResponse
+    {
+        $this->admin($request);
+        $exists = DB::table('madrasa_exams')->where('id', $exam)
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_exams.student_id')
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
+        abort_unless($exists, 404);
+        DB::table('madrasa_exams')->where('id', $exam)->delete();
+        $this->audit($request, 'exam.deleted', 'madrasa_exams', $exam);
+        return back()->with('success', 'امتحان کا ریکارڈ حذف ہو گیا۔');
     }
 
     public function setExamVisibility(Request $request, int $exam): RedirectResponse
