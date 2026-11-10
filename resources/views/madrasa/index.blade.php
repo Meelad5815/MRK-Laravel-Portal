@@ -21,6 +21,7 @@
 <label>سرپرست کا فون<input name="guardian_phone" maxlength="32" inputmode="tel"></label>
 <label>تعلیمی شعبہ<select name="program" required><option value="hifz">حفظ</option><option value="nazra">ناظرہ</option><option value="qaida">قاعدہ</option></select></label>
 <label>داخلہ کی تاریخ<input type="date" name="admission_date"></label>
+<label>سابقہ مدرسہ / ادارہ<input name="previous_institution" maxlength="180"></label>
 <div><button class="button primary" type="submit">داخلہ محفوظ کریں</button></div>
 </form></div>
 
@@ -94,9 +95,22 @@
 @if($studentRows->isEmpty())
 <p class="empty">ابھی اس پورٹل کے لیے کوئی طالب علم دستیاب نہیں۔</p>
 @else
-<div class="table-wrap"><table><thead><tr><th>کوڈ</th><th>نام</th><th>سرپرست</th><th>شعبہ</th><th>حیثیت</th></tr></thead><tbody>
+<div class="table-wrap"><table><thead><tr><th>کوڈ</th><th>نام</th><th>سرپرست</th><th>شعبہ</th><th>حیثیت</th>@if($role === 'admin')<th>انتظام</th>@endif</tr></thead><tbody>
 @foreach($studentRows as $student)
-<tr><td>{{ $student->student_code }}</td><td>{{ $student->full_name }}</td><td>{{ $role === 'admin' ? $student->guardian_name : '—' }}</td><td>{{ ['hifz'=>'حفظ','nazra'=>'ناظرہ','qaida'=>'قاعدہ'][$student->program] ?? $student->program }}</td><td>{{ $student->status === 'active' ? 'فعال' : $student->status }}</td></tr>
+<tr><td>{{ $student->student_code }}</td><td>{{ $student->full_name }}</td><td>{{ $role === 'admin' ? $student->guardian_name : '—' }}</td><td>{{ ['hifz'=>'حفظ','nazra'=>'ناظرہ','qaida'=>'قاعدہ'][$student->program] ?? $student->program }}</td><td>{{ $student->status === 'active' ? 'فعال' : $student->status }}</td>
+@if($role === 'admin')<td><details><summary>ترمیم</summary>
+<form method="POST" action="{{ route('madrasa.students.update', $student->id) }}" class="form-grid">@csrf @method('PUT')
+<label>نام<input name="full_name" value="{{ $student->full_name }}" required maxlength="150"></label>
+<label>سرپرست<input name="guardian_name" value="{{ $student->guardian_name }}" required maxlength="150"></label>
+<label>فون<input name="guardian_phone" value="{{ $student->guardian_phone }}" maxlength="32"></label>
+<label>شعبہ<select name="program"><option value="hifz" @selected($student->program==='hifz')>حفظ</option><option value="nazra" @selected($student->program==='nazra')>ناظرہ</option><option value="qaida" @selected($student->program==='qaida')>قاعدہ</option></select></label>
+<label>داخلہ تاریخ<input type="date" name="admission_date" value="{{ $student->admission_date }}"></label>
+<label>سابقہ مدرسہ<input name="previous_institution" value="{{ $student->previous_institution }}" maxlength="180"></label>
+<label>حیثیت<select name="status"><option value="active" @selected($student->status==='active')>فعال</option><option value="inactive" @selected($student->status==='inactive')>غیر فعال</option><option value="archived" @selected($student->status==='archived')>آرکائیو</option></select></label>
+<label>نوٹس<textarea name="notes" rows="2">{{ $student->notes }}</textarea></label>
+<button class="button primary" type="submit">ریکارڈ اپ ڈیٹ کریں</button></form>
+<form method="POST" action="{{ route('madrasa.students.destroy', $student->id) }}" onsubmit="return confirm('طالب علم کو آرکائیو کریں؟ تمام پرانا ریکارڈ محفوظ رہے گا۔')">@csrf @method('DELETE')<button class="button secondary" type="submit">آرکائیو کریں</button></form>
+</details></td>@endif</tr>
 @endforeach
 </tbody></table></div>
 @endif
@@ -163,11 +177,13 @@
 @if($role === 'admin')
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
 <h2>سرٹیفکیٹ جاری کریں</h2>
-<form method="POST" action="{{ route('madrasa.certificates.store') }}" class="form-grid">@csrf
+<form method="POST" enctype="multipart/form-data" action="{{ route('madrasa.certificates.store') }}" class="form-grid">@csrf
 <label>طالب علم<select name="student_id" required>@foreach($studentRows as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
 <label>سرٹیفکیٹ کی قسم<select name="certificate_type"><option value="hifz">حفظ مکمل</option><option value="nazra">ناظرہ مکمل</option><option value="qaida">قاعدہ مکمل</option><option value="participation">شرکت</option></select></label>
 <label>اجراء کی تاریخ<input type="date" name="issued_on" value="{{ now()->toDateString() }}" required></label>
 <label>جاری کرنے والے کا نام<input name="issued_by_name" maxlength="150"></label>
+<label>سابقہ ادارہ (اگر بیرونی سرٹیفکیٹ ہو)<input name="external_institution" maxlength="180"></label>
+<label>پہلے سے موجود سرٹیفکیٹ PDF اپلوڈ کریں (اختیاری)<input type="file" name="certificate_pdf" accept="application/pdf"></label>
 <div><button class="button primary" type="submit">سرٹیفکیٹ جاری کریں</button></div>
 </form>
 </div>
