@@ -27,9 +27,24 @@
 </form>
 </section>
 <section class="fitness-panel"><h2>Recent activity</h2>
+@if($isAdmin)<p class="fitness-muted">Admin view: all users’ fitness records are visible only to the administrator.</p>@endif
+@if(session('success'))<p role="status">{{ session('success') }}</p>@endif
 @if($entries->isEmpty())<div class="fitness-empty">No records yet. Add your first workout, run or weight entry.</div>
-@else<div style="overflow-x:auto"><table class="fitness-table"><thead><tr><th>Date</th><th>Type</th><th>Details</th><th>Duration</th><th>Notes</th></tr></thead><tbody>
-@foreach($entries as $entry)<tr><td>{{ \Illuminate\Support\Carbon::parse($entry->entry_date)->format('d M Y') }}</td><td><span class="fitness-tag">{{ ucfirst($entry->type) }}</span></td><td>@if($entry->type === 'run'){{ number_format((float)$entry->distance_km,2) }} km @elseif($entry->type === 'weight'){{ number_format((float)$entry->weight_kg,1) }} kg @else{{ $entry->title }}@endif</td><td>{{ $entry->duration_minutes ? $entry->duration_minutes.' min' : '—' }}</td><td class="fitness-muted">{{ $entry->notes ?: '—' }}</td></tr>@endforeach
+@else<div style="overflow-x:auto"><table class="fitness-table"><thead><tr>@if($isAdmin)<th>Account</th>@endif<th>Date</th><th>Type</th><th>Details</th><th>Duration</th><th>Notes</th><th>Manage</th></tr></thead><tbody>
+@foreach($entries as $entry)<tr>
+@if($isAdmin)<td>{{ $entry->owner_name }}</td>@endif
+<td>{{ \\Illuminate\\Support\\Carbon::parse($entry->entry_date)->format('d M Y') }}</td><td><span class="fitness-tag">{{ ucfirst($entry->type) }}</span></td><td>@if($entry->type === 'run'){{ number_format((float)$entry->distance_km,2) }} km @elseif($entry->type === 'weight'){{ number_format((float)$entry->weight_kg,1) }} kg @else{{ $entry->title }}@endif</td><td>{{ $entry->duration_minutes ? $entry->duration_minutes.' min' : '—' }}</td><td class="fitness-muted">{{ $entry->notes ?: '—' }}</td><td>
+<details><summary>Edit</summary>
+<form class="fitness-form" method="POST" action="{{ route('fitness.update', $entry->id) }}">@csrf @method('PUT')
+<label>Type<select name="type"><option value="workout" @selected($entry->type==='workout')>Workout</option><option value="run" @selected($entry->type==='run')>Running</option><option value="weight" @selected($entry->type==='weight')>Weight</option></select></label>
+<label>Date<input type="date" name="entry_date" value="{{ $entry->entry_date }}" max="{{ now()->toDateString() }}" required></label>
+<label>Workout title<input name="title" maxlength="120" value="{{ $entry->title }}"></label>
+<label>Distance (km)<input type="number" name="distance_km" min=".01" max="9999.99" step=".01" value="{{ $entry->distance_km }}"></label>
+<label>Weight (kg)<input type="number" name="weight_kg" min="1" max="500" step=".1" value="{{ $entry->weight_kg }}"></label>
+<label>Duration (minutes)<input type="number" name="duration_minutes" min="1" max="1440" value="{{ $entry->duration_minutes }}"></label>
+<label>Notes<textarea name="notes" rows="2" maxlength="2000">{{ $entry->notes }}</textarea></label><button type="submit">Update</button></form>
+<form method="POST" action="{{ route('fitness.destroy', $entry->id) }}" onsubmit="return confirm('Delete this fitness record?')">@csrf @method('DELETE')<button type="submit">Delete</button></form>
+</details></td></tr>@endforeach
 </tbody></table></div>@endif
 </section>
 </div>
