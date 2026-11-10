@@ -67,6 +67,60 @@ class FitnessDashboardTest extends TestCase
         ]);
     }
 
+    public function test_user_can_update_and_delete_only_their_own_fitness_entry(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $entryId = DB::table('fitness_entries')->insertGetId([
+            'user_id' => $owner->id,
+            'type' => 'workout',
+            'entry_date' => now()->toDateString(),
+            'title' => 'Old workout',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $otherEntryId = DB::table('fitness_entries')->insertGetId([
+            'user_id' => $other->id,
+            'type' => 'workout',
+            'entry_date' => now()->toDateString(),
+            'title' => 'Other private workout',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($owner)->put(route('fitness.update', $entryId), [
+            'type' => 'workout',
+            'entry_date' => now()->toDateString(),
+            'title' => 'Updated workout',
+        ])->assertRedirect(route('fitness.index'));
+
+        $this->assertDatabaseHas('fitness_entries', ['id' => $entryId, 'title' => 'Updated workout']);
+        $this->actingAs($owner)->delete(route('fitness.destroy', $otherEntryId))->assertNotFound();
+        $this->assertDatabaseHas('fitness_entries', ['id' => $otherEntryId, 'title' => 'Other private workout']);
+        $this->actingAs($owner)->delete(route('fitness.destroy', $entryId))->assertRedirect(route('fitness.index'));
+        $this->assertDatabaseMissing('fitness_entries', ['id' => $entryId]);
+    }
+
+    public function test_admin_can_view_and_manage_all_fitness_entries(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $member = User::factory()->create();
+        $entryId = DB::table('fitness_entries')->insertGetId([
+            'user_id' => $member->id,
+            'type' => 'workout',
+            'entry_date' => now()->toDateString(),
+            'title' => 'Member private workout',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->get(route('fitness.index'))
+            ->assertOk()->assertSee('Member private workout')->assertSee($member->name);
+        $this->actingAs($admin)->delete(route('fitness.destroy', $entryId))
+            ->assertRedirect(route('fitness.index'));
+        $this->assertDatabaseMissing('fitness_entries', ['id' => $entryId]);
+    }
+
     public function test_backup_feed_requires_the_configured_bearer_token(): void
     {
         $user = User::factory()->create();
