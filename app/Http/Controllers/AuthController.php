@@ -105,7 +105,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended($request->user()->is_admin ? route('dashboard') : route('madrasa'));
+        return redirect()->route($request->user()->is_admin ? 'dashboard' : 'madrasa');
     }
 
     public function logout(Request $request)
