@@ -42,7 +42,7 @@ class MadrasaController extends Controller
     {
         $role = $this->role($request);
         $userId = (int) $request->user()->id;
-        $students = DB::table('madrasa_students')->where('madrasa_id', self::MADRASA_ID)->orderBy('full_name');
+        $students = DB::table('madrasa_students')->where('madrasa_id', self::MADRASA_ID)->when($role !== 'admin', fn ($q) => $q->where('status', '!=', 'archived'))->orderBy('full_name');
         if ($role === 'qari') {
             $ids = DB::table('madrasa_qari_assignments')->where('qari_user_id', $userId)->where('status', 'active')->pluck('student_id');
             $students->whereIn('id', $ids);
@@ -82,6 +82,7 @@ class MadrasaController extends Controller
             'guardian_phone' => ['nullable', 'string', 'max:32'],
             'program' => ['required', 'in:hifz,nazra,qaida'],
             'admission_date' => ['nullable', 'date'],
+            'previous_institution' => ['nullable', 'string', 'max:180'],
         ]);
         $id = DB::table('madrasa_students')->insertGetId([
             'madrasa_id' => self::MADRASA_ID,
@@ -92,12 +93,44 @@ class MadrasaController extends Controller
             'program' => $data['program'],
             'status' => 'active',
             'admission_date' => $data['admission_date'] ?? null,
+            'previous_institution' => $data['previous_institution'] ?? null,
             'created_by' => $request->user()->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
         $this->audit($request, 'student.created', 'madrasa_students', $id);
         return back()->with('success', 'طالب علم کا داخلہ محفوظ ہو گیا۔');
+    }
+
+    public function updateStudent(Request $request, int $student): RedirectResponse
+    {
+        $this->admin($request);
+        $record = DB::table('madrasa_students')->where('id', $student)->where('madrasa_id', self::MADRASA_ID)->first();
+        abort_unless($record, 404);
+        $data = $request->validate([
+            'full_name' => ['required', 'string', 'max:150'],
+            'guardian_name' => ['required', 'string', 'max:150'],
+            'guardian_phone' => ['nullable', 'string', 'max:32'],
+            'program' => ['required', 'in:hifz,nazra,qaida'],
+            'admission_date' => ['nullable', 'date'],
+            'previous_institution' => ['nullable', 'string', 'max:180'],
+            'status' => ['required', 'in:active,inactive,archived'],
+            'notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+        DB::table('madrasa_students')->where('id', $student)->update([...$data, 'updated_at' => now()]);
+        $this->audit($request, 'student.updated', 'madrasa_students', $student);
+        return back()->with('success', 'طالب علم کا ریکارڈ اپ ڈیٹ ہو گیا۔');
+    }
+
+    public function archiveStudent(Request $request, int $student): RedirectResponse
+    {
+        $this->admin($request);
+        $exists = DB::table('madrasa_students')->where('id', $student)->where('madrasa_id', self::MADRASA_ID)->exists();
+        abort_unless($exists, 404);
+        DB::table('madrasa_students')->where('id', $student)->update(['status' => 'archived', 'updated_at' => now()]);
+        DB::table('madrasa_qari_assignments')->where('student_id', $student)->where('status', 'active')->update(['status' => 'inactive', 'unassigned_at' => now(), 'updated_at' => now()]);
+        $this->audit($request, 'student.archived', 'madrasa_students', $student);
+        return back()->with('success', 'طالب علم آرکائیو ہو گیا؛ اس کا سابقہ تعلیمی ریکارڈ محفوظ ہے۔');
     }
 
     public function storeAccount(Request $request): RedirectResponse
@@ -268,10 +301,18 @@ class MadrasaController extends Controller
             'certificate_type' => ['required', 'string', 'max:40'],
             'issued_on' => ['required', 'date'],
             'issued_by_name' => ['nullable', 'string', 'max:150'],
+            'external_institution' => ['nullable', 'string', 'max:180'],
+            'certificate_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
         ]);
         abort_unless(DB::table('madrasa_students')->where('id', $data['student_id'])->where('madrasa_id', self::MADRASA_ID)->exists(), 422);
+        $pdfPath = $request->file('certificate_pdf')?->store('madrasa-certificates', 'local');
         $id = DB::table('madrasa_certificates')->insertGetId([
-            ...$data,
+            'student_id' => $data['student_id'],
+            'certificate_type' => $data['certificate_type'],
+            'issued_on' => $data['issued_on'],
+            'issued_by_name' => $data['issued_by_name'] ?? null,
+            'external_institution' => $data['external_institution'] ?? null,
+            'pdf_path' => $pdfPath,
             'certificate_number' => 'MRK58-CERT-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
             'verification_token' => Str::random(48),
             'status' => 'valid',
@@ -304,6 +345,43 @@ class MadrasaController extends Controller
         ]);
         $this->audit($request, 'announcement.created', 'madrasa_announcements', $id);
         return back()->with('success', $published ? 'اعلان شائع کر دیا گیا۔' : 'اعلان بطور مسودہ محفوظ ہو گیا۔');
+    }
+
+    public function downloadCertificate(Request $request, int $certificate)
+    {
+        $this->role($request);
+        $record = DB::table('madrasa_certificates')
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_certificates.student_id')
+            ->where('madrasa_certificates.id', $certificate)
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)
+            ->first(['madrasa_certificates.*', 'madrasa_students.id as linked_student_id']);
+        abort_unless($record && $record->pdf_path, 404);
+        $role = $this->role($request);
+        if ($role === 'parent') {
+            abort_unless(DB::table('madrasa_parent_links')->where('student_id', $record->linked_student_id)->where('parent_user_id', $request->user()->id)->where('is_verified', true)->exists(), 404);
+        } elseif ($role === 'qari') {
+            abort_unless(DB::table('madrasa_qari_assignments')->where('student_id', $record->linked_student_id)->where('qari_user_id', $request->user()->id)->where('status', 'active')->exists(), 404);
+        }
+        abort_unless(Storage::disk('local')->exists($record->pdf_path), 404);
+        return Storage::disk('local')->download($record->pdf_path, $record->certificate_number . '.pdf');
+    }
+
+    public function printCertificate(Request $request, int $certificate): View
+    {
+        $this->admin($request);
+        $record = DB::table('madrasa_certificates')
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_certificates.student_id')
+            ->where('madrasa_certificates.id', $certificate)
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)
+            ->first([
+                'madrasa_certificates.*',
+                'madrasa_students.full_name',
+                'madrasa_students.student_code',
+                'madrasa_students.program',
+                'madrasa_students.previous_institution',
+            ]);
+        abort_unless($record, 404);
+        return view('madrasa.certificate-print', ['certificate' => $record]);
     }
 
     public function verifyCertificate(string $token): View
