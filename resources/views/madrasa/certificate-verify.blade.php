@@ -14,7 +14,7 @@
 <table><tbody>
 <tr><th>طالب علم</th><td>{{ $certificate->full_name }}</td></tr>
 <tr><th>سرٹیفکیٹ نمبر</th><td>{{ $certificate->certificate_number }}</td></tr>
-<tr><th>قسم</th><td>{{ $certificate->certificate_type }}</td></tr>
+<tr><th>قسم</th><td>{{ ['hifz'=>'تکمیلِ حفظ القرآن','nazra'=>'تکمیلِ ناظرہ قرآن','qaida'=>'تکمیلِ قاعدہ','participation'=>'شرکت / حاضری','achievement'=>'اعزاز / نمایاں کارکردگی'][$certificate->certificate_type] ?? $certificate->certificate_type }}</td></tr>
 <tr><th>اجراء کی تاریخ</th><td>{{ $certificate->issued_on }}</td></tr>
 <tr><th>حیثیت</th><td>معتبر</td></tr>
 </tbody></table>
