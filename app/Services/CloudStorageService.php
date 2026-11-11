@@ -54,7 +54,7 @@ class CloudStorageService
 
         if ($connection->provider === 'google') {
             $response = Http::withToken($token)->timeout(45)->get('https://www.googleapis.com/drive/v3/files', [
-                'q' => 'trashed = false',
+                'q' => "trashed = false and mimeType != 'application/vnd.google-apps.folder'",
                 'pageSize' => 100,
                 'orderBy' => 'modifiedTime desc',
                 'fields' => 'files(id,name,mimeType,size,modifiedTime)',
@@ -156,13 +156,36 @@ class CloudStorageService
         ];
     }
 
-    public function download(CloudConnection $connection, string $fileId): Response
+    public function download(CloudConnection $connection, string $fileId, ?string $mimeType = null): Response
     {
         $token = $this->accessToken($connection);
-        $response = $connection->provider === 'google'
-            ? Http::withToken($token)->timeout(60)->get('https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId), ['alt' => 'media'])
-            : Http::withToken($token)->withHeaders(['Dropbox-API-Arg' => json_encode(['path' => $fileId])])
+
+        if ($connection->provider === 'google') {
+            if (str_starts_with((string) $mimeType, 'application/vnd.google-apps.')) {
+                $exportTypes = [
+                    'application/vnd.google-apps.document' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.google-apps.spreadsheet' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'application/vnd.google-apps.presentation' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                    'application/vnd.google-apps.drawing' => 'image/png',
+                ];
+                $exportType = $exportTypes[$mimeType] ?? null;
+                if (!$exportType) {
+                    throw new RuntimeException('This Google Workspace file type cannot be exported by MRK yet.');
+                }
+                $response = Http::withToken($token)->timeout(60)->get(
+                    'https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId).'/export',
+                    ['mimeType' => $exportType]
+                );
+            } else {
+                $response = Http::withToken($token)->timeout(60)->get(
+                    'https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId),
+                    ['alt' => 'media']
+                );
+            }
+        } else {
+            $response = Http::withToken($token)->withHeaders(['Dropbox-API-Arg' => json_encode(['path' => $fileId])])
                 ->timeout(60)->get('https://content.dropboxapi.com/2/files/download');
+        }
 
         $this->ensureSuccess($response, 'Cloud file download');
         return $response;
