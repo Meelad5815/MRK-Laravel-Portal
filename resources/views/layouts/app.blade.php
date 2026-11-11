@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="@yield('html_lang', 'en')">
 <head>
 @php
     try {
