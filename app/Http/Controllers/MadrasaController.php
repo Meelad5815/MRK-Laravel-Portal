@@ -107,10 +107,32 @@ class MadrasaController extends Controller
         $programCounts = DB::table('madrasa_students')->whereIn('id', $studentIds)
             ->select('program', DB::raw('COUNT(*) as total'))->groupBy('program')->pluck('total', 'program');
 
+        $reportMonth = preg_match('/^\\d{4}-\\d{2}$/', (string) $request->query('report_month'))
+            ? $request->query('report_month')
+            : now()->format('Y-m');
+        try {
+            $reportStart = \\Illuminate\\Support\\Carbon::createFromFormat('Y-m', $reportMonth)->startOfMonth()->toDateString();
+        } catch (\\Throwable $exception) {
+            $reportMonth = now()->format('Y-m');
+            $reportStart = now()->startOfMonth()->toDateString();
+        }
+        $reportEnd = \\Illuminate\\Support\\Carbon::parse($reportStart)->endOfMonth()->toDateString();
+        $monthlyAttendance = DB::table('madrasa_attendance')->whereIn('student_id', $studentIds)
+            ->whereBetween('attendance_date', [$reportStart, $reportEnd])
+            ->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->pluck('total', 'status');
+        $monthlyProgressCount = DB::table('madrasa_daily_progress')->whereIn('student_id', $studentIds)
+            ->whereBetween('progress_date', [$reportStart, $reportEnd])->count();
+        $monthlyExamQuery = DB::table('madrasa_exams')->whereIn('student_id', $studentIds)
+            ->whereBetween('exam_date', [$reportStart, $reportEnd])
+            ->when($role === 'parent', fn ($q) => $q->where('parent_visible', true));
+        $monthlyExamCount = (clone $monthlyExamQuery)->count();
+        $monthlyExamAverage = (clone $monthlyExamQuery)->selectRaw('AVG((obtained_marks / total_marks) * 100) as average_percentage')->value('average_percentage');
+
         return view('madrasa.index', compact(
             'role', 'studentRows', 'attendance', 'progress', 'qariUsers', 'parentUsers',
             'exams', 'certificates', 'announcements', 'studentSearch', 'activeStudents',
-            'presentToday', 'absentToday', 'lateToday', 'programCounts'
+            'presentToday', 'absentToday', 'lateToday', 'programCounts', 'reportMonth',
+            'monthlyAttendance', 'monthlyProgressCount', 'monthlyExamCount', 'monthlyExamAverage'
         ));
     }
 
