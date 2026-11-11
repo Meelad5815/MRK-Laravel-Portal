@@ -35,7 +35,7 @@ class MadrasaController extends Controller
         $belongsToThisMadrasa = DB::table('madrasa_students')
             ->where('id', $studentId)
             ->where('madrasa_id', self::MADRASA_ID)
-            ->where('status', '!=', 'archived')
+            ->where('status', 'active')
             ->exists();
 
         abort_unless($belongsToThisMadrasa, 404);
@@ -158,7 +158,14 @@ class MadrasaController extends Controller
             'status' => ['required', 'in:active,inactive,archived'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
-        DB::table('madrasa_students')->where('id', $student)->update([...$data, 'updated_at' => now()]);
+        DB::transaction(function () use ($student, $data) {
+            DB::table('madrasa_students')->where('id', $student)->update([...$data, 'updated_at' => now()]);
+            if ($data['status'] === 'archived') {
+                DB::table('madrasa_qari_assignments')->where('student_id', $student)
+                    ->where('status', 'active')
+                    ->update(['status' => 'inactive', 'unassigned_at' => now(), 'updated_at' => now()]);
+            }
+        });
         $this->audit($request, 'student.updated', 'madrasa_students', $student);
         return back()->with('success', 'طالب علم کا ریکارڈ اپ ڈیٹ ہو گیا۔');
     }
@@ -223,7 +230,7 @@ class MadrasaController extends Controller
     {
         $this->admin($request);
         $data = $request->validate(['student_id' => ['required', 'integer', 'exists:madrasa_students,id'], 'qari_user_id' => ['required', 'integer', 'exists:users,id']]);
-        abort_unless(DB::table('madrasa_students')->where('id', $data['student_id'])->where('madrasa_id', self::MADRASA_ID)->where('status', '!=', 'archived')->exists(), 422);
+        abort_unless(DB::table('madrasa_students')->where('id', $data['student_id'])->where('madrasa_id', self::MADRASA_ID)->where('status', 'active')->exists(), 422);
         abort_unless(DB::table('users')->where('id', $data['qari_user_id'])->where('madrasa_role', 'qari')->where('madrasa_id', self::MADRASA_ID)->exists(), 422);
         DB::transaction(function () use ($data, $request) {
             DB::table('madrasa_qari_assignments')->where('student_id', $data['student_id'])->where('status', 'active')->update(['status' => 'inactive', 'unassigned_at' => now(), 'updated_at' => now()]);
