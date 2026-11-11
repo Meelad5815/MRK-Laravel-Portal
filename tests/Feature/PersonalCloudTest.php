@@ -42,6 +42,64 @@ class PersonalCloudTest extends TestCase
             ->assertHeader('content-disposition');
     }
 
+    public function test_user_can_preview_an_owned_image_inline(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+        $path = 'mrk-cloud/'.$user->id.'/photo.png';
+        Storage::disk('local')->put($path, 'fake-image-bytes');
+        $file = CloudFile::query()->create([
+            'user_id' => $user->id,
+            'original_name' => 'photo.png',
+            'stored_path' => $path,
+            'mime_type' => 'image/png',
+            'extension' => 'png',
+            'size' => 16,
+        ]);
+
+        $this->actingAs($user)->get(route('cloud.preview', $file))
+            ->assertOk()
+            ->assertHeader('content-type', 'image/png')
+            ->assertHeader('content-disposition');
+    }
+
+    public function test_user_cannot_preview_another_users_image(): void
+    {
+        Storage::fake('local');
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $path = 'mrk-cloud/'.$owner->id.'/secret.png';
+        Storage::disk('local')->put($path, 'private');
+        $file = CloudFile::query()->create([
+            'user_id' => $owner->id,
+            'original_name' => 'secret.png',
+            'stored_path' => $path,
+            'mime_type' => 'image/png',
+            'extension' => 'png',
+            'size' => 7,
+        ]);
+
+        $this->actingAs($other)->get(route('cloud.preview', $file))->assertNotFound();
+    }
+
+    public function test_non_image_files_are_not_rendered_as_inline_previews(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+        $path = 'mrk-cloud/'.$user->id.'/document.pdf';
+        Storage::disk('local')->put($path, 'private');
+        $file = CloudFile::query()->create([
+            'user_id' => $user->id,
+            'original_name' => 'document.pdf',
+            'stored_path' => $path,
+            'mime_type' => 'application/pdf',
+            'extension' => 'pdf',
+            'size' => 7,
+        ]);
+
+        $this->actingAs($user)->get(route('cloud.preview', $file))->assertStatus(415);
+    }
+
     public function test_user_cannot_list_download_or_delete_another_users_file(): void
     {
         Storage::fake('local');

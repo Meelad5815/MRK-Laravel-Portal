@@ -95,6 +95,10 @@
                                 <td>{{ $file->created_at->format('d M Y') }}</td>
                                 <td>
                                     <div class="action-stack">
+                                        @if(in_array(strtolower((string) $file->mime_type), ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true))
+                                            <a class="button secondary" href="{{ route('cloud.preview', $file) }}" target="_blank" rel="noopener">Preview</a>
+                                            <button class="button secondary js-image-edit" type="button" data-image-url="{{ route('cloud.preview', $file) }}" data-image-name="{{ $file->original_name }}">Edit / Crop</button>
+                                        @endif
                                         <a class="button secondary" href="{{ route('cloud.download', $file) }}">Download</a>
                                         <form method="POST" action="{{ route('cloud.destroy', $file) }}" onsubmit="return confirm('Permanently delete this file?')">
                                             @csrf @method('DELETE')
@@ -112,6 +116,71 @@
                 <div class="empty">No files found. Upload your first file to get started.</div>
             @endif
         </div>
+        <dialog id="mrk-image-editor" style="width:min(96vw,900px);max-height:90vh;border:1px solid #d1d5db;border-radius:14px;padding:1rem">
+            <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap">
+                <h2 style="margin:0">Image Editor · Crop & Rotate</h2>
+                <button type="button" class="button secondary" id="mrk-editor-close">Close</button>
+            </div>
+            <p class="muted">Drag on the image to select a crop area. Rotate if needed, then download the edited copy.</p>
+            <div style="overflow:auto;max-height:55vh;margin:1rem 0;text-align:center;background:#f3f4f6">
+                <canvas id="mrk-editor-canvas" style="max-width:100%;height:auto;touch-action:none;cursor:crosshair"></canvas>
+            </div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                <button type="button" class="button secondary" id="mrk-editor-rotate">Rotate 90°</button>
+                <button type="button" class="button secondary" id="mrk-editor-reset">Reset crop</button>
+                <button type="button" class="button primary" id="mrk-editor-save">Download edited image</button>
+            </div>
+            <p class="muted" id="mrk-editor-status" aria-live="polite"></p>
+        </dialog>
+        <script>
+        (() => {
+            const dialog = document.getElementById('mrk-image-editor');
+            const canvas = document.getElementById('mrk-editor-canvas');
+            const ctx = canvas.getContext('2d');
+            const status = document.getElementById('mrk-editor-status');
+            let source = new Image(), originalName = 'edited-image', rotation = 0, selection = null, dragStart = null;
+            const draw = () => {
+                if (!source.complete || !source.naturalWidth) return;
+                const swapped = Math.abs(rotation % 180) === 90;
+                canvas.width = swapped ? source.naturalHeight : source.naturalWidth;
+                canvas.height = swapped ? source.naturalWidth : source.naturalHeight;
+                ctx.save(); ctx.translate(canvas.width / 2, canvas.height / 2); ctx.rotate(rotation * Math.PI / 180);
+                ctx.drawImage(source, -source.naturalWidth / 2, -source.naturalHeight / 2); ctx.restore();
+                status.textContent = 'Drag across the image to choose the crop area.';
+            };
+            document.querySelectorAll('.js-image-edit').forEach(button => button.addEventListener('click', () => {
+                originalName = button.dataset.imageName || 'edited-image'; rotation = 0; selection = null;
+                source = new Image(); source.onload = () => { draw(); dialog.showModal(); };
+                source.onerror = () => { status.textContent = 'Could not load this image.'; };
+                source.src = button.dataset.imageUrl;
+            }));
+            document.getElementById('mrk-editor-close').addEventListener('click', () => dialog.close());
+            document.getElementById('mrk-editor-rotate').addEventListener('click', () => { rotation = (rotation + 90) % 360; selection = null; draw(); });
+            document.getElementById('mrk-editor-reset').addEventListener('click', () => { selection = null; draw(); });
+            const point = event => {
+                const rect = canvas.getBoundingClientRect();
+                const x = (event.clientX - rect.left) * canvas.width / rect.width;
+                const y = (event.clientY - rect.top) * canvas.height / rect.height;
+                return {
+                    x: Math.max(0, Math.min(canvas.width, x)),
+                    y: Math.max(0, Math.min(canvas.height, y))
+                };
+            };
+            const drawOverlay = () => { if (!selection) return; ctx.save(); ctx.strokeStyle='#0d9488'; ctx.lineWidth=Math.max(2,canvas.width/500); ctx.setLineDash([8,5]); ctx.strokeRect(selection.x,selection.y,selection.w,selection.h); ctx.restore(); };
+            canvas.addEventListener('pointerdown', event => { dragStart = point(event); selection = {x:dragStart.x,y:dragStart.y,w:0,h:0}; canvas.setPointerCapture(event.pointerId); });
+            canvas.addEventListener('pointermove', event => { if (!dragStart) return; const p=point(event); selection={x:Math.min(p.x,dragStart.x),y:Math.min(p.y,dragStart.y),w:Math.abs(p.x-dragStart.x),h:Math.abs(p.y-dragStart.y)}; draw(); drawOverlay(); });
+            canvas.addEventListener('pointerup', () => { dragStart=null; });
+            document.getElementById('mrk-editor-save').addEventListener('click', () => {
+                // Redraw the source without the dashed selection overlay before exporting.
+                draw();
+                const crop = selection && selection.w > 4 && selection.h > 4 ? selection : {x:0,y:0,w:canvas.width,h:canvas.height};
+                const output=document.createElement('canvas'); output.width=Math.round(crop.w); output.height=Math.round(crop.h);
+                output.getContext('2d').drawImage(canvas,crop.x,crop.y,crop.w,crop.h,0,0,output.width,output.height);
+                const link=document.createElement('a'); link.download=originalName.replace(/\.[^.]+$/,'')+'-edited.png'; link.href=output.toDataURL('image/png'); link.click();
+                status.textContent='Edited copy downloaded. Upload it again to keep it in MRK Cloud.';
+            });
+        })();
+        </script>
         <p class="muted" style="margin-top:1rem">Backup note: this version stores files on the website host. Folder organization is not a backup. Keep a separate copy of important files. A downloadable ZIP backup will be added only after checking ZIP support and available hosting storage.</p>
     </div>
 </section>

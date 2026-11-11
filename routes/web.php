@@ -269,6 +269,7 @@ Route::middleware('auth')->prefix('cloud')->name('cloud.')->group(function () {
     Route::get('/', [PersonalCloudController::class, 'index'])->name('index');
     Route::post('/folders', [PersonalCloudController::class, 'storeFolder'])->middleware('throttle:10,1')->name('folders.store');
     Route::post('/upload', [PersonalCloudController::class, 'store'])->middleware('throttle:10,1')->name('store');
+    Route::get('/{cloudFile}/preview', [PersonalCloudController::class, 'preview'])->name('preview');
     Route::get('/{cloudFile}/download', [PersonalCloudController::class, 'download'])->name('download');
     Route::delete('/{cloudFile}', [PersonalCloudController::class, 'destroy'])->name('destroy');
 });

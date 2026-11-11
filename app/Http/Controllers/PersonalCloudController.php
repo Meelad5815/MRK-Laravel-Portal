@@ -118,6 +118,30 @@ class PersonalCloudController extends Controller
         return redirect()->route('cloud.index')->with('success', 'File uploaded to your private cloud.');
     }
 
+    public function preview(Request $request, CloudFile $cloudFile)
+    {
+        abort_unless($cloudFile->user_id === $request->user()->id, 404);
+        abort_unless(Storage::disk('local')->exists($cloudFile->stored_path), 404);
+
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        abort_unless(in_array(strtolower((string) $cloudFile->mime_type), $allowedTypes, true), 415);
+
+        $stream = Storage::disk('local')->readStream($cloudFile->stored_path);
+        abort_unless(is_resource($stream), 404);
+
+        return response()->stream(function () use ($stream) {
+            fpassthru($stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }, 200, [
+            'Content-Type' => strtolower($cloudFile->mime_type),
+            'Content-Disposition' => 'inline; filename="' . addcslashes(basename($cloudFile->original_name), '"\\\\') . '"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store, max-age=0',
+        ]);
+    }
+
     public function download(Request $request, CloudFile $cloudFile): StreamedResponse
     {
         abort_unless($cloudFile->user_id === $request->user()->id, 404);
