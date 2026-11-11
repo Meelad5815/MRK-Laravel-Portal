@@ -135,6 +135,7 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'admin'])->group(function () {
+    Route::view('/dashboard/online-work', 'admin.online-work')->name('admin.online-work');
     Route::post('/dashboard/system/run-pending-migrations', function (Request $request) {
         $request->validate([
             'backup_confirmed' => ['required', 'accepted'],
