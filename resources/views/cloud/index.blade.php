@@ -1,118 +1,149 @@
-@extends('layouts.app')
-@section('title', 'MRK Personal Cloud | MRK Digital')
-@section('description', 'Private file storage area for your MRK Digital account.')
-@section('robots', 'noindex,nofollow')
-@section('content')
-<section class="page-hero">
-    <div class="container narrow">
-        <span class="eyebrow">MRK DIGITAL · PRIVATE STORAGE</span>
-        <h1>MRK Personal Cloud</h1>
-        <p>Store and manage your personal files in your own account. Files are private and only your signed-in account can access them.</p>
-    </div>
-</section>
-<section class="section">
-    <div class="container">
-        <div class="stats" style="margin-bottom:1.5rem">
-            <div><span>Your files</span><strong>{{ number_format($stats['files']) }}</strong></div>
-            <div><span>Stored data</span><strong>{{ number_format($stats['bytes'] / 1048576, 2) }} MB</strong></div>
-            <div><span>Per-file limit</span><strong>5 MB</strong></div>
-        </div>
+<?php
 
-        <div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem">
-            <h2>Create a folder</h2>
-            <p>Organize your cloud files into folders such as Study, Work, Projects or Personal.</p>
-            <form method="POST" action="{{ route('cloud.folders.store') }}" class="dashboard-filters">
-                @csrf
-                <label>Folder name<input type="text" name="name" maxlength="60" required placeholder="e.g. Study Notes"></label>
-                <button class="button secondary" type="submit">Create folder</button>
-            </form>
-            @error('name')<p class="form-error">{{ $message }}</p>@enderror
-        </div>
+namespace Tests\Feature;
 
-        <div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem">
-            <h2>Upload a file</h2>
-            <p>Choose a document, image, PDF, archive or another file up to 5 MB.</p>
-            <form method="POST" action="{{ route('cloud.store') }}" enctype="multipart/form-data" class="dashboard-filters">
-                @csrf
-                <label>Choose file<input type="file" name="file" required></label>
-                <label>Folder
-                    <select name="folder_id">
-                        <option value="">No folder</option>
-                        @foreach($folders as $folder)
-                            <option value="{{ $folder->id }}" @selected(old('folder_id') == $folder->id)>{{ $folder->name }}</option>
-                        @endforeach
-                    </select>
-                </label>
-                <label>Category
-                    <select name="category">
-                        @foreach($categories as $key => $label)
-                            <option value="{{ $key }}" @selected(old('category', 'other') === $key)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </label>
-                <button class="button primary" type="submit">Upload to my cloud</button>
-            </form>
-            @error('file')<p class="form-error">{{ $message }}</p>@enderror
-            @error('folder_id')<p class="form-error">{{ $message }}</p>@enderror
-            @error('category')<p class="form-error">{{ $message }}</p>@enderror
-        </div>
+use App\Models\CloudFile;
+use App\Models\CloudFolder;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
 
-        <div class="table-card">
-            <div class="table-head"><h2>My files</h2><span>{{ $files->total() }} total</span></div>
-            <form method="GET" action="{{ route('cloud.index') }}" class="dashboard-filters">
-                <label>Search files<input type="search" name="q" value="{{ request('q') }}" placeholder="Search by filename"></label>
-                <label>Folder
-                    <select name="folder">
-                        <option value="">All folders</option>
-                        @foreach($folders as $folder)
-                            <option value="{{ $folder->id }}" @selected((string) request('folder') === (string) $folder->id)>{{ $folder->name }}</option>
-                        @endforeach
-                    </select>
-                </label>
-                <label>Category
-                    <select name="category">
-                        <option value="">All categories</option>
-                        @foreach($categories as $key => $label)
-                            <option value="{{ $key }}" @selected(request('category') === $key)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </label>
-                <button class="button primary" type="submit">Filter</button>
-                <a class="button secondary" href="{{ route('cloud.index') }}">Clear</a>
-            </form>
-            @if($files->count())
-                <div class="table-wrap">
-                    <table>
-                        <thead><tr><th>File name</th><th>Folder</th><th>Category</th><th>Type</th><th>Size</th><th>Uploaded</th><th>Actions</th></tr></thead>
-                        <tbody>
-                        @foreach($files as $file)
-                            <tr>
-                                <td><strong>{{ $file->original_name }}</strong></td>
-                                <td>{{ $file->folder?->name ?? '—' }}</td>
-                                <td>{{ $categories[$file->category] ?? 'Other' }}</td>
-                                <td>{{ strtoupper($file->extension ?: 'FILE') }}</td>
-                                <td>{{ $file->size_for_humans }}</td>
-                                <td>{{ $file->created_at->format('d M Y') }}</td>
-                                <td>
-                                    <div class="action-stack">
-                                        <a class="button secondary" href="{{ route('cloud.download', $file) }}">Download</a>
-                                        <form method="POST" action="{{ route('cloud.destroy', $file) }}" onsubmit="return confirm('Permanently delete this file?')">
-                                            @csrf @method('DELETE')
-                                            <button class="danger-button" type="submit">Delete</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
-                <div style="padding:1rem">{{ $files->links() }}</div>
-            @else
-                <div class="empty">No files found. Upload your first file to get started.</div>
-            @endif
-        </div>
-        <p class="muted" style="margin-top:1rem">Backup note: this version stores files on the website host. Folder organization is not a backup. Keep a separate copy of important files. A downloadable ZIP backup will be added only after checking ZIP support and available hosting storage.</p>
-    </div>
-</section>
-@endsection
+class PersonalCloudTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_personal_cloud_requires_authentication(): void
+    {
+        $this->get(route('cloud.index'))->assertRedirect(route('login'));
+        $this->post(route('cloud.store'))->assertRedirect(route('login'));
+        $this->post(route('cloud.folders.store'))->assertRedirect(route('login'));
+    }
+
+    public function test_user_can_upload_list_and_download_their_own_file(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('cloud.store'), [
+            'file' => UploadedFile::fake()->create('study-notes.pdf', 120, 'application/pdf'),
+        ])->assertRedirect(route('cloud.index'));
+
+        $file = CloudFile::query()->where('user_id', $user->id)->firstOrFail();
+        Storage::disk('local')->assertExists($file->stored_path);
+
+        $this->actingAs($user)->get(route('cloud.index'))
+            ->assertOk()
+            ->assertSee('study-notes.pdf');
+
+        $this->actingAs($user)->get(route('cloud.download', $file))
+            ->assertOk()
+            ->assertHeader('content-disposition');
+    }
+
+    public function test_user_cannot_list_download_or_delete_another_users_file(): void
+    {
+        Storage::fake('local');
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $path = 'mrk-cloud/'.$owner->id.'/private-file.pdf';
+        Storage::disk('local')->put($path, 'private content');
+
+        $file = CloudFile::query()->create([
+            'user_id' => $owner->id,
+            'original_name' => 'private-file.pdf',
+            'stored_path' => $path,
+            'mime_type' => 'application/pdf',
+            'extension' => 'pdf',
+            'size' => 15,
+        ]);
+
+        $this->actingAs($otherUser)->get(route('cloud.index'))
+            ->assertOk()
+            ->assertDontSee('private-file.pdf');
+
+        $this->actingAs($otherUser)->get(route('cloud.download', $file))->assertNotFound();
+        $this->actingAs($otherUser)->delete(route('cloud.destroy', $file))->assertNotFound();
+
+        $this->assertDatabaseHas('cloud_files', ['id' => $file->id, 'user_id' => $owner->id]);
+        Storage::disk('local')->assertExists($path);
+    }
+
+    public function test_personal_cloud_rejects_files_larger_than_five_megabytes(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('cloud.store'), [
+            'file' => UploadedFile::fake()->create('oversized.zip', 5121, 'application/zip'),
+        ])->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('cloud_files', 0);
+    }
+
+    public function test_user_can_create_folder_and_upload_file_into_it(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('cloud.folders.store'), [
+            'name' => 'Study Notes',
+        ])->assertRedirect(route('cloud.index'));
+
+        $folder = CloudFolder::query()->where('user_id', $user->id)->firstOrFail();
+
+        $this->actingAs($user)->post(route('cloud.store'), [
+            'file' => UploadedFile::fake()->create('lecture.pdf', 100, 'application/pdf'),
+            'folder_id' => $folder->id,
+            'category' => 'documents',
+        ])->assertRedirect(route('cloud.index'));
+
+        $file = CloudFile::query()->where('user_id', $user->id)->firstOrFail();
+        $this->assertSame($folder->id, $file->cloud_folder_id);
+        $this->assertSame('documents', $file->category);
+
+        $this->actingAs($user)->get(route('cloud.index', ['folder' => $folder->id, 'category' => 'documents']))
+            ->assertOk()
+            ->assertSee('lecture.pdf')
+            ->assertSee('Study Notes');
+    }
+
+    public function test_user_cannot_upload_file_into_another_users_folder(): void
+    {
+        Storage::fake('local');
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $folder = CloudFolder::query()->create(['user_id' => $owner->id, 'name' => 'Private']);
+
+        $this->actingAs($otherUser)->post(route('cloud.store'), [
+            'file' => UploadedFile::fake()->create('attempt.pdf', 100, 'application/pdf'),
+            'folder_id' => $folder->id,
+            'category' => 'documents',
+        ])->assertSessionHasErrors('folder_id');
+
+        $this->assertDatabaseCount('cloud_files', 0);
+    }
+
+    public function test_folder_name_must_be_a_string(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('cloud.folders.store'), ['name' => ['invalid']])
+            ->assertSessionHasErrors('name');
+
+        $this->assertDatabaseCount('cloud_folders', 0);
+    }
+
+    public function test_folder_names_are_unique_per_user(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('cloud.folders.store'), ['name' => 'Work'])
+            ->assertRedirect(route('cloud.index'));
+        $this->actingAs($user)->post(route('cloud.folders.store'), ['name' => 'Work'])
+            ->assertSessionHasErrors('name');
+
+        $this->assertDatabaseCount('cloud_folders', 1);
+    }
+}
