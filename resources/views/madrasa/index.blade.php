@@ -2,19 +2,42 @@
 @section('title', 'MRK Madrasa Portal')
 @section('robots', 'noindex,nofollow')
 @section('content')
-<section class="page-hero"><div class="container narrow">
+@push('styles')
+<style>
+.madrasa-dashboard{display:grid;gap:1rem;margin:0 0 1.5rem}.madrasa-welcome{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:1.2rem;border-radius:16px;background:linear-gradient(135deg,#123c32,#17624d);color:#fff}.madrasa-welcome h2{margin:.3rem 0;color:#fff}.madrasa-welcome p{margin:0;color:#e2eee8}.role-pill{background:#fff;color:#14513f;border-radius:999px;padding:.45rem .85rem;font-weight:700}.madrasa-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.75rem}.madrasa-stats article{padding:1rem;border:1px solid #dce7e1;border-radius:13px;background:#fff;display:grid;gap:.25rem}.madrasa-stats article span{color:#52635b;font-size:.9rem}.madrasa-stats article strong{font-size:1.7rem;color:#14513f}.madrasa-stats article small{color:#718078}.madrasa-programs{display:flex;gap:.6rem;flex-wrap:wrap}.madrasa-programs span{padding:.5rem .8rem;background:#eef6f1;border-radius:9px;color:#214d3c}.madrasa-shortcuts{display:flex;gap:.5rem;flex-wrap:wrap}.madrasa-shortcuts a{padding:.55rem .8rem;border:1px solid #d5e2da;border-radius:9px;text-decoration:none;color:#174d3a;background:#fff;font-weight:600}.madrasa-filters{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:.75rem;align-items:end;margin:1rem 0}.madrasa-filters label{display:grid;gap:.35rem}.madrasa-filters input,.madrasa-filters select{width:100%;padding:.7rem;border:1px solid #cbd5e1;border-radius:9px}.madrasa-filter-actions{display:flex;gap:.5rem;flex-wrap:wrap}.table-wrap{overflow-x:auto}.table-wrap table{min-width:680px;width:100%}html{scroll-behavior:smooth}h2[id]{scroll-margin-top:90px}
+@media(max-width:850px){.madrasa-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.madrasa-filters{grid-template-columns:1fr 1fr}.madrasa-filter-actions{grid-column:1/-1}}
+@media(max-width:480px){.madrasa-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.madrasa-filters{grid-template-columns:1fr}.madrasa-filter-actions{grid-column:auto}.madrasa-welcome{align-items:flex-start}}
+</style>
+@endpush
+
+<section class="page-hero"><div class="container narrow" dir="rtl">
     <span class="eyebrow">MRK MADRASA 58</span>
     <h1>مدرسۃ المدینہ مینجمنٹ پورٹل</h1>
     <p>طلبہ، اساتذہ، حاضری اور تعلیمی پیش رفت کا محفوظ انتظام</p>
     <p><strong>آپ کا کردار:</strong> {{ ['admin' => 'منتظم', 'qari' => 'قاری / معلم', 'parent' => 'والدین'][$role] ?? $role }}</p>
 </div></section>
-<section class="section"><div class="container">
+<section class="section"><div class="container" dir="rtl">
+<div class="madrasa-dashboard">
+  <div class="madrasa-welcome"><div><span class="eyebrow">MRK MADRASA 58 • تعلیمی انتظام</span><h2>السلام علیکم! {{ auth()->user()->name }}</h2><p>آج کی تعلیمی سرگرمیوں اور مدرسہ کے ریکارڈ کا خلاصہ</p></div><span class="role-pill">{{ ['admin'=>'منتظم','qari'=>'قاری / معلم','parent'=>'والدین'][$role] ?? $role }}</span></div>
+  <div class="madrasa-stats">
+    <article><span>کل طلبہ</span><strong>{{ $studentRows->count() }}</strong><small>آپ کے دائرۂ اختیار میں</small></article>
+    <article><span>فعال طلبہ</span><strong>{{ $activeStudents }}</strong><small>فعال داخلے</small></article>
+    <article><span>آج حاضر</span><strong>{{ $presentToday }}</strong><small>درج شدہ حاضری</small></article>
+    <article><span>آج غیر حاضر</span><strong>{{ $absentToday }}</strong><small>درج شدہ غیر حاضری</small></article>
+    <article><span>تاخیر سے</span><strong>{{ $lateToday }}</strong><small>آج کا ریکارڈ</small></article>
+  </div>
+  <div class="madrasa-programs"><span>حفظ: <b>{{ $programCounts['hifz'] ?? 0 }}</b></span><span>ناظرہ: <b>{{ $programCounts['nazra'] ?? 0 }}</b></span><span>قاعدہ: <b>{{ $programCounts['qaida'] ?? 0 }}</b></span></div>
+  <nav class="madrasa-shortcuts" aria-label="فوری رسائی">
+    <a href="#students">طلبہ</a><a href="#attendance">حاضری</a><a href="#progress">روزانہ پیش رفت</a><a href="#exams">امتحانات</a><a href="#certificates">سرٹیفکیٹس</a><a href="#announcements">اعلانات</a>
+    @if($role==='admin')<a href="#admissions">نیا داخلہ</a><a href="#accounts">اکاؤنٹس</a>@endif
+  </nav>
+</div>
 @if(session('temporary_account_password'))
 <div class="alert success"><strong>عارضی پاس ورڈ (صرف ابھی دکھایا جا رہا ہے):</strong><code dir="ltr">{{ session('temporary_account_password') }}</code><p>اسے متعلقہ صارف تک محفوظ طریقے سے پہنچائیں اور پہلی بار لاگ اِن کے بعد تبدیل کروائیں۔</p></div>
 @endif
 @if($role === 'admin')
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
-<h2>نیا طالب علم داخل کریں</h2>
+<h2 id="admissions">نیا طالب علم داخل کریں</h2>
 <form method="POST" action="{{ route('madrasa.students.store') }}" class="form-grid">@csrf
 <label>طالب علم کا نام<input name="full_name" maxlength="150" required></label>
 <label>سرپرست کا نام<input name="guardian_name" maxlength="150" required></label>
@@ -26,7 +49,7 @@
 </form></div>
 
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
-<h2>قاری یا والدین کا اکاؤنٹ بنائیں</h2>
+<h2 id="accounts">قاری یا والدین کا اکاؤنٹ بنائیں</h2>
 <form method="POST" action="{{ route('madrasa.accounts.store') }}" class="form-grid">@csrf
 <label>پورا نام<input name="name" required maxlength="100"></label>
 <label>ای میل<input type="email" name="email" required maxlength="255" dir="ltr"></label>
@@ -91,7 +114,13 @@
 @endif
 
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
-<h2>طلبہ کا ریکارڈ</h2>
+<h2 id="students">طلبہ کا ریکارڈ</h2>
+<form method="GET" action="{{ route('madrasa') }}" class="madrasa-filters">
+<label>نام، طالب علم کوڈ یا سرپرست کا فون<input type="search" name="student_search" value="{{ $studentSearch }}" placeholder="مثلاً MRK58 یا طالب علم کا نام"></label>
+<label>تعلیمی شعبہ<select name="program"><option value="">تمام شعبے</option><option value="hifz" @selected(request('program')==='hifz')>حفظ</option><option value="nazra" @selected(request('program')==='nazra')>ناظرہ</option><option value="qaida" @selected(request('program')==='qaida')>قاعدہ</option></select></label>
+@if($role==='admin')<label>داخلے کی حیثیت<select name="student_status"><option value="">تمام</option><option value="active" @selected(request('student_status')==='active')>فعال</option><option value="inactive" @selected(request('student_status')==='inactive')>غیر فعال</option><option value="archived" @selected(request('student_status')==='archived')>آرکائیو</option></select></label>@endif
+<div class="madrasa-filter-actions"><button class="button primary" type="submit">تلاش کریں</button><a class="button secondary" href="{{ route('madrasa') }}">فلٹر ختم کریں</a></div>
+</form>
 @if($studentRows->isEmpty())
 <p class="empty">ابھی اس پورٹل کے لیے کوئی طالب علم دستیاب نہیں۔</p>
 @else
@@ -117,7 +146,7 @@
 </div>
 
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
-<h2>حاضری کا ریکارڈ</h2>
+<h2 id="attendance">حاضری کا ریکارڈ</h2>
 @if($attendance->isEmpty())<p class="empty">حاضری کا ریکارڈ موجود نہیں۔</p>
 @else
 <div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>تاریخ</th><th>سیشن</th><th>حیثیت</th>@if($role === 'admin')<th>انتظام</th>@endif</tr></thead><tbody>
@@ -136,7 +165,7 @@
 </div>
 
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
-<h2>روزانہ تعلیمی پیش رفت</h2>
+<h2 id="progress">روزانہ تعلیمی پیش رفت</h2>
 @if($progress->isEmpty())<p class="empty">پیش رفت کا ریکارڈ موجود نہیں۔</p>
 @else
 <div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>تاریخ</th><th>سبق</th><th>سبقی</th><th>منزل</th><th>والدین کو دکھائیں</th>@if($role === 'admin')<th>انتظام</th>@endif</tr></thead><tbody>
@@ -160,7 +189,7 @@
 </div>
 
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
-<h2>امتحانات اور نتائج</h2>
+<h2 id="exams">امتحانات اور نتائج</h2>
 @if(in_array($role, ['admin','qari'], true))
 <form method="POST" action="{{ route('madrasa.exams.store') }}" class="form-grid">@csrf
 <label>طالب علم<select name="student_id" required>@foreach($studentRows as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
@@ -208,7 +237,7 @@
 </div>
 @endif
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
-<h2>سرٹیفکیٹس اور آن لائن تصدیق</h2>
+<h2 id="certificates">سرٹیفکیٹس اور آن لائن تصدیق</h2>
 @if($certificates->isEmpty())<p class="empty">ابھی کوئی سرٹیفکیٹ جاری نہیں ہوا۔</p>@else
 <div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>سرٹیفکیٹ نمبر</th><th>قسم</th><th>تاریخ</th><th>حیثیت</th><th>تصدیق / انتظام</th></tr></thead><tbody>
 @foreach($certificates as $cert)
@@ -245,7 +274,7 @@
 </div>
 @endif
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
-<h2>اہم اعلانات</h2>
+<h2 id="announcements">اہم اعلانات</h2>
 @if($announcements->isEmpty())<p class="empty">فی الحال کوئی شائع شدہ اعلان نہیں۔</p>@else
 @foreach($announcements as $announcement)
 <article style="padding:.75rem 0;border-bottom:1px solid #ddd"><h3>{{ $announcement->title }}</h3><p>{{ $announcement->body }}</p><small>{{ $announcement->published_at }}</small></article>
