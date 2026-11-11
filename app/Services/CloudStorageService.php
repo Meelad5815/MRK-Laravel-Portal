@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CloudConnection;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
