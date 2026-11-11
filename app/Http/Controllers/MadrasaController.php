@@ -80,6 +80,15 @@ class MadrasaController extends Controller
         }
         $studentRows = $students->get();
         $studentIds = $studentRows->pluck('id');
+        $leaveRequests = DB::table('madrasa_leave_requests')
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_leave_requests.student_id')
+            ->leftJoin('users as leave_parents', 'leave_parents.id', '=', 'madrasa_leave_requests.parent_user_id')
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)
+            ->whereIn('madrasa_leave_requests.student_id', $studentIds)
+            ->when($role === 'parent', fn ($q) => $q->where('madrasa_leave_requests.parent_user_id', $userId))
+            ->orderByDesc('madrasa_leave_requests.start_date')->limit(100)
+            ->get(['madrasa_leave_requests.*', 'madrasa_students.full_name as student_name', 'leave_parents.name as parent_name']);
+
         $courseProgress = DB::table('madrasa_course_progress')->whereIn('student_id', $studentIds)
             ->when($role === 'parent', fn ($q) => $q->where('parent_visible', true))
             ->get()->keyBy(fn ($item) => $item->student_id . ':' . $item->program);
@@ -135,7 +144,7 @@ class MadrasaController extends Controller
         $monthlyExamAverage = (clone $monthlyExamQuery)->selectRaw('AVG((obtained_marks / total_marks) * 100) as average_percentage')->value('average_percentage');
 
         return view('madrasa.index', compact(
-            'role', 'studentRows', 'attendance', 'progress', 'courseProgress', 'qariUsers', 'parentUsers',
+            'role', 'studentRows', 'attendance', 'progress', 'courseProgress', 'leaveRequests', 'qariUsers', 'parentUsers',
             'exams', 'certificates', 'announcements', 'studentSearch', 'activeStudents',
             'presentToday', 'absentToday', 'lateToday', 'programCounts', 'reportMonth',
             'monthlyAttendance', 'monthlyProgressCount', 'monthlyExamCount', 'monthlyExamAverage'
@@ -743,6 +752,55 @@ class MadrasaController extends Controller
             return (object) ['student'=>$student, 'attendance'=>$attendance, 'progress_count'=>$progress, 'exams'=>$exams, 'exam_average'=>$average];
         });
         return view('madrasa.monthly-report-print', ['cards'=>$cards, 'monthLabel'=>$start->format('F Y')]);
+    }
+
+
+    public function storeLeaveRequest(Request $request): RedirectResponse
+    {
+        abort_unless($this->role($request) === 'parent', 403);
+        $data = $request->validate([
+            'student_id' => ['required', 'integer'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+        $linked = DB::table('madrasa_parent_links')
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_parent_links.student_id')
+            ->where('madrasa_parent_links.student_id', $data['student_id'])
+            ->where('madrasa_parent_links.parent_user_id', $request->user()->id)
+            ->where('madrasa_parent_links.is_verified', true)
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)
+            ->where('madrasa_students.status', 'active')->exists();
+        abort_unless($linked, 404);
+        $id = DB::table('madrasa_leave_requests')->insertGetId([
+            'student_id' => $data['student_id'], 'parent_user_id' => $request->user()->id,
+            'start_date' => $data['start_date'], 'end_date' => $data['end_date'],
+            'reason' => $data['reason'], 'status' => 'pending',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $this->audit($request, 'leave_request.submitted', 'madrasa_leave_requests', $id);
+        return back()->with('success', 'چھٹی کی درخواست انتظامیہ کو بھیج دی گئی ہے۔');
+    }
+
+    public function reviewLeaveRequest(Request $request, int $leaveRequest): RedirectResponse
+    {
+        $this->admin($request);
+        $data = $request->validate([
+            'status' => ['required', 'in:approved,rejected'],
+            'review_note' => ['nullable', 'string', 'max:500'],
+        ]);
+        $exists = DB::table('madrasa_leave_requests')
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_leave_requests.student_id')
+            ->where('madrasa_leave_requests.id', $leaveRequest)
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
+        abort_unless($exists, 404);
+        DB::table('madrasa_leave_requests')->where('id', $leaveRequest)->update([
+            'status' => $data['status'], 'reviewed_by' => $request->user()->id,
+            'reviewed_at' => now(), 'review_note' => $data['review_note'] ?? null,
+            'updated_at' => now(),
+        ]);
+        $this->audit($request, 'leave_request.reviewed_' . $data['status'], 'madrasa_leave_requests', $leaveRequest);
+        return back()->with('success', 'چھٹی کی درخواست کا فیصلہ محفوظ ہو گیا۔');
     }
 
     private function audit(Request $request, string $action, string $type, int $id): void
