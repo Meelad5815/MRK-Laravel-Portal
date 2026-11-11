@@ -282,7 +282,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/madrasa/exams', [\App\Http\Controllers\MadrasaController::class, 'storeExam'])->name('madrasa.exams.store');
     Route::post('/madrasa/exams/{exam}/visibility', [\App\Http\Controllers\MadrasaController::class, 'setExamVisibility'])->whereNumber('exam')->name('madrasa.exams.visibility');
     Route::put('/madrasa/certificates/{certificate}', [\App\Http\Controllers\MadrasaController::class, 'updateCertificate'])->whereNumber('certificate')->name('madrasa.certificates.update');
-    Route::delete('/madrasa/certificates/{certificate}', [\App\Http\Controllers\MadrasaController::class, 'revokeCertificate'])->whereNumber('certificate')->name('madrasa.certificates.destroy');
+    Route::post('/madrasa/certificates/{certificate}/revoke', [\App\Http\Controllers\MadrasaController::class, 'revokeCertificate'])->whereNumber('certificate')->name('madrasa.certificates.revoke');
+    Route::delete('/madrasa/certificates/{certificate}', [\App\Http\Controllers\MadrasaController::class, 'deleteCertificate'])->whereNumber('certificate')->name('madrasa.certificates.destroy');
     Route::post('/madrasa/certificates', [\App\Http\Controllers\MadrasaController::class, 'issueCertificate'])->name('madrasa.certificates.store');
     Route::get('/madrasa/certificates/{certificate}/download', [\App\Http\Controllers\MadrasaController::class, 'downloadCertificate'])->whereNumber('certificate')->name('madrasa.certificates.download');
     Route::get('/madrasa/certificates/{certificate}/print', [\App\Http\Controllers\MadrasaController::class, 'printCertificate'])->whereNumber('certificate')->name('madrasa.certificates.print');
