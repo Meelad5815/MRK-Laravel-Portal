@@ -33,8 +33,13 @@ class WorkManagementController extends Controller
                 ->whereMonth('transaction_date', substr($request->month,5,2));
         }
 
-        $monthStart = now()->startOfMonth()->toDateString();
-        $monthEnd = now()->endOfMonth()->toDateString();
+        $period = now()->startOfMonth();
+        if ($request->filled('month') && preg_match('/^\\d{4}-\\d{2}$/', $request->query('month'))) {
+            try { $period = \\Illuminate\\Support\\Carbon::createFromFormat('Y-m', $request->query('month'))->startOfMonth(); }
+            catch (\\Throwable $exception) { $period = now()->startOfMonth(); }
+        }
+        $monthStart = $period->copy()->startOfMonth()->toDateString();
+        $monthEnd = $period->copy()->endOfMonth()->toDateString();
         $income = CashTransaction::where('type','income')->whereBetween('transaction_date',[$monthStart,$monthEnd])->sum('amount');
         $expense = CashTransaction::where('type','expense')->whereBetween('transaction_date',[$monthStart,$monthEnd])->sum('amount');
 
