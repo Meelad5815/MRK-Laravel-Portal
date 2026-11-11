@@ -289,4 +289,152 @@ class CloudConnectionTest extends TestCase
         $this->assertDatabaseCount('cloud_connections', 0);
     }
 
+
+    public function test_google_drive_listing_follows_all_next_page_tokens(): void
+    {
+        Http::fake(function ($request) {
+            if ($request->url() !== 'https://www.googleapis.com/drive/v3/files') {
+                return Http::response([], 404);
+            }
+
+            if ($request['pageToken'] ?? null) {
+                return Http::response([
+                    'files' => [['id' => 'google-file-2', 'name' => 'second.pdf', 'mimeType' => 'application/pdf']],
+                ], 200);
+            }
+
+            return Http::response([
+                'files' => [['id' => 'google-file-1', 'name' => 'first.pdf', 'mimeType' => 'application/pdf']],
+                'nextPageToken' => 'page-two-token',
+            ], 200);
+        });
+
+        $user = User::factory()->create();
+        $connection = CloudConnection::create([
+            'user_id' => $user->id,
+            'provider' => 'google',
+            'provider_account_id' => 'google-pagination',
+            'access_token' => 'valid-token',
+            'token_expires_at' => now()->addHour(),
+        ]);
+
+        $files = app(CloudStorageService::class)->listFiles($connection);
+
+        $this->assertSame(['google-file-1', 'google-file-2'], array_column($files, 'id'));
+        Http::assertSentCount(2);
+        Http::assertSent(fn ($request) => $request->url() === 'https://www.googleapis.com/drive/v3/files'
+            && ($request['pageToken'] ?? null) === 'page-two-token');
+    }
+
+    public function test_dropbox_listing_continues_until_has_more_is_false(): void
+    {
+        Http::fake(function ($request) {
+            if ($request->url() === 'https://api.dropboxapi.com/2/files/list_folder') {
+                return Http::response([
+                    'entries' => [['.tag' => 'file', 'id' => 'db-file-1', 'name' => 'first.pdf', 'size' => 10]],
+                    'cursor' => 'cursor-one',
+                    'has_more' => true,
+                ], 200);
+            }
+
+            if ($request->url() === 'https://api.dropboxapi.com/2/files/list_folder/continue') {
+                if (($request['cursor'] ?? null) === 'cursor-one') {
+                    return Http::response([
+                        'entries' => [['.tag' => 'file', 'id' => 'db-file-2', 'name' => 'second.pdf', 'size' => 20]],
+                        'cursor' => 'cursor-two',
+                        'has_more' => true,
+                    ], 200);
+                }
+
+                return Http::response([
+                    'entries' => [['.tag' => 'file', 'id' => 'db-file-3', 'name' => 'third.pdf', 'size' => 30]],
+                    'cursor' => 'cursor-three',
+                    'has_more' => false,
+                ], 200);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $user = User::factory()->create();
+        $connection = CloudConnection::create([
+            'user_id' => $user->id,
+            'provider' => 'dropbox',
+            'provider_account_id' => 'dbid:pagination',
+            'access_token' => 'valid-token',
+            'token_expires_at' => now()->addHour(),
+        ]);
+
+        $files = app(CloudStorageService::class)->listFiles($connection);
+
+        $this->assertSame(['db-file-1', 'db-file-2', 'db-file-3'], array_column($files, 'id'));
+        Http::assertSentCount(3);
+    }
+
+    public function test_oauth_cannot_replace_a_different_connected_account_or_its_remote_file_records(): void
+    {
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'access_token' => 'new-account-access-token',
+                'refresh_token' => 'new-account-refresh-token',
+                'expires_in' => 3600,
+            ], 200),
+            'www.googleapis.com/oauth2/v2/userinfo' => Http::response([
+                'id' => 'different-google-account',
+                'email' => 'different@example.com',
+            ], 200),
+            'oauth2.googleapis.com/revoke' => Http::response(null, 200),
+        ]);
+
+        config([
+            'services.cloud_storage.google.client_id' => 'client-id',
+            'services.cloud_storage.google.client_secret' => 'client-secret',
+            'services.cloud_storage.google.redirect' => 'https://example.test/cloud/callback/google',
+        ]);
+
+        $user = User::factory()->create();
+        $connection = CloudConnection::create([
+            'user_id' => $user->id,
+            'provider' => 'google',
+            'provider_account_id' => 'original-google-account',
+            'display_name' => 'original@example.com',
+            'access_token' => 'original-access-token',
+            'refresh_token' => 'original-refresh-token',
+        ]);
+        $remoteFile = CloudRemoteFile::create([
+            'user_id' => $user->id,
+            'cloud_connection_id' => $connection->id,
+            'provider' => 'google',
+            'provider_file_id' => 'original-drive-file',
+            'name' => 'preserved.pdf',
+            'mime_type' => 'application/pdf',
+            'size' => 100,
+            'category' => 'documents',
+        ]);
+
+        $this->actingAs($user)->withSession(['cloud_oauth_state_google' => 'valid-state'])
+            ->get(route('cloud.callback', [
+                'provider' => 'google',
+                'state' => 'valid-state',
+                'code' => 'new-account-authorization-code',
+            ]))
+            ->assertRedirect(route('cloud.index'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('cloud_connections', [
+            'id' => $connection->id,
+            'provider_account_id' => 'original-google-account',
+            'access_token' => $connection->getRawOriginal('access_token'),
+        ]);
+        $this->assertDatabaseHas('cloud_remote_files', [
+            'id' => $remoteFile->id,
+            'provider_file_id' => 'original-drive-file',
+            'cloud_connection_id' => $connection->id,
+        ]);
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://oauth2.googleapis.com/revoke'
+            && $request['token'] === 'new-account-refresh-token');
+        $this->assertDatabaseCount('cloud_connections', 1);
+    }
+
 }
