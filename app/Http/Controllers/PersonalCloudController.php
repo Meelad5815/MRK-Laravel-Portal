@@ -216,6 +216,30 @@ class PersonalCloudController extends Controller
         return redirect()->route('cloud.index')->with('success', $synced.' remote file record(s) synchronized.');
     }
 
+    private function temporaryFileStreamer(string $path): \Closure
+    {
+        register_shutdown_function(static function () use ($path): void {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        });
+
+        return static function () use ($path): void {
+            $stream = @fopen($path, 'rb');
+            if ($stream) {
+                try {
+                    fpassthru($stream);
+                } finally {
+                    fclose($stream);
+                }
+            }
+
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        };
+    }
+
     public function previewRemote(Request $request, CloudRemoteFile $remoteFile, CloudStorageService $storage)
     {
         abort_unless($remoteFile->user_id === $request->user()->id, 404);
@@ -224,9 +248,12 @@ class PersonalCloudController extends Controller
         abort_if($remoteFile->size > 10 * 1024 * 1024, 413);
 
         try {
-            $response = $storage->download($remoteFile->connection, $remoteFile->provider_file_id, $remoteFile->mime_type);
-            return response($response->body(), 200, [
-                'Content-Type' => $remoteFile->mime_type,
+            $download = $storage->downloadToTemporaryFile($remoteFile->connection, $remoteFile->provider_file_id, $remoteFile->mime_type);
+            $streamer = $this->temporaryFileStreamer($download['path']);
+
+            return response()->stream($streamer, 200, [
+                'Content-Type' => $download['content_type'],
+                'Content-Length' => $download['size'],
                 'Content-Disposition' => 'inline; filename="'.addcslashes(basename($remoteFile->name), '"\\').'"',
                 'X-Content-Type-Options' => 'nosniff',
                 'Cache-Control' => 'private, no-store, max-age=0',
@@ -241,12 +268,10 @@ class PersonalCloudController extends Controller
     {
         abort_unless($remoteFile->user_id === $request->user()->id, 404);
         abort_unless($remoteFile->connection && $remoteFile->connection->user_id === $request->user()->id, 404);
-        abort_if($remoteFile->size > 25 * 1024 * 1024, 413);
+        abort_if($remoteFile->size > 50 * 1024 * 1024, 413);
 
         try {
-            $response = $storage->download($remoteFile->connection, $remoteFile->provider_file_id, $remoteFile->mime_type);
-            $body = $response->body();
-            $contentType = $response->header('Content-Type') ?: ($remoteFile->mime_type ?: 'application/octet-stream');
+            $download = $storage->downloadToTemporaryFile($remoteFile->connection, $remoteFile->provider_file_id, $remoteFile->mime_type);
             $downloadName = $remoteFile->name;
             $googleExtensions = [
                 'application/vnd.google-apps.document' => '.docx',
@@ -258,9 +283,16 @@ class PersonalCloudController extends Controller
                 $downloadName .= $googleExtensions[$remoteFile->mime_type];
             }
 
-            return response()->streamDownload(static function () use ($body) {
-                echo $body;
-            }, $downloadName, ['Content-Type' => $contentType]);
+            return response()->streamDownload(
+                $this->temporaryFileStreamer($download['path']),
+                $downloadName,
+                [
+                    'Content-Type' => $download['content_type'],
+                    'Content-Length' => $download['size'],
+                    'X-Content-Type-Options' => 'nosniff',
+                    'Cache-Control' => 'private, no-store, max-age=0',
+                ]
+            );
         } catch (Throwable $exception) {
             report($exception);
             abort(502, 'The remote file could not be downloaded.');
