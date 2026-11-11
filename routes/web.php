@@ -274,6 +274,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/madrasa/progress/{progress}', [\App\Http\Controllers\MadrasaController::class, 'updateProgress'])->whereNumber('progress')->name('madrasa.progress.update');
     Route::delete('/madrasa/progress/{progress}', [\App\Http\Controllers\MadrasaController::class, 'deleteProgress'])->whereNumber('progress')->name('madrasa.progress.destroy');
     Route::post('/madrasa/progress', [\App\Http\Controllers\MadrasaController::class, 'storeProgress'])->name('madrasa.progress.store');
+    Route::post('/madrasa/course-progress', [\App\Http\Controllers\MadrasaController::class, 'saveCourseProgress'])->middleware('throttle:30,1')->name('madrasa.course-progress.store');
+    Route::post('/madrasa/course-progress/{progress}/visibility', [\App\Http\Controllers\MadrasaController::class, 'setCourseProgressVisibility'])->whereNumber('progress')->name('madrasa.course-progress.visibility');
     Route::post('/madrasa/progress/{progress}/visibility', [\App\Http\Controllers\MadrasaController::class, 'setProgressVisibility'])->whereNumber('progress')->name('madrasa.progress.visibility');
     Route::put('/madrasa/exams/{exam}', [\App\Http\Controllers\MadrasaController::class, 'updateExam'])->whereNumber('exam')->name('madrasa.exams.update');
     Route::delete('/madrasa/exams/{exam}', [\App\Http\Controllers\MadrasaController::class, 'deleteExam'])->whereNumber('exam')->name('madrasa.exams.destroy');
