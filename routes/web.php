@@ -152,20 +152,20 @@ Route::middleware(['auth', 'admin'])->group(function () {
                 ]);
 
                 $diagnostic = $migrationOutput !== ''
-                    ? \\Illuminate\\Support\\Str::limit($migrationOutput, 1400)
+                    ? \Illuminate\Support\Str::limit($migrationOutput, 1400)
                     : 'The migration command returned exit code ' . $exitCode . ' without console output.';
 
                 return back()->withErrors(['database' => 'Database updates did not complete. Admin diagnostic: ' . $diagnostic]);
             }
 
             return redirect()->route('dashboard')->with('success', 'Pending database updates completed.');
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             report($exception);
 
             $diagnostic = get_class($exception) . ': ' . $exception->getMessage();
 
             return back()->withErrors([
-                'database' => 'Database updates failed. Admin diagnostic: ' . \\Illuminate\\Support\\Str::limit($diagnostic, 1400),
+                'database' => 'Database updates failed. Admin diagnostic: ' . \Illuminate\Support\Str::limit($diagnostic, 1400),
             ]);
         }
     })->name('admin.system.migrate');
