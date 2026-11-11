@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\CloudConnection;
+use App\Models\CloudRemoteFile;
+use App\Services\CloudStorageService;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
