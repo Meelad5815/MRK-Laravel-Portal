@@ -297,6 +297,49 @@ class MadrasaController extends Controller
         return back()->with('success', 'حاضری محفوظ ہو گئی۔');
     }
 
+    public function storeBulkAttendance(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'attendance_date' => ['required', 'date'],
+            'session' => ['required', 'in:morning,afternoon,evening'],
+            'attendance' => ['required', 'array', 'min:1'],
+            'attendance.*' => ['required', 'in:present,absent,late,leave'],
+            'remarks' => ['nullable', 'array'],
+            'remarks.*' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $studentIds = array_map('intval', array_keys($data['attendance']));
+        $activeIds = DB::table('madrasa_students')
+            ->whereIn('id', $studentIds)
+            ->where('madrasa_id', self::MADRASA_ID)
+            ->where('status', 'active')
+            ->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        abort_unless(count($activeIds) === count(array_unique($studentIds)), 422, 'طلبہ کی فہرست میں غیر متعلقہ یا غیر فعال ریکارڈ شامل ہے۔');
+
+        foreach ($activeIds as $studentId) {
+            $this->canTeach($request, $studentId);
+        }
+
+        DB::transaction(function () use ($data, $studentIds, $request) {
+            foreach ($studentIds as $studentId) {
+                DB::table('madrasa_attendance')->updateOrInsert(
+                    ['student_id' => $studentId, 'attendance_date' => $data['attendance_date'], 'session' => $data['session']],
+                    [
+                        'marked_by' => $request->user()->id,
+                        'status' => $data['attendance'][$studentId] ?? $data['attendance'][(string) $studentId],
+                        'remarks' => $data['remarks'][$studentId] ?? $data['remarks'][(string) $studentId] ?? null,
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+                $this->audit($request, 'attendance.bulk_saved', 'madrasa_attendance', $studentId);
+            }
+        });
+
+        return back()->with('success', 'تمام منتخب طلبہ کی حاضری ایک ساتھ محفوظ ہو گئی۔');
+    }
+
     public function storeProgress(Request $request): RedirectResponse
     {
         $data = $request->validate([
