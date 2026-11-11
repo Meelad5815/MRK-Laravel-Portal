@@ -37,6 +37,7 @@ body{margin:0;padding:22px;background:#edf1f5;color:var(--ink);font-family:"Noto
 .qrbox{font:11px Arial,sans-serif;color:var(--muted);text-align:center}
 .qrbox img{width:104px;height:104px;display:block;margin:0 auto 4px;border:5px solid #fff;outline:1px solid #d6c18e}
 .number{font:12px Arial,sans-serif;direction:ltr;color:var(--muted);margin-top:13px}
+ .revoked{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5;pointer-events:none;font:bold 76px Arial,sans-serif;color:#b42318;opacity:.16;transform:rotate(-24deg)}
 .seal{position:absolute;bottom:118px;left:62px;width:78px;height:78px;border:2px solid #b28a3d;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#98732d;font-size:12px;transform:rotate(-14deg);opacity:.78}
 @media(max-width:1150px){.sheet{width:100%;min-height:0}.frame{min-height:720px}}
 @media print{
@@ -51,6 +52,7 @@ body{margin:0;padding:22px;background:#edf1f5;color:var(--ink);font-family:"Noto
 <div class="toolbar"><a href="{{ route('madrasa') }}">پورٹل پر واپس</a><button onclick="window.print()">پرنٹ کریں / PDF محفوظ کریں</button></div>
 <main class="sheet"><section class="frame">
 <div class="topline"><span>MRK MADRASA MANAGEMENT SYSTEM 58</span><span>تعلیمی ریکارڈ و تصدیق</span></div>
+@if($certificate->status !== 'valid')<div class="revoked">منسوخ شدہ</div>@endif
 <div class="emblem">MRK</div>
 <div class="bismillah">بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ</div>
 <div class="institute">مدرسۃ المدینہ 58</div>
@@ -70,7 +72,7 @@ body{margin:0;padding:22px;background:#edf1f5;color:var(--ink);font-family:"Noto
 <div class="meta">
 <span class="pill">تاریخِ اجراء: {{ date('d-m-Y', strtotime($certificate->issued_on)) }}</span>
 <span class="pill">طالب علم کوڈ: {{ $certificate->student_code }}</span>
-<span class="pill">حیثیت: اصل / معتبر</span>
+<span class="pill">حیثیت: {{ $certificate->status === 'valid' ? 'معتبر' : 'منسوخ' }}</span>
 </div>
 <div class="bottom">
 <div class="sign"><strong>{{ $certificate->issued_by_name ?: 'مہتمم / ناظم' }}</strong>دستخط و نامِ جاری کنندہ</div>
