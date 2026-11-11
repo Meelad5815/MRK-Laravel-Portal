@@ -35,6 +35,9 @@
       <a class="mrk-hub-card" href="{{ route('fees.public') }}" data-search="public fee list customer fee calculator سرکاری فیس عوامی فہرست">
         <strong>Public Government Fee List</strong><span>کسٹمر کو سرکاری فیس اور MRK سروس چارجز دکھائیں</span><b>فیس لسٹ کھولیں →</b>
       </a>
+      <a class="mrk-hub-card" href="{{ route('admin.work.index') }}" data-search="work orders cashbook income expenses receipt customer requests آمدنی اخراجات رسید">
+        <strong>Work + Cashbook Manager</strong><span>کسٹمر درخواستیں، کام کی پیش رفت، آمدنی، اخراجات اور پرنٹ رسیدیں</span><b>مرکزی کاروباری مینیجر →</b>
+      </a>
       <a class="mrk-hub-card" href="{{ route('admin.customers.index') }}" data-search="customers clients کسٹمر گاہک">
         <strong>Customers / Clients</strong><span>کسٹمرز کے ریکارڈ اور رابطہ معلومات</span><b>کسٹمرز کھولیں →</b>
       </a>
