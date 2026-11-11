@@ -191,10 +191,11 @@ class CloudConnectionController extends Controller
             return redirect()->route('cloud.index')->with('success', ucfirst($provider).' account connected securely.');
         } catch (Throwable $exception) {
             report($exception);
-            if ($issuedAccessToken) {
-                $this->revokeIssuedGrant($provider, $tokenData);
+            $message = 'Cloud provider connection failed. Please try again.';
+            if ($issuedAccessToken && !$this->revokeIssuedGrant($provider, $tokenData)) {
+                $message .= ' The provider did not confirm revocation; check its account security settings for an MRK authorization.';
             }
-            return redirect()->route('cloud.index')->with('error', 'Cloud provider connection failed. Please try again.');
+            return redirect()->route('cloud.index')->with('error', $message);
         }
     }
 
