@@ -59,6 +59,8 @@ class PersonalCloudController extends Controller
 
     public function storeFolder(Request $request): RedirectResponse
     {
+        $request->merge(['name' => trim((string) $request->input('name'))]);
+
         $validated = $request->validate([
             'name' => [
                 'required', 'string', 'min:1', 'max:60',
