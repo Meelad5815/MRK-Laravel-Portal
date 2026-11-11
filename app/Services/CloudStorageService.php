@@ -3,10 +3,10 @@
 namespace App\Services;
 
 use App\Models\CloudConnection;
-use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class CloudStorageService
 {
@@ -156,39 +156,69 @@ class CloudStorageService
         ];
     }
 
-    public function download(CloudConnection $connection, string $fileId, ?string $mimeType = null): Response
+    public function downloadToTemporaryFile(CloudConnection $connection, string $fileId, ?string $mimeType = null): array
     {
         $token = $this->accessToken($connection);
-
-        if ($connection->provider === 'google') {
-            if (str_starts_with((string) $mimeType, 'application/vnd.google-apps.')) {
-                $exportTypes = [
-                    'application/vnd.google-apps.document' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                    'application/vnd.google-apps.spreadsheet' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    'application/vnd.google-apps.presentation' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                    'application/vnd.google-apps.drawing' => 'image/png',
-                ];
-                $exportType = $exportTypes[$mimeType] ?? null;
-                if (!$exportType) {
-                    throw new RuntimeException('This Google Workspace file type cannot be exported by MRK yet.');
-                }
-                $response = Http::withToken($token)->timeout(60)->get(
-                    'https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId).'/export',
-                    ['mimeType' => $exportType]
-                );
-            } else {
-                $response = Http::withToken($token)->timeout(60)->get(
-                    'https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId),
-                    ['alt' => 'media']
-                );
-            }
-        } else {
-            $response = Http::withToken($token)->withHeaders(['Dropbox-API-Arg' => json_encode(['path' => $fileId])])
-                ->timeout(60)->get('https://content.dropboxapi.com/2/files/download');
+        $path = tempnam(sys_get_temp_dir(), 'mrk-cloud-');
+        if ($path === false) {
+            throw new RuntimeException('The server could not allocate temporary storage for this download.');
         }
 
-        $this->ensureSuccess($response, 'Cloud file download');
-        return $response;
+        try {
+            $request = Http::withToken($token)->timeout(120)->withOptions([
+                'sink' => $path,
+                'progress' => static function ($downloadTotal, $downloaded): void {
+                    if ($downloaded > 50 * 1024 * 1024) {
+                        throw new RuntimeException('Remote downloads are limited to 50 MB on this hosting plan.');
+                    }
+                },
+            ]);
+
+            if ($connection->provider === 'google') {
+                if (str_starts_with((string) $mimeType, 'application/vnd.google-apps.')) {
+                    $exportTypes = [
+                        'application/vnd.google-apps.document' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'application/vnd.google-apps.spreadsheet' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        'application/vnd.google-apps.presentation' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                        'application/vnd.google-apps.drawing' => 'image/png',
+                    ];
+                    $exportType = $exportTypes[$mimeType] ?? null;
+                    if (!$exportType) {
+                        throw new RuntimeException('This Google Workspace file type cannot be exported by MRK yet.');
+                    }
+                    $response = $request->get(
+                        'https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId).'/export',
+                        ['mimeType' => $exportType]
+                    );
+                } else {
+                    $response = $request->get(
+                        'https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId),
+                        ['alt' => 'media']
+                    );
+                }
+            } else {
+                $response = $request->withHeaders([
+                    'Dropbox-API-Arg' => json_encode(['path' => $fileId]),
+                ])->get('https://content.dropboxapi.com/2/files/download');
+            }
+
+            $this->ensureSuccess($response, 'Cloud file download');
+            clearstatcache(true, $path);
+            if (filesize($path) > 50 * 1024 * 1024) {
+                throw new RuntimeException('Remote downloads are limited to 50 MB on this hosting plan.');
+            }
+
+            return [
+                'path' => $path,
+                'content_type' => $response->header('Content-Type') ?: ($mimeType ?: 'application/octet-stream'),
+                'size' => (int) filesize($path),
+            ];
+        } catch (Throwable $exception) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+            throw $exception;
+        }
     }
 
     public function delete(CloudConnection $connection, string $fileId): void
