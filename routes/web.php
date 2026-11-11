@@ -289,6 +289,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/madrasa/announcements', [\App\Http\Controllers\MadrasaController::class, 'storeAnnouncement'])->name('madrasa.announcements.store');
     Route::post('/madrasa/leave-requests', [\App\Http\Controllers\MadrasaController::class, 'storeLeaveRequest'])->middleware('throttle:10,1')->name('madrasa.leave.store');
     Route::post('/madrasa/leave-requests/{leaveRequest}/review', [\App\Http\Controllers\MadrasaController::class, 'reviewLeaveRequest'])->whereNumber('leaveRequest')->name('madrasa.leave.review');
+    Route::post('/madrasa/timetable', [\App\Http\Controllers\MadrasaController::class, 'storeTimetable'])->name('madrasa.timetable.store');
+    Route::delete('/madrasa/timetable/{entry}', [\App\Http\Controllers\MadrasaController::class, 'deleteTimetable'])->whereNumber('entry')->name('madrasa.timetable.destroy');
 });
 
 
