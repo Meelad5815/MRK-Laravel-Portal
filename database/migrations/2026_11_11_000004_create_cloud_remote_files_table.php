@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('cloud_connection_id')->constrained('cloud_connections')->cascadeOnDelete();
             $table->string('provider', 20);
-            $table->string('provider_file_id', 512);
+            $table->string('provider_file_id', 191);
             $table->string('name', 255);
             $table->string('mime_type', 191)->nullable();
             $table->unsignedBigInteger('size')->default(0);
@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamp('provider_modified_at')->nullable();
             $table->timestamps();
             $table->unique(['cloud_connection_id', 'provider_file_id'], 'cloud_remote_file_unique');
-            $table->index(['user_id', 'provider', 'name']);
+            $table->index(['user_id', 'provider']);
         });
     }
 
