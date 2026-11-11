@@ -193,18 +193,21 @@ class PersonalCloudController extends Controller
                         : (str_contains($mime, 'zip') || str_contains($mime, 'compressed') ? 'archives'
                         : ($mime !== '' ? 'documents' : 'other'))));
 
-                    CloudRemoteFile::updateOrCreate(
-                        ['cloud_connection_id' => $connection->id, 'provider_file_id' => $file['id']],
-                        [
-                            'user_id' => $request->user()->id,
-                            'provider' => $connection->provider,
-                            'name' => mb_substr($file['name'], 0, 255),
-                            'mime_type' => $file['mime_type'],
-                            'size' => $file['size'],
-                            'category' => $category,
-                            'provider_modified_at' => !empty($file['modified_at']) ? Carbon::parse($file['modified_at']) : null,
-                        ]
-                    );
+                    $remoteFile = CloudRemoteFile::firstOrNew([
+                        'cloud_connection_id' => $connection->id,
+                        'provider_file_id' => $file['id'],
+                    ]);
+                    $remoteFile->fill([
+                        'user_id' => $request->user()->id,
+                        'provider' => $connection->provider,
+                        'name' => mb_substr($file['name'], 0, 255),
+                        'mime_type' => $file['mime_type'],
+                        'size' => $file['size'],
+                        // Keep a category explicitly chosen by the user; infer only for new records.
+                        'category' => $remoteFile->exists ? $remoteFile->category : $category,
+                        'provider_modified_at' => !empty($file['modified_at']) ? Carbon::parse($file['modified_at']) : null,
+                    ]);
+                    $remoteFile->save();
                     $synced++;
                 }
             } catch (Throwable $exception) {
