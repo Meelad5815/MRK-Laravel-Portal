@@ -13,9 +13,10 @@
 <section class="section">
     <div class="container">
         <div class="stats" style="margin-bottom:1.5rem">
-            <div><span>Your files</span><strong>{{ number_format($stats['files']) }}</strong></div>
-            <div><span>Stored data</span><strong>{{ number_format($stats['bytes'] / 1048576, 2) }} MB</strong></div>
-            <div><span>Per-file limit</span><strong>5 MB</strong></div>
+            <div><span>Local files</span><strong>{{ number_format($stats['files']) }}</strong></div>
+            <div><span>Local storage</span><strong>{{ number_format($stats['bytes'] / 1048576, 2) }} MB</strong></div>
+            <div><span>Remote files</span><strong>{{ number_format($stats['remote_files']) }}</strong></div>
+            <div><span>Remote storage</span><strong>{{ number_format($stats['remote_bytes'] / 1048576, 2) }} MB</strong></div>
         </div>
 
         <div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem">
@@ -30,11 +31,54 @@
         </div>
 
         <div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem">
+            <h2>Connected cloud accounts</h2>
+            <p>Connect your own Google Drive or Dropbox account. Access is private to your signed-in MRK account. Connecting does not automatically copy files. Google access uses the safer Drive file scope and currently lists files uploaded through MRK; it does not scan every pre-existing item in your Drive. Dropbox can list files permitted by its app scopes.</p>
+            <div class="dashboard-filters">
+                <div>
+                    <strong>Google Drive</strong>
+                    <p class="muted">{{ isset($connections['google']) ? 'Connected: '.$connections['google']->display_name : 'Not connected' }}</p>
+                    @if(isset($connections['google']))
+                        <form method="POST" action="{{ route('cloud.disconnect', 'google') }}" onsubmit="return confirm('Disconnect Google Drive from MRK? Your Drive files will not be deleted.')">
+                            @csrf @method('DELETE')
+                            <button class="danger-button" type="submit">Disconnect Google Drive</button>
+                        </form>
+                    @else
+                        <a class="button secondary" href="{{ route('cloud.connect', 'google') }}">Connect Google Drive</a>
+                    @endif
+                </div>
+                <div>
+                    <strong>Dropbox</strong>
+                    <p class="muted">{{ isset($connections['dropbox']) ? 'Connected: '.$connections['dropbox']->display_name : 'Not connected' }}</p>
+                    @if(isset($connections['dropbox']))
+                        <form method="POST" action="{{ route('cloud.disconnect', 'dropbox') }}" onsubmit="return confirm('Disconnect Dropbox from MRK? Your Dropbox files will not be deleted.')">
+                            @csrf @method('DELETE')
+                            <button class="danger-button" type="submit">Disconnect Dropbox</button>
+                        </form>
+                    @else
+                        <a class="button secondary" href="{{ route('cloud.connect', 'dropbox') }}">Connect Dropbox</a>
+                    @endif
+                </div>
+            </div>
+            <p class="muted">Provider credentials must first be configured by the site owner in hosting Environment Variables. OAuth tokens are encrypted before they are stored.</p>
+        </div>
+
+        <div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem">
             <h2>Upload a file</h2>
-            <p>Choose a document, image, PDF, archive or another file up to 5 MB.</p>
+            <p>Choose a document, image, PDF, archive or another file up to 5 MB. Folders apply to MRK website storage; Google Drive and Dropbox keep files in their provider locations.</p>
             <form method="POST" action="{{ route('cloud.store') }}" enctype="multipart/form-data" class="dashboard-filters">
                 @csrf
                 <label>Choose file<input type="file" name="file" required></label>
+                <label>Save to
+                    <select name="destination">
+                        <option value="local" @selected(old('destination', 'local') === 'local')>MRK Website Storage</option>
+                        @if(isset($connections['google']))
+                            <option value="google" @selected(old('destination') === 'google')>Google Drive</option>
+                        @endif
+                        @if(isset($connections['dropbox']))
+                            <option value="dropbox" @selected(old('destination') === 'dropbox')>Dropbox</option>
+                        @endif
+                    </select>
+                </label>
                 <label>Folder
                     <select name="folder_id">
                         <option value="">No folder</option>
@@ -53,6 +97,7 @@
                 <button class="button primary" type="submit">Upload to my cloud</button>
             </form>
             @error('file')<p class="form-error">{{ $message }}</p>@enderror
+            @error('destination')<p class="form-error">{{ $message }}</p>@enderror
             @error('folder_id')<p class="form-error">{{ $message }}</p>@enderror
             @error('category')<p class="form-error">{{ $message }}</p>@enderror
         </div>
@@ -116,6 +161,50 @@
                 <div class="empty">No files found. Upload your first file to get started.</div>
             @endif
         </div>
+        <div class="table-card" style="margin-top:1.5rem">
+            <div class="table-head">
+                <h2>Google Drive & Dropbox files</h2>
+                <form method="POST" action="{{ route('cloud.remote.sync') }}">
+                    @csrf
+                    <button class="button secondary" type="submit">Sync remote files</button>
+                </form>
+            </div>
+            <p class="muted">Files stay in their original Google Drive or Dropbox account. MRK stores only file details here; opening or downloading a file is proxied through your private signed-in session. Remote downloads are limited to 50 MB on this free-hosting setup.</p>
+            @if($remoteFiles->count())
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>File name</th><th>Provider</th><th>Type</th><th>Size</th><th>Modified</th><th>Actions</th></tr></thead>
+                        <tbody>
+                        @foreach($remoteFiles as $remoteFile)
+                            <tr>
+                                <td><strong>{{ $remoteFile->name }}</strong></td>
+                                <td>{{ ucfirst($remoteFile->provider) }}</td>
+                                <td>{{ strtoupper(str_replace('application/', '', $remoteFile->mime_type ?: 'file')) }}</td>
+                                <td>{{ $remoteFile->size_for_humans }}</td>
+                                <td>{{ $remoteFile->provider_modified_at?->format('d M Y') ?? '—' }}</td>
+                                <td>
+                                    <div class="action-stack">
+                                        @if(in_array(strtolower((string) $remoteFile->mime_type), ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true))
+                                            <a class="button secondary" href="{{ route('cloud.remote.preview', $remoteFile) }}" target="_blank" rel="noopener">Preview</a>
+                                            <button class="button secondary js-image-edit" type="button" data-image-url="{{ route('cloud.remote.preview', $remoteFile) }}" data-image-name="{{ $remoteFile->name }}">Edit / Crop</button>
+                                        @endif
+                                        <a class="button secondary" href="{{ route('cloud.remote.download', $remoteFile) }}">Download</a>
+                                        <form method="POST" action="{{ route('cloud.remote.destroy', $remoteFile) }}" onsubmit="return confirm('Delete this file from {{ ucfirst($remoteFile->provider) }}?')">
+                                            @csrf @method('DELETE')
+                                            <button class="danger-button" type="submit">Delete</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div style="padding:1rem">{{ $remoteFiles->links() }}</div>
+            @else
+                <div class="empty">No remote files are listed yet. Connect an account, then use “Sync remote files” or upload directly to Google Drive / Dropbox.</div>
+            @endif
+        </div>
         <dialog id="mrk-image-editor" style="width:min(96vw,900px);max-height:90vh;border:1px solid #d1d5db;border-radius:14px;padding:1rem">
             <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap">
                 <h2 style="margin:0">Image Editor · Crop & Rotate</h2>
@@ -157,22 +246,12 @@
             document.getElementById('mrk-editor-close').addEventListener('click', () => dialog.close());
             document.getElementById('mrk-editor-rotate').addEventListener('click', () => { rotation = (rotation + 90) % 360; selection = null; draw(); });
             document.getElementById('mrk-editor-reset').addEventListener('click', () => { selection = null; draw(); });
-            const point = event => {
-                const rect = canvas.getBoundingClientRect();
-                const x = (event.clientX - rect.left) * canvas.width / rect.width;
-                const y = (event.clientY - rect.top) * canvas.height / rect.height;
-                return {
-                    x: Math.max(0, Math.min(canvas.width, x)),
-                    y: Math.max(0, Math.min(canvas.height, y))
-                };
-            };
+            const point = event => { const rect = canvas.getBoundingClientRect(); return {x:(event.clientX-rect.left)*canvas.width/rect.width,y:(event.clientY-rect.top)*canvas.height/rect.height}; };
             const drawOverlay = () => { if (!selection) return; ctx.save(); ctx.strokeStyle='#0d9488'; ctx.lineWidth=Math.max(2,canvas.width/500); ctx.setLineDash([8,5]); ctx.strokeRect(selection.x,selection.y,selection.w,selection.h); ctx.restore(); };
             canvas.addEventListener('pointerdown', event => { dragStart = point(event); selection = {x:dragStart.x,y:dragStart.y,w:0,h:0}; canvas.setPointerCapture(event.pointerId); });
             canvas.addEventListener('pointermove', event => { if (!dragStart) return; const p=point(event); selection={x:Math.min(p.x,dragStart.x),y:Math.min(p.y,dragStart.y),w:Math.abs(p.x-dragStart.x),h:Math.abs(p.y-dragStart.y)}; draw(); drawOverlay(); });
             canvas.addEventListener('pointerup', () => { dragStart=null; });
             document.getElementById('mrk-editor-save').addEventListener('click', () => {
-                // Redraw the source without the dashed selection overlay before exporting.
-                draw();
                 const crop = selection && selection.w > 4 && selection.h > 4 ? selection : {x:0,y:0,w:canvas.width,h:canvas.height};
                 const output=document.createElement('canvas'); output.width=Math.round(crop.w); output.height=Math.round(crop.h);
                 output.getContext('2d').drawImage(canvas,crop.x,crop.y,crop.w,crop.h,0,0,output.width,output.height);

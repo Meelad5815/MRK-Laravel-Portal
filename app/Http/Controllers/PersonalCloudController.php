@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CloudConnection;
 use App\Models\CloudFile;
 use App\Models\CloudFolder;
+use App\Models\CloudRemoteFile;
+use App\Services\CloudStorageService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -11,6 +15,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
+use Throwable;
 
 class PersonalCloudController extends Controller
 {
@@ -33,26 +38,34 @@ class PersonalCloudController extends Controller
                 $term = trim((string) $request->query('q'));
                 $query->where('original_name', 'like', '%'.$term.'%');
             })
-            ->when($request->filled('folder'), function ($query) use ($request) {
-                $query->where('cloud_folder_id', (int) $request->query('folder'));
-            })
-            ->when(in_array($request->query('category'), array_keys(self::CATEGORIES), true), function ($query) use ($request) {
-                $query->where('category', $request->query('category'));
-            })
+            ->when($request->filled('folder'), fn ($query) => $query->where('cloud_folder_id', (int) $request->query('folder')))
+            ->when(in_array($request->query('category'), array_keys(self::CATEGORIES), true), fn ($query) => $query->where('category', $request->query('category')))
             ->latest()
             ->paginate(20)
+            ->withQueryString();
+
+        $remoteFiles = CloudRemoteFile::query()
+            ->where('user_id', $userId)
+            ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%'.trim((string) $request->query('q')).'%'))
+            ->when(in_array($request->query('category'), array_keys(self::CATEGORIES), true), fn ($query) => $query->where('category', $request->query('category')))
+            ->latest('provider_modified_at')
+            ->paginate(20, ['*'], 'remote_page')
             ->withQueryString();
 
         $stats = [
             'files' => CloudFile::where('user_id', $userId)->count(),
             'bytes' => (int) CloudFile::where('user_id', $userId)->sum('size'),
+            'remote_files' => CloudRemoteFile::where('user_id', $userId)->count(),
+            'remote_bytes' => (int) CloudRemoteFile::where('user_id', $userId)->sum('size'),
         ];
         $folders = CloudFolder::query()->where('user_id', $userId)->orderBy('name')->get();
 
         return view('cloud.index', [
             'files' => $files,
+            'remoteFiles' => $remoteFiles,
             'stats' => $stats,
             'folders' => $folders,
+            'connections' => CloudConnection::query()->where('user_id', $userId)->get()->keyBy('provider'),
             'categories' => self::CATEGORIES,
         ]);
     }
@@ -79,10 +92,11 @@ class PersonalCloudController extends Controller
         return redirect()->route('cloud.index')->with('success', 'Folder created.');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, CloudStorageService $storage): RedirectResponse
     {
         $validated = $request->validate([
             'file' => ['required', 'file', 'max:5120'],
+            'destination' => ['nullable', Rule::in(['local', 'google', 'dropbox'])],
             'folder_id' => [
                 'nullable',
                 'integer',
@@ -95,27 +109,212 @@ class PersonalCloudController extends Controller
         ]);
 
         $upload = $validated['file'];
-        $extension = strtolower($upload->getClientOriginalExtension() ?: '');
-        $filename = (string) Str::uuid().($extension !== '' ? '.'.$extension : '');
-        $directory = 'mrk-cloud/'.$request->user()->id;
-        $path = $upload->storeAs($directory, $filename, 'local');
+        $destination = $validated['destination'] ?? 'local';
+        $category = $validated['category'] ?? 'other';
 
-        if (!$path) {
-            return back()->withErrors(['file' => 'The file could not be saved. Check hosting storage permissions.']);
+        if ($destination === 'local') {
+            $extension = strtolower($upload->getClientOriginalExtension() ?: '');
+            $filename = (string) Str::uuid().($extension !== '' ? '.'.$extension : '');
+            $directory = 'mrk-cloud/'.$request->user()->id;
+            $path = $upload->storeAs($directory, $filename, 'local');
+
+            if (!$path) {
+                return back()->withErrors(['file' => 'The file could not be saved. Check hosting storage permissions.']);
+            }
+
+            CloudFile::create([
+                'user_id' => $request->user()->id,
+                'cloud_folder_id' => $validated['folder_id'] ?? null,
+                'category' => $category,
+                'original_name' => mb_substr($upload->getClientOriginalName(), 0, 255),
+                'stored_path' => $path,
+                'mime_type' => $upload->getMimeType(),
+                'extension' => $extension ?: null,
+                'size' => $upload->getSize(),
+            ]);
+
+            return redirect()->route('cloud.index')->with('success', 'File uploaded to your private MRK storage.');
         }
 
-        CloudFile::create([
-            'user_id' => $request->user()->id,
-            'cloud_folder_id' => $validated['folder_id'] ?? null,
-            'category' => $validated['category'] ?? 'other',
-            'original_name' => mb_substr($upload->getClientOriginalName(), 0, 255),
-            'stored_path' => $path,
-            'mime_type' => $upload->getMimeType(),
-            'extension' => $extension ?: null,
-            'size' => $upload->getSize(),
-        ]);
+        $connection = CloudConnection::query()
+            ->where('user_id', $request->user()->id)
+            ->where('provider', $destination)
+            ->first();
 
-        return redirect()->route('cloud.index')->with('success', 'File uploaded to your private cloud.');
+        if (!$connection) {
+            return back()->withErrors(['destination' => 'Connect this cloud account before uploading.']);
+        }
+
+        try {
+            $originalName = basename(str_replace('\\', '/', $upload->getClientOriginalName()));
+            $originalName = mb_substr(preg_replace('/[\\x00-\\x1F\\x7F]/u', '', $originalName) ?: 'upload', 0, 180);
+            $remote = $storage->upload(
+                $connection,
+                $originalName,
+                $upload->getMimeType() ?: 'application/octet-stream',
+                file_get_contents($upload->getRealPath())
+            );
+
+            CloudRemoteFile::updateOrCreate(
+                ['cloud_connection_id' => $connection->id, 'provider_file_id' => $remote['id']],
+                [
+                    'user_id' => $request->user()->id,
+                    'provider' => $destination,
+                    'name' => mb_substr($remote['name'], 0, 255),
+                    'mime_type' => $remote['mime_type'],
+                    'size' => $remote['size'],
+                    'category' => $category,
+                    'provider_modified_at' => Carbon::parse($remote['modified_at']),
+                ]
+            );
+
+            return redirect()->route('cloud.index')->with('success', 'File uploaded to '.ucfirst($destination).'.');
+        } catch (Throwable $exception) {
+            report($exception);
+            return back()->withErrors(['file' => 'Remote upload failed. Check your cloud connection and try again.']);
+        }
+    }
+
+    public function syncRemoteFiles(Request $request, CloudStorageService $storage): RedirectResponse
+    {
+        $connections = CloudConnection::query()->where('user_id', $request->user()->id)->get();
+        if ($connections->isEmpty()) {
+            return redirect()->route('cloud.index')->with('error', 'Connect Google Drive or Dropbox first.');
+        }
+
+        $synced = 0;
+        foreach ($connections as $connection) {
+            try {
+                foreach ($storage->listFiles($connection) as $file) {
+                    $mime = strtolower((string) ($file['mime_type'] ?? ''));
+                    $category = str_starts_with($mime, 'image/') ? 'images'
+                        : (str_starts_with($mime, 'video/') ? 'videos'
+                        : (str_starts_with($mime, 'audio/') ? 'audio'
+                        : (str_contains($mime, 'zip') || str_contains($mime, 'compressed') ? 'archives'
+                        : ($mime !== '' ? 'documents' : 'other'))));
+
+                    $remoteFile = CloudRemoteFile::firstOrNew([
+                        'cloud_connection_id' => $connection->id,
+                        'provider_file_id' => $file['id'],
+                    ]);
+                    $remoteFile->fill([
+                        'user_id' => $request->user()->id,
+                        'provider' => $connection->provider,
+                        'name' => mb_substr($file['name'], 0, 255),
+                        'mime_type' => $file['mime_type'],
+                        'size' => $file['size'],
+                        // Keep a category explicitly chosen by the user; infer only for new records.
+                        'category' => $remoteFile->exists ? $remoteFile->category : $category,
+                        'provider_modified_at' => !empty($file['modified_at']) ? Carbon::parse($file['modified_at']) : null,
+                    ]);
+                    $remoteFile->save();
+                    $synced++;
+                }
+            } catch (Throwable $exception) {
+                report($exception);
+                return redirect()->route('cloud.index')->with('error', 'Could not sync '.ucfirst($connection->provider).'. Reconnect it if access has expired.');
+            }
+        }
+
+        return redirect()->route('cloud.index')->with('success', $synced.' remote file record(s) synchronized.');
+    }
+
+    private function temporaryFileStreamer(string $path): \Closure
+    {
+        register_shutdown_function(static function () use ($path): void {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        });
+
+        return static function () use ($path): void {
+            $stream = @fopen($path, 'rb');
+            if ($stream) {
+                try {
+                    fpassthru($stream);
+                } finally {
+                    fclose($stream);
+                }
+            }
+
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        };
+    }
+
+    public function previewRemote(Request $request, CloudRemoteFile $remoteFile, CloudStorageService $storage)
+    {
+        abort_unless($remoteFile->user_id === $request->user()->id, 404);
+        abort_unless($remoteFile->connection && $remoteFile->connection->user_id === $request->user()->id, 404);
+        abort_unless(in_array(strtolower((string) $remoteFile->mime_type), ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true), 415);
+        abort_if($remoteFile->size > 10 * 1024 * 1024, 413);
+
+        try {
+            $download = $storage->downloadToTemporaryFile($remoteFile->connection, $remoteFile->provider_file_id, $remoteFile->mime_type);
+            $streamer = $this->temporaryFileStreamer($download['path']);
+
+            return response()->stream($streamer, 200, [
+                'Content-Type' => $download['content_type'],
+                'Content-Length' => $download['size'],
+                'Content-Disposition' => 'inline; filename="'.addcslashes(basename($remoteFile->name), '"\\').'"',
+                'X-Content-Type-Options' => 'nosniff',
+                'Cache-Control' => 'private, no-store, max-age=0',
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+            abort(502, 'The remote image could not be loaded.');
+        }
+    }
+
+    public function downloadRemote(Request $request, CloudRemoteFile $remoteFile, CloudStorageService $storage): StreamedResponse
+    {
+        abort_unless($remoteFile->user_id === $request->user()->id, 404);
+        abort_unless($remoteFile->connection && $remoteFile->connection->user_id === $request->user()->id, 404);
+        abort_if($remoteFile->size > 50 * 1024 * 1024, 413);
+
+        try {
+            $download = $storage->downloadToTemporaryFile($remoteFile->connection, $remoteFile->provider_file_id, $remoteFile->mime_type);
+            $downloadName = $remoteFile->name;
+            $googleExtensions = [
+                'application/vnd.google-apps.document' => '.docx',
+                'application/vnd.google-apps.spreadsheet' => '.xlsx',
+                'application/vnd.google-apps.presentation' => '.pptx',
+                'application/vnd.google-apps.drawing' => '.png',
+            ];
+            if (isset($googleExtensions[$remoteFile->mime_type]) && !str_contains($downloadName, '.')) {
+                $downloadName .= $googleExtensions[$remoteFile->mime_type];
+            }
+
+            return response()->streamDownload(
+                $this->temporaryFileStreamer($download['path']),
+                $downloadName,
+                [
+                    'Content-Type' => $download['content_type'],
+                    'Content-Length' => $download['size'],
+                    'X-Content-Type-Options' => 'nosniff',
+                    'Cache-Control' => 'private, no-store, max-age=0',
+                ]
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+            abort(502, 'The remote file could not be downloaded.');
+        }
+    }
+
+    public function destroyRemote(Request $request, CloudRemoteFile $remoteFile, CloudStorageService $storage): RedirectResponse
+    {
+        abort_unless($remoteFile->user_id === $request->user()->id, 404);
+        abort_unless($remoteFile->connection && $remoteFile->connection->user_id === $request->user()->id, 404);
+
+        try {
+            $storage->delete($remoteFile->connection, $remoteFile->provider_file_id);
+            $remoteFile->delete();
+            return redirect()->route('cloud.index')->with('success', 'File deleted from '.ucfirst($remoteFile->provider).'.');
+        } catch (Throwable $exception) {
+            report($exception);
+            return redirect()->route('cloud.index')->with('error', 'Remote deletion failed. The file record was kept.');
+        }
     }
 
     public function preview(Request $request, CloudFile $cloudFile)
@@ -136,7 +335,7 @@ class PersonalCloudController extends Controller
             }
         }, 200, [
             'Content-Type' => strtolower($cloudFile->mime_type),
-            'Content-Disposition' => 'inline; filename="' . addcslashes(basename($cloudFile->original_name), '"\\\\') . '"',
+            'Content-Disposition' => 'inline; filename="'.addcslashes(basename($cloudFile->original_name), '"\\').'"',
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, no-store, max-age=0',
         ]);
