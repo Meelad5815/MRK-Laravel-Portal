@@ -146,7 +146,7 @@
                 canvas.height = swapped ? source.naturalWidth : source.naturalHeight;
                 ctx.save(); ctx.translate(canvas.width / 2, canvas.height / 2); ctx.rotate(rotation * Math.PI / 180);
                 ctx.drawImage(source, -source.naturalWidth / 2, -source.naturalHeight / 2); ctx.restore();
-                selection = null; status.textContent = 'Drag across the image to choose the crop area.';
+                status.textContent = 'Drag across the image to choose the crop area.';
             };
             document.querySelectorAll('.js-image-edit').forEach(button => button.addEventListener('click', () => {
                 originalName = button.dataset.imageName || 'edited-image'; rotation = 0; selection = null;
