@@ -155,7 +155,7 @@
                 source.src = button.dataset.imageUrl;
             }));
             document.getElementById('mrk-editor-close').addEventListener('click', () => dialog.close());
-            document.getElementById('mrk-editor-rotate').addEventListener('click', () => { rotation = (rotation + 90) % 360; draw(); });
+            document.getElementById('mrk-editor-rotate').addEventListener('click', () => { rotation = (rotation + 90) % 360; selection = null; draw(); });
             document.getElementById('mrk-editor-reset').addEventListener('click', () => { selection = null; draw(); });
             const point = event => { const rect = canvas.getBoundingClientRect(); return {x:(event.clientX-rect.left)*canvas.width/rect.width,y:(event.clientY-rect.top)*canvas.height/rect.height}; };
             const drawOverlay = () => { if (!selection) return; ctx.save(); ctx.strokeStyle='#0d9488'; ctx.lineWidth=Math.max(2,canvas.width/500); ctx.setLineDash([8,5]); ctx.strokeRect(selection.x,selection.y,selection.w,selection.h); ctx.restore(); };
