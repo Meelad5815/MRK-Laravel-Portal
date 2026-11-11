@@ -33,7 +33,10 @@
 </div>
 <div class="table-card madrasa-monthly-report" style="padding:1.25rem;margin-bottom:1.25rem">
   <div class="madrasa-report-heading"><div><h2>ماہانہ تعلیمی کارکردگی</h2><p>منتخب مہینے کی حاضری، اسباق اور امتحانات کا خلاصہ</p></div>
-  <form method="GET" action="{{ route('madrasa') }}" class="madrasa-month-filter"><label>مہینہ <input type="month" name="report_month" value="{{ $reportMonth }}"></label><button class="button secondary" type="submit">رپورٹ دیکھیں</button></form></div>
+  @if($role === 'admin')
+<form method="GET" action="{{ route('madrasa.reports.monthly.print') }}" target="_blank" class="madrasa-month-filter" style="margin:.5rem 0"><label>پرنٹ ماہ <input type="month" name="report_month" value="{{ $reportMonth }}" required></label><button class="button secondary" type="submit">تمام فعال طلبہ کے کارڈ پرنٹ کریں</button></form>
+@endif
+<form method="GET" action="{{ route('madrasa') }}" class="madrasa-month-filter"><label>مہینہ <input type="month" name="report_month" value="{{ $reportMonth }}"></label><button class="button secondary" type="submit">رپورٹ دیکھیں</button></form></div>
   <div class="madrasa-report-grid">
     <article><span>حاضر</span><strong>{{ $monthlyAttendance['present'] ?? 0 }}</strong></article>
     <article><span>غیر حاضر</span><strong>{{ $monthlyAttendance['absent'] ?? 0 }}</strong></article>
