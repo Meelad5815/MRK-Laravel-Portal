@@ -35,13 +35,13 @@ class CloudConnectionController extends Controller
         ];
 
         if ($provider === 'google') {
-            $query['scope'] = 'openid email';
+            $query['scope'] = 'openid email https://www.googleapis.com/auth/drive.file';
             $query['access_type'] = 'offline';
             $query['prompt'] = 'consent';
             $url = 'https://accounts.google.com/o/oauth2/v2/auth';
         } else {
             $query['token_access_type'] = 'offline';
-            $query['scope'] = 'account_info.read';
+            $query['scope'] = 'account_info.read files.metadata.read files.content.read files.content.write';
             $url = 'https://www.dropbox.com/oauth2/authorize';
         }
 
