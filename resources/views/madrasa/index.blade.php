@@ -225,7 +225,7 @@
 @if(in_array($role, ['admin','qari'], true))
 <form method="POST" action="{{ route('madrasa.exams.store') }}" class="form-grid">@csrf
 <label>طالب علم<select name="student_id" required>@foreach($studentRows->where('status','active') as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
-<label>امتحان کی قسم<select name="exam_type"><option value="hifz">حفظ</option><option value="nazra">ناظرہ</option><option value="qaida">قاعدہ</option><option value="monthly">ماہانہ</option><option value="annual">سالانہ</option></select></label>
+<label>امتحان کی قسم<select name="exam_type" required><option value="quarterly">سہ ماہی</option><option value="semiannual">ششماہی</option><option value="nine_monthly">نوماہی</option><option value="annual">سالانہ</option><option value="monthly">ماہانہ</option><option value="hifz">حفظ کا جائزہ</option><option value="nazra">ناظرہ کا جائزہ</option><option value="qaida">قاعدہ کا جائزہ</option></select></label>
 <label>تاریخ<input type="date" name="exam_date" value="{{ now()->toDateString() }}" required></label>
 <label>کل نمبر<input type="number" name="total_marks" min="1" max="99999" step="0.01" value="100" required></label>
 <label>حاصل کردہ نمبر<input type="number" name="obtained_marks" min="0" max="99999" step="0.01" required></label>
@@ -238,13 +238,13 @@
 <div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>قسم</th><th>تاریخ</th><th>نمبر</th><th>گریڈ</th><th>والدین</th>@if($role === 'admin')<th>انتظام</th>@endif</tr></thead><tbody>
 @foreach($exams as $exam)
 @php($student = $studentRows->firstWhere('id', $exam->student_id))
-<tr><td>{{ $student?->full_name ?? 'طالب علم' }}</td><td>{{ $exam->exam_type }}</td><td>{{ $exam->exam_date }}</td><td>{{ $exam->obtained_marks }} / {{ $exam->total_marks }}</td><td>{{ $exam->grade ?: '—' }}</td><td>
+<tr><td>{{ $student?->full_name ?? 'طالب علم' }}</td><td>{{ ['quarterly'=>'سہ ماہی','semiannual'=>'ششماہی','nine_monthly'=>'نوماہی','annual'=>'سالانہ','monthly'=>'ماہانہ','hifz'=>'حفظ کا جائزہ','nazra'=>'ناظرہ کا جائزہ','qaida'=>'قاعدہ کا جائزہ'][$exam->exam_type] ?? $exam->exam_type }}</td><td>{{ $exam->exam_date }}</td><td>{{ $exam->obtained_marks }} / {{ $exam->total_marks }}</td><td>{{ $exam->grade ?: '—' }}</td><td>
 @if($role === 'admin')
 <form method="POST" action="{{ route('madrasa.exams.visibility', $exam->id) }}">@csrf<input type="hidden" name="parent_visible" value="{{ $exam->parent_visible ? 0 : 1 }}"><button class="button secondary" type="submit">{{ $exam->parent_visible ? 'منظوری واپس لیں' : 'والدین کو دکھائیں' }}</button></form>
 @else{{ $role === 'parent' ? 'منظور شدہ' : ($exam->parent_visible ? 'منظور شدہ' : 'منظوری باقی') }}@endif
 </td>
 @if($role === 'admin')<td><details><summary>ترمیم</summary><form method="POST" action="{{ route('madrasa.exams.update', $exam->id) }}" class="form-grid">@csrf @method('PUT')
-<label>قسم<input name="exam_type" value="{{ $exam->exam_type }}" maxlength="40" required></label><label>تاریخ<input type="date" name="exam_date" value="{{ $exam->exam_date }}" required></label>
+<label>قسم<select name="exam_type" required>@foreach(['quarterly'=>'سہ ماہی','semiannual'=>'ششماہی','nine_monthly'=>'نوماہی','annual'=>'سالانہ','monthly'=>'ماہانہ','hifz'=>'حفظ کا جائزہ','nazra'=>'ناظرہ کا جائزہ','qaida'=>'قاعدہ کا جائزہ'] as $key=>$label)<option value="{{ $key }}" @selected($exam->exam_type===$key)>{{ $label }}</option>@endforeach</select></label><label>تاریخ<input type="date" name="exam_date" value="{{ $exam->exam_date }}" required></label>
 <label>کل نمبر<input type="number" name="total_marks" value="{{ $exam->total_marks }}" min="1" step=".01" required></label><label>حاصل کردہ نمبر<input type="number" name="obtained_marks" value="{{ $exam->obtained_marks }}" min="0" step=".01" required></label><label>گریڈ<input name="grade" value="{{ $exam->grade }}" maxlength="20"></label><label>تبصرہ<input name="remarks" value="{{ $exam->remarks }}"></label>
 <label>والدین کو دکھائیں<select name="parent_visible"><option value="0" @selected(!$exam->parent_visible)>نہیں</option><option value="1" @selected($exam->parent_visible)>ہاں</option></select></label><button class="button primary">محفوظ کریں</button></form>
 <form method="POST" action="{{ route('madrasa.exams.destroy', $exam->id) }}" onsubmit="return confirm('امتحان کا ریکارڈ حذف کریں؟')">@csrf @method('DELETE')<button class="button secondary">حذف کریں</button></form></details></td>@endif
