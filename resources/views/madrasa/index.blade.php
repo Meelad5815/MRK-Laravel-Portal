@@ -211,6 +211,37 @@
 @endif
 </div>
 
+
+<div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
+<h2 id="leave-requests">چھٹی کی درخواستیں</h2>
+@if($role === 'parent')
+<p>اپنے منسلک طالب علم کے لیے چھٹی کی درخواست جمع کریں۔ فیصلہ اسی فہرست میں دکھائی جائے گا۔</p>
+<form method="POST" action="{{ route('madrasa.leave.store') }}" class="form-grid">@csrf
+<label>طالب علم<select name="student_id" required>@foreach($studentRows->where('status','active') as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
+<label>چھٹی شروع<input type="date" name="start_date" min="{{ now()->toDateString() }}" required></label>
+<label>چھٹی ختم<input type="date" name="end_date" min="{{ now()->toDateString() }}" required></label>
+<label style="grid-column:1/-1">وجہ<textarea name="reason" rows="2" maxlength="1000" required></textarea></label>
+<button class="button primary" type="submit">درخواست جمع کریں</button></form>
+@endif
+@if($leaveRequests->isEmpty())<p class="empty">ابھی کوئی چھٹی کی درخواست موجود نہیں۔</p>@else
+<div class="table-wrap"><table><thead><tr><th>طالب علم</th>@if($role !== 'parent')<th>والدین</th>@endif<th>مدت</th><th>وجہ</th><th>حیثیت</th><th>فیصلہ / نوٹ</th></tr></thead><tbody>
+@foreach($leaveRequests as $leave)
+<tr><td>{{ $leave->student_name }}</td>@if($role !== 'parent')<td>{{ $leave->parent_name ?: '—' }}</td>@endif
+<td>{{ $leave->start_date }} تا {{ $leave->end_date }}</td><td>{{ $leave->reason }}</td>
+<td>{{ ['pending'=>'زیرِ غور','approved'=>'منظور','rejected'=>'مسترد'][$leave->status] ?? $leave->status }}</td>
+<td>{{ $leave->review_note ?: '—' }}
+@if($role === 'admin' && $leave->status === 'pending')
+<details><summary>فیصلہ کریں</summary><form method="POST" action="{{ route('madrasa.leave.review',$leave->id) }}" class="form-grid">@csrf
+<label>فیصلہ<select name="status" required><option value="approved">منظور</option><option value="rejected">مسترد</option></select></label>
+<label>انتظامی نوٹ<input name="review_note" maxlength="500"></label>
+<button class="button primary" type="submit">فیصلہ محفوظ کریں</button></form></details>
+@endif
+</td></tr>
+@endforeach
+</tbody></table></div>
+@endif
+</div>
+
 <h2 id="attendance">حاضری کا ریکارڈ</h2>
 @if($attendance->isEmpty())<p class="empty">حاضری کا ریکارڈ موجود نہیں۔</p>
 @else
