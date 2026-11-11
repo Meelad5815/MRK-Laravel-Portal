@@ -668,6 +668,24 @@ class MadrasaController extends Controller
         return view('madrasa.certificate-verify', compact('certificate'));
     }
 
+
+    public function printMonthlyReport(Request $request): View
+    {
+        $this->admin($request);
+        $data = $request->validate(['report_month' => ['required', 'date_format:Y-m']]);
+        $start = \Illuminate\Support\Carbon::createFromFormat('Y-m', $data['report_month'])->startOfMonth();
+        $end = (clone $start)->endOfMonth();
+        $students = DB::table('madrasa_students')->where('madrasa_id', self::MADRASA_ID)->where('status', 'active')->orderBy('program')->orderBy('full_name')->get();
+        $cards = $students->map(function ($student) use ($start, $end) {
+            $attendance = DB::table('madrasa_attendance')->where('student_id', $student->id)->whereBetween('attendance_date', [$start->toDateString(), $end->toDateString()])->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->pluck('total', 'status');
+            $progress = DB::table('madrasa_daily_progress')->where('student_id', $student->id)->whereBetween('progress_date', [$start->toDateString(), $end->toDateString()])->count();
+            $exams = DB::table('madrasa_exams')->where('student_id', $student->id)->whereBetween('exam_date', [$start->toDateString(), $end->toDateString()])->orderBy('exam_date')->get();
+            $average = $exams->count() ? round($exams->avg(fn ($exam) => $exam->total_marks > 0 ? ($exam->obtained_marks / $exam->total_marks) * 100 : 0), 1) : null;
+            return (object) ['student'=>$student, 'attendance'=>$attendance, 'progress_count'=>$progress, 'exams'=>$exams, 'exam_average'=>$average];
+        });
+        return view('madrasa.monthly-report-print', ['cards'=>$cards, 'monthLabel'=>$start->format('F Y')]);
+    }
+
     private function audit(Request $request, string $action, string $type, int $id): void
     {
         DB::table('madrasa_audit_logs')->insert([
