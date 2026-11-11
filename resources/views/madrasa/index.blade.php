@@ -1,14 +1,14 @@
 @extends('layouts.app')
-@section('title', 'MRK Madrasa Portal')
+@section('title', 'مدرسۃ المدینہ مینجمنٹ پورٹل | MRK')
 @section('robots', 'noindex,nofollow')
 @section('content')
-@push('styles')
+<style>
 <style>
 .madrasa-dashboard{display:grid;gap:1rem;margin:0 0 1.5rem}.madrasa-welcome{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:1.2rem;border-radius:16px;background:linear-gradient(135deg,#123c32,#17624d);color:#fff}.madrasa-welcome h2{margin:.3rem 0;color:#fff}.madrasa-welcome p{margin:0;color:#e2eee8}.role-pill{background:#fff;color:#14513f;border-radius:999px;padding:.45rem .85rem;font-weight:700}.madrasa-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.75rem}.madrasa-stats article{padding:1rem;border:1px solid #dce7e1;border-radius:13px;background:#fff;display:grid;gap:.25rem}.madrasa-stats article span{color:#52635b;font-size:.9rem}.madrasa-stats article strong{font-size:1.7rem;color:#14513f}.madrasa-stats article small{color:#718078}.madrasa-programs{display:flex;gap:.6rem;flex-wrap:wrap}.madrasa-programs span{padding:.5rem .8rem;background:#eef6f1;border-radius:9px;color:#214d3c}.madrasa-shortcuts{display:flex;gap:.5rem;flex-wrap:wrap}.madrasa-shortcuts a{padding:.55rem .8rem;border:1px solid #d5e2da;border-radius:9px;text-decoration:none;color:#174d3a;background:#fff;font-weight:600}.madrasa-filters{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:.75rem;align-items:end;margin:1rem 0}.madrasa-filters label{display:grid;gap:.35rem}.madrasa-filters input,.madrasa-filters select{width:100%;padding:.7rem;border:1px solid #cbd5e1;border-radius:9px}.madrasa-filter-actions{display:flex;gap:.5rem;flex-wrap:wrap}.table-wrap{overflow-x:auto}.table-wrap table{min-width:680px;width:100%}html{scroll-behavior:smooth}h2[id]{scroll-margin-top:90px}
 @media(max-width:850px){.madrasa-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.madrasa-filters{grid-template-columns:1fr 1fr}.madrasa-filter-actions{grid-column:1/-1}}
 @media(max-width:480px){.madrasa-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.madrasa-filters{grid-template-columns:1fr}.madrasa-filter-actions{grid-column:auto}.madrasa-welcome{align-items:flex-start}}
 </style>
-@endpush
+</style>
 
 <section class="page-hero"><div class="container narrow" dir="rtl">
     <span class="eyebrow">MRK MADRASA 58</span>
