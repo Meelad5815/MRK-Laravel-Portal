@@ -135,11 +135,11 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'admin'])->group(function () {
-    Route::get('/dashboard/work-management', [\App\\Http\\Controllers\\WorkManagementController::class, 'index'])->name('admin.work.index');
-    Route::post('/dashboard/work-management', [\App\\Http\\Controllers\\WorkManagementController::class, 'storeWork'])->middleware('throttle:20,1')->name('admin.work.store');
-    Route::patch('/dashboard/work-management/{workOrder}/status', [\App\\Http\\Controllers\\WorkManagementController::class, 'updateStatus'])->whereNumber('workOrder')->name('admin.work.status');
-    Route::post('/dashboard/cashbook', [\App\\Http\\Controllers\\WorkManagementController::class, 'storeTransaction'])->middleware('throttle:20,1')->name('admin.cash.store');
-    Route::get('/dashboard/work-management/{workOrder}/receipt', [\App\\Http\\Controllers\\WorkManagementController::class, 'receipt'])->whereNumber('workOrder')->name('admin.work.receipt');
+    Route::get('/dashboard/work-management', [\App\Http\Controllers\WorkManagementController::class, 'index'])->name('admin.work.index');
+    Route::post('/dashboard/work-management', [\App\Http\Controllers\WorkManagementController::class, 'storeWork'])->middleware('throttle:20,1')->name('admin.work.store');
+    Route::patch('/dashboard/work-management/{workOrder}/status', [\App\Http\Controllers\WorkManagementController::class, 'updateStatus'])->whereNumber('workOrder')->name('admin.work.status');
+    Route::post('/dashboard/cashbook', [\App\Http\Controllers\WorkManagementController::class, 'storeTransaction'])->middleware('throttle:20,1')->name('admin.cash.store');
+    Route::get('/dashboard/work-management/{workOrder}/receipt', [\App\Http\Controllers\WorkManagementController::class, 'receipt'])->whereNumber('workOrder')->name('admin.work.receipt');
     Route::view('/dashboard/online-work', 'admin.online-work')->name('admin.online-work');
     Route::post('/dashboard/system/run-pending-migrations', function (Request $request) {
         $request->validate([
