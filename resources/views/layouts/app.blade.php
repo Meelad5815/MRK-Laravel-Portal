@@ -59,7 +59,8 @@
 <a class="nav-cta {{ request()->routeIs('register') ? 'active' : '' }}" href="{{ route('register') }}">Register</a>
 @endauth
 </nav></div></header>
-@if(session('success'))<div class="container"><div class="alert success">{{ session('success') }}</div></div>@endif
+@if(session('success'))<div class="container"><div class="alert success" role="status">{{ session('success') }}</div></div>@endif
+@if(session('error'))<div class="container"><div class="alert error" role="alert">{{ session('error') }}</div></div>@endif
 @if($errors->any())<div class="container"><div class="alert error"><strong>Please fix the following:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>@endif
 @yield('content')
 <footer><div class="container footer-inner"><span>© {{ date('Y') }} {{ $siteSettings['site_name'] ?? 'MRK Digital' }}</span><span>{{ $siteSettings['tagline'] ?? 'Full Stack Website Developer' }}</span><nav aria-label="Legal links"><a href="{{ route('privacy-policy') }}">Privacy Policy</a><a href="{{ route('terms') }}">Terms of Service</a></nav></div></footer>
