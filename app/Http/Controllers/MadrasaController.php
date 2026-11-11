@@ -80,6 +80,10 @@ class MadrasaController extends Controller
         }
         $studentRows = $students->get();
         $studentIds = $studentRows->pluck('id');
+        $courseProgress = DB::table('madrasa_course_progress')->whereIn('student_id', $studentIds)
+            ->when($role === 'parent', fn ($q) => $q->where('parent_visible', true))
+            ->get()->keyBy(fn ($item) => $item->student_id . ':' . $item->program);
+
         $attendance = DB::table('madrasa_attendance')->whereIn('student_id', $studentIds)->orderByDesc('attendance_date')->limit(100)->get();
         $progress = DB::table('madrasa_daily_progress')->whereIn('student_id', $studentIds)
             ->when($role === 'parent', fn ($q) => $q->where('parent_visible', true))
@@ -131,7 +135,7 @@ class MadrasaController extends Controller
         $monthlyExamAverage = (clone $monthlyExamQuery)->selectRaw('AVG((obtained_marks / total_marks) * 100) as average_percentage')->value('average_percentage');
 
         return view('madrasa.index', compact(
-            'role', 'studentRows', 'attendance', 'progress', 'qariUsers', 'parentUsers',
+            'role', 'studentRows', 'attendance', 'progress', 'courseProgress', 'qariUsers', 'parentUsers',
             'exams', 'certificates', 'announcements', 'studentSearch', 'activeStudents',
             'presentToday', 'absentToday', 'lateToday', 'programCounts', 'reportMonth',
             'monthlyAttendance', 'monthlyProgressCount', 'monthlyExamCount', 'monthlyExamAverage'
@@ -441,6 +445,61 @@ class MadrasaController extends Controller
         DB::table('madrasa_daily_progress')->where('id', $progress)->delete();
         $this->audit($request, 'progress.deleted', 'madrasa_daily_progress', $progress);
         return back()->with('success', 'تعلیمی پیش رفت کا ریکارڈ حذف ہو گیا۔');
+    }
+
+
+    public function saveCourseProgress(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'student_id' => ['required', 'integer', 'exists:madrasa_students,id'],
+            'program' => ['required', 'in:hifz,nazra,qaida'],
+            'completed_paras' => ['required', 'integer', 'min:0', 'max:30'],
+            'current_para' => ['required', 'integer', 'min:1', 'max:30'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $this->canTeach($request, (int) $data['student_id']);
+        $student = DB::table('madrasa_students')->where('id', $data['student_id'])
+            ->where('madrasa_id', self::MADRASA_ID)->first();
+        abort_unless($student && $student->program === $data['program'], 422);
+        $existing = DB::table('madrasa_course_progress')->where('student_id', $student->id)
+            ->where('program', $data['program'])->first();
+        $values = [
+            'completed_paras' => $data['completed_paras'],
+            'current_para' => $data['current_para'],
+            'notes' => $data['notes'] ?? null,
+            'updated_by' => $request->user()->id,
+            'updated_at' => now(),
+        ];
+        if (!$existing) {
+            $values += [
+                'student_id' => $student->id,
+                'program' => $data['program'],
+                'parent_visible' => false,
+                'created_at' => now(),
+            ];
+            $id = DB::table('madrasa_course_progress')->insertGetId($values);
+        } else {
+            DB::table('madrasa_course_progress')->where('id', $existing->id)->update($values);
+            $id = (int) $existing->id;
+        }
+        $this->audit($request, 'course_progress.saved', 'madrasa_course_progress', $id);
+        return back()->with('success', 'نصاب / تکمیلِ پارہ کی پیش رفت محفوظ ہو گئی۔');
+    }
+
+    public function setCourseProgressVisibility(Request $request, int $progress): RedirectResponse
+    {
+        $this->admin($request);
+        $data = $request->validate(['parent_visible' => ['required', 'boolean']]);
+        $exists = DB::table('madrasa_course_progress')->where('madrasa_course_progress.id', $progress)
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_course_progress.student_id')
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
+        abort_unless($exists, 404);
+        DB::table('madrasa_course_progress')->where('id', $progress)->update([
+            'parent_visible' => (bool) $data['parent_visible'],
+            'updated_at' => now(),
+        ]);
+        $this->audit($request, 'course_progress.visibility_changed', 'madrasa_course_progress', $progress);
+        return back()->with('success', 'والدین کے لیے نصاب کی پیش رفت کی منظوری محفوظ ہو گئی۔');
     }
 
     public function storeExam(Request $request): RedirectResponse
