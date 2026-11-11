@@ -59,7 +59,10 @@ class PersonalCloudController extends Controller
 
     public function storeFolder(Request $request): RedirectResponse
     {
-        $request->merge(['name' => trim((string) $request->input('name'))]);
+        $name = $request->input('name');
+        if (is_string($name)) {
+            $request->merge(['name' => trim($name)]);
+        }
 
         $validated = $request->validate([
             'name' => [
