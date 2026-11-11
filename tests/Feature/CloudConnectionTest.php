@@ -297,7 +297,8 @@ class CloudConnectionTest extends TestCase
                 return Http::response([], 404);
             }
 
-            if (str_contains($request->url(), 'pageToken=page-two-token')) {
+            parse_str($request->toPsrRequest()->getUri()->getQuery(), $query);
+            if (($query['pageToken'] ?? null) === 'page-two-token') {
                 return Http::response([
                     'files' => [['id' => 'google-file-2', 'name' => 'second.pdf', 'mimeType' => 'application/pdf']],
                 ], 200);
@@ -322,8 +323,12 @@ class CloudConnectionTest extends TestCase
 
         $this->assertSame(['google-file-1', 'google-file-2'], array_column($files, 'id'));
         Http::assertSentCount(2);
-        Http::assertSent(fn ($request) => $request->url() === 'https://www.googleapis.com/drive/v3/files'
-            && str_contains($request->url(), 'pageToken=page-two-token'));
+        Http::assertSent(function ($request) {
+            parse_str($request->toPsrRequest()->getUri()->getQuery(), $query);
+
+            return $request->url() === 'https://www.googleapis.com/drive/v3/files'
+                && ($query['pageToken'] ?? null) === 'page-two-token';
+        });
     }
 
     public function test_dropbox_listing_continues_until_has_more_is_false(): void
