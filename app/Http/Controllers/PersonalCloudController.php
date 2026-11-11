@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CloudFile;
 use App\Models\CloudFolder;
+use App\Models\CloudConnection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -53,6 +54,7 @@ class PersonalCloudController extends Controller
             'files' => $files,
             'stats' => $stats,
             'folders' => $folders,
+            'connections' => CloudConnection::query()->where('user_id', $userId)->get()->keyBy('provider'),
             'categories' => self::CATEGORIES,
         ]);
     }
