@@ -39,6 +39,7 @@
 <a class="{{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Home</a>
 <a class="{{ request()->routeIs('about') ? 'active' : '' }}" href="{{ route('about') }}">About</a>
 <a class="{{ request()->routeIs('services') ? 'active' : '' }}" href="{{ route('services') }}">Services</a>
+<a class="{{ request()->routeIs('fees.public') ? 'active' : '' }}" href="{{ route('fees.public') }}">Government Fees</a>
 <a class="{{ request()->routeIs('tools', 'developer-tools') ? 'active' : '' }}" href="{{ route('tools') }}">Free Tools</a>
 @auth
 <a class="{{ request()->routeIs('cloud.*') ? 'active' : '' }}" href="{{ route('cloud.index') }}">Personal Cloud</a>
@@ -51,6 +52,7 @@
 <a class="{{ request()->routeIs('madrasa') ? 'active' : '' }}" href="{{ route('madrasa') }}">Madrasa Portal</a>
 @auth
 <a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">Dashboard</a>
+@if(auth()->user()->is_admin)<a href="{{ route('admin.fees.index') }}">Fee Manager</a>@endif
 <form class="inline-form" method="POST" action="{{ route('logout') }}">@csrf<button class="nav-button" type="submit">Logout</button></form>
 @else
 <a class="{{ request()->routeIs('login') ? 'active' : '' }}" href="{{ route('login') }}">Login</a>
