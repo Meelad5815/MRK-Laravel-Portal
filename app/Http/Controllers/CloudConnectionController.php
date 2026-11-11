@@ -96,6 +96,11 @@ class CloudConnectionController extends Controller
                 return redirect()->route('cloud.index')->with('error', 'The provider did not return a usable account identifier.');
             }
 
+            $existingConnection = CloudConnection::query()
+                ->where('user_id', $request->user()->id)
+                ->where('provider', $provider)
+                ->first();
+
             CloudConnection::updateOrCreate(
                 ['user_id' => $request->user()->id, 'provider' => $provider],
                 [
@@ -104,7 +109,7 @@ class CloudConnectionController extends Controller
                         ? ($profileData['email'] ?? $profileData['name'] ?? null)
                         : ($profileData['name']['display_name'] ?? $profileData['email'] ?? null),
                     'access_token' => $token['access_token'],
-                    'refresh_token' => $token['refresh_token'] ?? null,
+                    'refresh_token' => $token['refresh_token'] ?? $existingConnection?->refresh_token,
                     'token_expires_at' => isset($token['expires_in']) ? now()->addSeconds((int) $token['expires_in']) : null,
                     'scopes' => isset($token['scope']) ? preg_split('/\s+/', trim($token['scope'])) : [],
                 ]
