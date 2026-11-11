@@ -169,7 +169,7 @@
                     <button class="button secondary" type="submit">Sync remote files</button>
                 </form>
             </div>
-            <p class="muted">Files stay in their original Google Drive or Dropbox account. MRK stores only file details here; opening or downloading a file is proxied through your private signed-in session.</p>
+            <p class="muted">Files stay in their original Google Drive or Dropbox account. MRK stores only file details here; opening or downloading a file is proxied through your private signed-in session. Remote downloads are limited to 50 MB on this free-hosting setup.</p>
             @if($remoteFiles->count())
                 <div class="table-wrap">
                     <table>
