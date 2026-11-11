@@ -259,6 +259,7 @@ Route::get('/madrasa/certificates/verify/{token}', [\App\Http\Controllers\Madras
 // MRK Madrasa Management System — embedded Vercel application.
 Route::middleware('auth')->group(function () {
     Route::get('/madrasa', [\App\Http\Controllers\MadrasaController::class, 'index'])->name('madrasa');
+    Route::get('/madrasa/reports/monthly/print', [\App\Http\Controllers\MadrasaController::class, 'printMonthlyReport'])->name('madrasa.reports.monthly.print');
     Route::post('/madrasa/students', [\App\Http\Controllers\MadrasaController::class, 'storeStudent'])->name('madrasa.students.store');
     Route::put('/madrasa/students/{student}', [\App\Http\Controllers\MadrasaController::class, 'updateStudent'])->whereNumber('student')->name('madrasa.students.update');
     Route::delete('/madrasa/students/{student}', [\App\Http\Controllers\MadrasaController::class, 'archiveStudent'])->whereNumber('student')->name('madrasa.students.destroy');
