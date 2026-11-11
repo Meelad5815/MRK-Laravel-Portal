@@ -153,7 +153,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
             return back()->withErrors(['database' => 'Database updates failed. Check the hosting PHP error log.']);
         }
-    })->middleware('throttle:1,5')->name('admin.system.migrate');
+    })->middleware('throttle:1,1')->name('admin.system.migrate');
 
     Route::get('/dashboard', function (Request $request) {
         $query = Lead::query();
