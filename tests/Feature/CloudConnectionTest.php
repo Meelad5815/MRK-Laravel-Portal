@@ -258,7 +258,7 @@ class CloudConnectionTest extends TestCase
     public function test_dropbox_disconnect_refreshes_expired_access_token_before_revoking(): void
     {
         Http::fake([
-            'api.dropboxapi.com/oauth2/token' => Http::response([
+            'api.dropbox.com/oauth2/token' => Http::response([
                 'access_token' => 'fresh-access-token',
                 'expires_in' => 3600,
             ], 200),
