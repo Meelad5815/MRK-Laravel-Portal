@@ -1,5 +1,6 @@
 @extends('layouts.app')
 @section('title', 'مدرسۃ المدینہ مینجمنٹ پورٹل | MRK')
+@section('html_lang', 'ur')
 @section('robots', 'noindex,nofollow')
 @section('content')
 <style>
