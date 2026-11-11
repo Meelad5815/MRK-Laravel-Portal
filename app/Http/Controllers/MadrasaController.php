@@ -730,7 +730,7 @@ class MadrasaController extends Controller
 
     public function printCertificate(Request $request, int $certificate): View
     {
-        $this->admin($request);
+        $role = $this->role($request);
         $record = DB::table('madrasa_certificates')
             ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_certificates.student_id')
             ->where('madrasa_certificates.id', $certificate)
@@ -743,6 +743,17 @@ class MadrasaController extends Controller
                 'madrasa_students.previous_institution',
             ]);
         abort_unless($record, 404);
+        if ($role === 'parent') {
+            abort_unless(DB::table('madrasa_parent_links')
+                ->where('student_id', $record->student_id)
+                ->where('parent_user_id', $request->user()->id)
+                ->where('is_verified', true)->exists(), 404);
+        } elseif ($role === 'qari') {
+            abort_unless(DB::table('madrasa_qari_assignments')
+                ->where('student_id', $record->student_id)
+                ->where('qari_user_id', $request->user()->id)
+                ->where('status', 'active')->exists(), 404);
+        }
         return view('madrasa.certificate-print', ['certificate' => $record]);
     }
 
