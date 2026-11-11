@@ -3,41 +3,90 @@
 namespace App\Http\Controllers;
 
 use App\Models\CloudFile;
+use App\Models\CloudFolder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class PersonalCloudController extends Controller
 {
+    private const CATEGORIES = [
+        'documents' => 'Documents',
+        'images' => 'Images',
+        'videos' => 'Videos',
+        'audio' => 'Audio',
+        'archives' => 'Archives',
+        'other' => 'Other',
+    ];
+
     public function index(Request $request): View
     {
+        $userId = $request->user()->id;
         $files = CloudFile::query()
-            ->where('user_id', $request->user()->id)
+            ->with('folder')
+            ->where('user_id', $userId)
             ->when($request->filled('q'), function ($query) use ($request) {
                 $term = trim((string) $request->query('q'));
                 $query->where('original_name', 'like', '%'.$term.'%');
+            })
+            ->when($request->filled('folder'), function ($query) use ($request) {
+                $query->where('cloud_folder_id', (int) $request->query('folder'));
+            })
+            ->when(in_array($request->query('category'), array_keys(self::CATEGORIES), true), function ($query) use ($request) {
+                $query->where('category', $request->query('category'));
             })
             ->latest()
             ->paginate(20)
             ->withQueryString();
 
         $stats = [
-            'files' => CloudFile::where('user_id', $request->user()->id)->count(),
-            'bytes' => (int) CloudFile::where('user_id', $request->user()->id)->sum('size'),
+            'files' => CloudFile::where('user_id', $userId)->count(),
+            'bytes' => (int) CloudFile::where('user_id', $userId)->sum('size'),
         ];
+        $folders = CloudFolder::query()->where('user_id', $userId)->orderBy('name')->get();
 
-        return view('cloud.index', compact('files', 'stats'));
+        return view('cloud.index', [
+            'files' => $files,
+            'stats' => $stats,
+            'folders' => $folders,
+            'categories' => self::CATEGORIES,
+        ]);
+    }
+
+    public function storeFolder(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => [
+                'required', 'string', 'min:1', 'max:60',
+                Rule::unique('cloud_folders', 'name')->where('user_id', $request->user()->id),
+            ],
+        ]);
+
+        CloudFolder::create([
+            'user_id' => $request->user()->id,
+            'name' => trim($validated['name']),
+        ]);
+
+        return redirect()->route('cloud.index')->with('success', 'Folder created.');
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'file' => ['required', 'file', 'max:5120'],
+            'folder_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('cloud_folders', 'id')->where(fn ($query) => $query->where('user_id', $request->user()->id)),
+            ],
+            'category' => ['nullable', Rule::in(array_keys(self::CATEGORIES))],
         ], [
             'file.max' => 'Each file must be 5 MB or smaller on this free-hosting setup.',
+            'folder_id.exists' => 'Choose a folder belonging to your account.',
         ]);
 
         $upload = $validated['file'];
@@ -52,6 +101,8 @@ class PersonalCloudController extends Controller
 
         CloudFile::create([
             'user_id' => $request->user()->id,
+            'cloud_folder_id' => $validated['folder_id'] ?? null,
+            'category' => $validated['category'] ?? 'other',
             'original_name' => mb_substr($upload->getClientOriginalName(), 0, 255),
             'stored_path' => $path,
             'mime_type' => $upload->getMimeType(),
