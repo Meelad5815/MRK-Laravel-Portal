@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\CloudFile;
+use App\Models\CloudFolder;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -17,6 +18,7 @@ class PersonalCloudTest extends TestCase
     {
         $this->get(route('cloud.index'))->assertRedirect(route('login'));
         $this->post(route('cloud.store'))->assertRedirect(route('login'));
+        $this->post(route('cloud.folders.store'))->assertRedirect(route('login'));
     }
 
     public function test_user_can_upload_list_and_download_their_own_file(): void
@@ -78,5 +80,70 @@ class PersonalCloudTest extends TestCase
         ])->assertSessionHasErrors('file');
 
         $this->assertDatabaseCount('cloud_files', 0);
+    }
+
+    public function test_user_can_create_folder_and_upload_file_into_it(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('cloud.folders.store'), [
+            'name' => 'Study Notes',
+        ])->assertRedirect(route('cloud.index'));
+
+        $folder = CloudFolder::query()->where('user_id', $user->id)->firstOrFail();
+
+        $this->actingAs($user)->post(route('cloud.store'), [
+            'file' => UploadedFile::fake()->create('lecture.pdf', 100, 'application/pdf'),
+            'folder_id' => $folder->id,
+            'category' => 'documents',
+        ])->assertRedirect(route('cloud.index'));
+
+        $file = CloudFile::query()->where('user_id', $user->id)->firstOrFail();
+        $this->assertSame($folder->id, $file->cloud_folder_id);
+        $this->assertSame('documents', $file->category);
+
+        $this->actingAs($user)->get(route('cloud.index', ['folder' => $folder->id, 'category' => 'documents']))
+            ->assertOk()
+            ->assertSee('lecture.pdf')
+            ->assertSee('Study Notes');
+    }
+
+    public function test_user_cannot_upload_file_into_another_users_folder(): void
+    {
+        Storage::fake('local');
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $folder = CloudFolder::query()->create(['user_id' => $owner->id, 'name' => 'Private']);
+
+        $this->actingAs($otherUser)->post(route('cloud.store'), [
+            'file' => UploadedFile::fake()->create('attempt.pdf', 100, 'application/pdf'),
+            'folder_id' => $folder->id,
+            'category' => 'documents',
+        ])->assertSessionHasErrors('folder_id');
+
+        $this->assertDatabaseCount('cloud_files', 0);
+    }
+
+    public function test_folder_name_must_be_a_string(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('cloud.folders.store'), ['name' => ['invalid']])
+            ->assertSessionHasErrors('name');
+
+        $this->assertDatabaseCount('cloud_folders', 0);
+    }
+
+    public function test_folder_names_are_unique_per_user(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('cloud.folders.store'), ['name' => 'Work'])
+            ->assertRedirect(route('cloud.index'));
+        $this->actingAs($user)->post(route('cloud.folders.store'), ['name' => 'Work'])
+            ->assertSessionHasErrors('name');
+
+        $this->assertDatabaseCount('cloud_folders', 1);
     }
 }
