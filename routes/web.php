@@ -272,6 +272,10 @@ Route::middleware('auth')->prefix('cloud')->name('cloud.')->group(function () {
     Route::get('/', [PersonalCloudController::class, 'index'])->name('index');
     Route::post('/folders', [PersonalCloudController::class, 'storeFolder'])->middleware('throttle:10,1')->name('folders.store');
     Route::post('/upload', [PersonalCloudController::class, 'store'])->middleware('throttle:10,1')->name('store');
+    Route::post('/remote/sync', [PersonalCloudController::class, 'syncRemoteFiles'])->middleware('throttle:5,1')->name('remote.sync');
+    Route::get('/remote/{remoteFile}/preview', [PersonalCloudController::class, 'previewRemote'])->name('remote.preview');
+    Route::get('/remote/{remoteFile}/download', [PersonalCloudController::class, 'downloadRemote'])->name('remote.download');
+    Route::delete('/remote/{remoteFile}', [PersonalCloudController::class, 'destroyRemote'])->middleware('throttle:10,1')->name('remote.destroy');
     Route::get('/{cloudFile}/preview', [PersonalCloudController::class, 'preview'])->name('preview');
     Route::get('/{cloudFile}/download', [PersonalCloudController::class, 'download'])->name('download');
     Route::delete('/{cloudFile}', [PersonalCloudController::class, 'destroy'])->name('destroy');
