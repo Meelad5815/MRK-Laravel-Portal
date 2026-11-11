@@ -181,6 +181,36 @@
 </div>
 
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
+
+<div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
+<h2 id="course-progress">حفظ / ناظرہ / قاعدہ نصاب کی تکمیل</h2>
+<p>قاری یا منتظم موجودہ پارہ / مرحلہ اور مکمل شدہ پاروں / مراحل کا اندراج کریں۔ والدین کو دکھانے سے پہلے منتظم کی منظوری ضروری ہے۔</p>
+@if($studentRows->isEmpty())<p class="empty">طلبہ کا ریکارڈ موجود نہیں۔</p>@else
+<div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>شعبہ</th><th>مکمل پارے / مراحل</th><th>موجودہ پارہ / مرحلہ</th><th>والدین کی رسائی</th>@if(in_array($role,['admin','qari'],true))<th>اپ ڈیٹ</th>@endif</tr></thead><tbody>
+@foreach($studentRows as $student)
+@php($course = $courseProgress->get($student->id.':'.$student->program))
+<tr><td>{{ $student->full_name }}<br><small>{{ $student->student_code }}</small></td><td>{{ ['hifz'=>'حفظ','nazra'=>'ناظرہ','qaida'=>'قاعدہ'][$student->program] ?? $student->program }}</td>
+<td>{{ $course?->completed_paras ?? 0 }}</td><td>{{ $course?->current_para ?? 1 }}</td>
+<td>
+@if($role === 'admin' && $course)
+<form method="POST" action="{{ route('madrasa.course-progress.visibility',$course->id) }}">@csrf<input type="hidden" name="parent_visible" value="{{ $course->parent_visible ? 0 : 1 }}"><button class="button secondary" type="submit">{{ $course->parent_visible ? 'منظوری واپس لیں' : 'والدین کو دکھائیں' }}</button></form>
+@elseif($role === 'parent')منظور شدہ
+@else{{ $course?->parent_visible ? 'منظور شدہ' : 'منظوری باقی' }}@endif
+</td>
+@if(in_array($role,['admin','qari'],true))
+<td><details><summary>پیش رفت درج کریں</summary><form method="POST" action="{{ route('madrasa.course-progress.store') }}" class="form-grid">@csrf
+<input type="hidden" name="student_id" value="{{ $student->id }}"><input type="hidden" name="program" value="{{ $student->program }}">
+<label>مکمل پارے / مراحل<input type="number" name="completed_paras" min="0" max="30" value="{{ $course?->completed_paras ?? 0 }}" required></label>
+<label>موجودہ پارہ / مرحلہ<input type="number" name="current_para" min="1" max="30" value="{{ $course?->current_para ?? 1 }}" required></label>
+<label>نوٹ<input name="notes" maxlength="1000" value="{{ $course?->notes }}"></label>
+<button class="button primary" type="submit">پیش رفت محفوظ کریں</button></form></details></td>
+@endif
+</tr>
+@endforeach
+</tbody></table></div>
+@endif
+</div>
+
 <h2 id="attendance">حاضری کا ریکارڈ</h2>
 @if($attendance->isEmpty())<p class="empty">حاضری کا ریکارڈ موجود نہیں۔</p>
 @else
