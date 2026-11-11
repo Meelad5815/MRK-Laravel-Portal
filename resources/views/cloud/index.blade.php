@@ -163,6 +163,8 @@
             canvas.addEventListener('pointermove', event => { if (!dragStart) return; const p=point(event); selection={x:Math.min(p.x,dragStart.x),y:Math.min(p.y,dragStart.y),w:Math.abs(p.x-dragStart.x),h:Math.abs(p.y-dragStart.y)}; draw(); drawOverlay(); });
             canvas.addEventListener('pointerup', () => { dragStart=null; });
             document.getElementById('mrk-editor-save').addEventListener('click', () => {
+                // Redraw the source without the dashed selection overlay before exporting.
+                draw();
                 const crop = selection && selection.w > 4 && selection.h > 4 ? selection : {x:0,y:0,w:canvas.width,h:canvas.height};
                 const output=document.createElement('canvas'); output.width=Math.round(crop.w); output.height=Math.round(crop.h);
                 output.getContext('2d').drawImage(canvas,crop.x,crop.y,crop.w,crop.h,0,0,output.width,output.height);
