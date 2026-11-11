@@ -80,6 +80,13 @@ class MadrasaController extends Controller
         }
         $studentRows = $students->get();
         $studentIds = $studentRows->pluck('id');
+        $timetable = DB::table('madrasa_timetable')
+            ->join('users as timetable_qari', 'timetable_qari.id', '=', 'madrasa_timetable.qari_user_id')
+            ->where('madrasa_timetable.madrasa_id', self::MADRASA_ID)
+            ->when($role === 'qari', fn ($q) => $q->where('madrasa_timetable.qari_user_id', $userId))
+            ->orderBy('madrasa_timetable.weekday')->orderBy('madrasa_timetable.start_time')
+            ->get(['madrasa_timetable.*', 'timetable_qari.name as qari_name']);
+
         $leaveRequests = DB::table('madrasa_leave_requests')
             ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_leave_requests.student_id')
             ->leftJoin('users as leave_parents', 'leave_parents.id', '=', 'madrasa_leave_requests.parent_user_id')
@@ -144,7 +151,7 @@ class MadrasaController extends Controller
         $monthlyExamAverage = (clone $monthlyExamQuery)->selectRaw('AVG((obtained_marks / total_marks) * 100) as average_percentage')->value('average_percentage');
 
         return view('madrasa.index', compact(
-            'role', 'studentRows', 'attendance', 'progress', 'courseProgress', 'leaveRequests', 'qariUsers', 'parentUsers',
+            'role', 'studentRows', 'attendance', 'progress', 'courseProgress', 'leaveRequests', 'timetable', 'qariUsers', 'parentUsers',
             'exams', 'certificates', 'announcements', 'studentSearch', 'activeStudents',
             'presentToday', 'absentToday', 'lateToday', 'programCounts', 'reportMonth',
             'monthlyAttendance', 'monthlyProgressCount', 'monthlyExamCount', 'monthlyExamAverage'
@@ -801,6 +808,53 @@ class MadrasaController extends Controller
         ]);
         $this->audit($request, 'leave_request.reviewed_' . $data['status'], 'madrasa_leave_requests', $leaveRequest);
         return back()->with('success', 'چھٹی کی درخواست کا فیصلہ محفوظ ہو گیا۔');
+    }
+
+
+    public function storeTimetable(Request $request): RedirectResponse
+    {
+        $this->admin($request);
+        $data = $request->validate([
+            'qari_user_id' => ['required', 'integer'],
+            'weekday' => ['required', 'integer', 'between:1,7'],
+            'start_time' => ['required', 'date_format:H:i'],
+            'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
+            'class_name' => ['required', 'string', 'max:120'],
+            'subject' => ['required', 'string', 'max:120'],
+            'room' => ['nullable', 'string', 'max:80'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+        abort_unless(DB::table('users')->where('id', $data['qari_user_id'])
+            ->where('madrasa_role', 'qari')->where('madrasa_id', self::MADRASA_ID)->exists(), 422);
+        $overlap = DB::table('madrasa_timetable')->where('madrasa_id', self::MADRASA_ID)
+            ->where('weekday', $data['weekday'])
+            ->where(function ($q) use ($data) {
+                $q->where('qari_user_id', $data['qari_user_id'])
+                    ->orWhere('class_name', $data['class_name']);
+            })
+            ->where('start_time', '<', $data['end_time'])
+            ->where('end_time', '>', $data['start_time'])->exists();
+        abort_if($overlap, 422, 'اس قاری یا کلاس کے لیے اس وقت پہلے سے شیڈول موجود ہے۔');
+        $id = DB::table('madrasa_timetable')->insertGetId([
+            'madrasa_id' => self::MADRASA_ID, 'qari_user_id' => $data['qari_user_id'],
+            'weekday' => $data['weekday'], 'start_time' => $data['start_time'],
+            'end_time' => $data['end_time'], 'class_name' => $data['class_name'],
+            'subject' => $data['subject'], 'room' => $data['room'] ?? null,
+            'notes' => $data['notes'] ?? null, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $this->audit($request, 'timetable.created', 'madrasa_timetable', $id);
+        return back()->with('success', 'ہفتہ وار ٹائم ٹیبل محفوظ ہو گیا۔');
+    }
+
+    public function deleteTimetable(Request $request, int $entry): RedirectResponse
+    {
+        $this->admin($request);
+        $exists = DB::table('madrasa_timetable')->where('id', $entry)
+            ->where('madrasa_id', self::MADRASA_ID)->exists();
+        abort_unless($exists, 404);
+        DB::table('madrasa_timetable')->where('id', $entry)->delete();
+        $this->audit($request, 'timetable.deleted', 'madrasa_timetable', $entry);
+        return back()->with('success', 'ٹائم ٹیبل کا اندراج حذف ہو گیا۔');
     }
 
     private function audit(Request $request, string $action, string $type, int $id): void
