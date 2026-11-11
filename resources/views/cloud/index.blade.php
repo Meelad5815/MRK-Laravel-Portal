@@ -32,7 +32,7 @@
 
         <div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem">
             <h2>Connected cloud accounts</h2>
-            <p>Connect your own Google Drive or Dropbox account. Access is private to your signed-in MRK account. Connecting does not automatically copy files.</p>
+            <p>Connect your own Google Drive or Dropbox account. Access is private to your signed-in MRK account. Connecting does not automatically copy files. Google access uses the safer Drive file scope and is limited to files created or opened through MRK; Dropbox can list files permitted by its app scopes.</p>
             <div class="dashboard-filters">
                 <div>
                     <strong>Google Drive</strong>
@@ -64,7 +64,7 @@
 
         <div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem">
             <h2>Upload a file</h2>
-            <p>Choose a document, image, PDF, archive or another file up to 5 MB.</p>
+            <p>Choose a document, image, PDF, archive or another file up to 5 MB. Folders apply to MRK website storage; Google Drive and Dropbox keep files in their provider locations.</p>
             <form method="POST" action="{{ route('cloud.store') }}" enctype="multipart/form-data" class="dashboard-filters">
                 @csrf
                 <label>Choose file<input type="file" name="file" required></label>
