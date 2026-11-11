@@ -157,7 +157,15 @@
             document.getElementById('mrk-editor-close').addEventListener('click', () => dialog.close());
             document.getElementById('mrk-editor-rotate').addEventListener('click', () => { rotation = (rotation + 90) % 360; selection = null; draw(); });
             document.getElementById('mrk-editor-reset').addEventListener('click', () => { selection = null; draw(); });
-            const point = event => { const rect = canvas.getBoundingClientRect(); return {x:(event.clientX-rect.left)*canvas.width/rect.width,y:(event.clientY-rect.top)*canvas.height/rect.height}; };
+            const point = event => {
+                const rect = canvas.getBoundingClientRect();
+                const x = (event.clientX - rect.left) * canvas.width / rect.width;
+                const y = (event.clientY - rect.top) * canvas.height / rect.height;
+                return {
+                    x: Math.max(0, Math.min(canvas.width, x)),
+                    y: Math.max(0, Math.min(canvas.height, y))
+                };
+            };
             const drawOverlay = () => { if (!selection) return; ctx.save(); ctx.strokeStyle='#0d9488'; ctx.lineWidth=Math.max(2,canvas.width/500); ctx.setLineDash([8,5]); ctx.strokeRect(selection.x,selection.y,selection.w,selection.h); ctx.restore(); };
             canvas.addEventListener('pointerdown', event => { dragStart = point(event); selection = {x:dragStart.x,y:dragStart.y,w:0,h:0}; canvas.setPointerCapture(event.pointerId); });
             canvas.addEventListener('pointermove', event => { if (!dragStart) return; const p=point(event); selection={x:Math.min(p.x,dragStart.x),y:Math.min(p.y,dragStart.y),w:Math.abs(p.x-dragStart.x),h:Math.abs(p.y-dragStart.y)}; draw(); drawOverlay(); });
