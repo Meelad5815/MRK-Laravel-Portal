@@ -169,12 +169,40 @@ class CloudConnectionController extends Controller
                 return redirect()->route('cloud.index')->with('error', $message);
             }
 
-            $existingConnection = CloudConnection::query()
-                ->where('user_id', $request->user()->id)
-                ->where('provider', $provider)
-                ->first();
+            // Serialize OAuth callbacks for this user before checking/writing the provider identity.
+            // Locking the parent user row also covers the first-connection case where no
+            // cloud_connections row exists yet and therefore cannot itself be locked.
+            $connected = DB::transaction(function () use ($request, $provider, $accountId, $profileData, $issuedAccessToken, $tokenData) {
+                User::query()->whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
 
-            if ($existingConnection && $existingConnection->provider_account_id !== $accountId) {
+                $existingConnection = CloudConnection::query()
+                    ->where('user_id', $request->user()->id)
+                    ->where('provider', $provider)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existingConnection && $existingConnection->provider_account_id !== $accountId) {
+                    return false;
+                }
+
+                CloudConnection::updateOrCreate(
+                    ['user_id' => $request->user()->id, 'provider' => $provider],
+                    [
+                        'provider_account_id' => $accountId,
+                        'display_name' => $provider === 'google'
+                            ? ($profileData['email'] ?? $profileData['name'] ?? null)
+                            : ($profileData['name']['display_name'] ?? $profileData['email'] ?? null),
+                        'access_token' => $issuedAccessToken,
+                        'refresh_token' => $tokenData['refresh_token'] ?? $existingConnection?->refresh_token,
+                        'token_expires_at' => isset($tokenData['expires_in']) ? now()->addSeconds((int) $tokenData['expires_in']) : null,
+                        'scopes' => isset($tokenData['scope']) ? preg_split('/\\s+/', trim($tokenData['scope'])) : [],
+                    ]
+                );
+
+                return true;
+            });
+
+            if (!$connected) {
                 $revoked = $this->revokeIssuedGrant($provider, $tokenData);
                 $message = 'A different '.$provider.' account is already connected. Disconnect the existing account first; its saved remote-file records have been preserved.';
                 if (!$revoked) {
@@ -182,20 +210,6 @@ class CloudConnectionController extends Controller
                 }
                 return redirect()->route('cloud.index')->with('error', $message);
             }
-
-            CloudConnection::updateOrCreate(
-                ['user_id' => $request->user()->id, 'provider' => $provider],
-                [
-                    'provider_account_id' => $accountId,
-                    'display_name' => $provider === 'google'
-                        ? ($profileData['email'] ?? $profileData['name'] ?? null)
-                        : ($profileData['name']['display_name'] ?? $profileData['email'] ?? null),
-                    'access_token' => $issuedAccessToken,
-                    'refresh_token' => $tokenData['refresh_token'] ?? $existingConnection?->refresh_token,
-                    'token_expires_at' => isset($tokenData['expires_in']) ? now()->addSeconds((int) $tokenData['expires_in']) : null,
-                    'scopes' => isset($tokenData['scope']) ? preg_split('/\\s+/', trim($tokenData['scope'])) : [],
-                ]
-            );
 
             return redirect()->route('cloud.index')->with('success', ucfirst($provider).' account connected securely.');
         } catch (Throwable $exception) {
