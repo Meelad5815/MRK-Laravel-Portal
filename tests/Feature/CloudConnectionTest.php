@@ -190,4 +190,38 @@ class CloudConnectionTest extends TestCase
         $this->actingAs($user)->get(route('cloud.remote.preview', $file))->assertStatus(415);
     }
 
+    public function test_expired_google_access_token_is_refreshed_before_remote_api_use(): void
+    {
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'access_token' => 'fresh-google-token',
+                'expires_in' => 3600,
+                'scope' => 'https://www.googleapis.com/auth/drive.file',
+            ], 200),
+        ]);
+
+        $user = User::factory()->create();
+        $connection = CloudConnection::create([
+            'user_id' => $user->id,
+            'provider' => 'google',
+            'provider_account_id' => 'google-refresh-test',
+            'access_token' => 'expired-access-token',
+            'refresh_token' => 'valid-refresh-token',
+            'token_expires_at' => now()->subMinute(),
+        ]);
+
+        config([
+            'services.cloud_storage.google.client_id' => 'client-id',
+            'services.cloud_storage.google.client_secret' => 'client-secret',
+        ]);
+
+        $service = app(CloudStorageService::class);
+        $this->assertSame('fresh-google-token', $service->accessToken($connection));
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://oauth2.googleapis.com/token'
+            && $request['grant_type'] === 'refresh_token'
+            && $request['refresh_token'] === 'valid-refresh-token');
+        $this->assertSame('fresh-google-token', $connection->fresh()->access_token);
+    }
+
 }
