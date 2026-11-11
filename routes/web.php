@@ -143,15 +143,30 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
         try {
             $exitCode = Artisan::call('migrate', ['--force' => true]);
+            $migrationOutput = trim(Artisan::output());
+
             if ($exitCode !== 0) {
-                return back()->withErrors(['database' => 'Database updates did not complete. Check the hosting PHP error log.']);
+                logger()->error('Production database migrations returned a non-zero exit code.', [
+                    'exit_code' => $exitCode,
+                    'output' => $migrationOutput,
+                ]);
+
+                $diagnostic = $migrationOutput !== ''
+                    ? \\Illuminate\\Support\\Str::limit($migrationOutput, 1400)
+                    : 'The migration command returned exit code ' . $exitCode . ' without console output.';
+
+                return back()->withErrors(['database' => 'Database updates did not complete. Admin diagnostic: ' . $diagnostic]);
             }
 
             return redirect()->route('dashboard')->with('success', 'Pending database updates completed.');
-        } catch (\Throwable $exception) {
+        } catch (\\Throwable $exception) {
             report($exception);
 
-            return back()->withErrors(['database' => 'Database updates failed. Check the hosting PHP error log.']);
+            $diagnostic = get_class($exception) . ': ' . $exception->getMessage();
+
+            return back()->withErrors([
+                'database' => 'Database updates failed. Admin diagnostic: ' . \\Illuminate\\Support\\Str::limit($diagnostic, 1400),
+            ]);
         }
     })->name('admin.system.migrate');
 
