@@ -52,7 +52,7 @@ return [
             'client_id' => env('DROPBOX_APP_KEY'),
             'client_secret' => env('DROPBOX_APP_SECRET'),
             'redirect' => env('DROPBOX_REDIRECT_URI'),
-            'token_url' => 'https://api.dropboxapi.com/oauth2/token',
+            'token_url' => 'https://api.dropbox.com/oauth2/token',
         ],
     ],
 
