@@ -107,16 +107,16 @@ class MadrasaController extends Controller
         $programCounts = DB::table('madrasa_students')->whereIn('id', $studentIds)
             ->select('program', DB::raw('COUNT(*) as total'))->groupBy('program')->pluck('total', 'program');
 
-        $reportMonth = preg_match('/^\\d{4}-\\d{2}$/', (string) $request->query('report_month'))
+        $reportMonth = preg_match('/^\d{4}-\d{2}$/', (string) $request->query('report_month'))
             ? $request->query('report_month')
             : now()->format('Y-m');
         try {
-            $reportStart = \\Illuminate\\Support\\Carbon::createFromFormat('Y-m', $reportMonth)->startOfMonth()->toDateString();
-        } catch (\\Throwable $exception) {
+            $reportStart = \Illuminate\Support\Carbon::createFromFormat('Y-m', $reportMonth)->startOfMonth()->toDateString();
+        } catch (\Throwable $exception) {
             $reportMonth = now()->format('Y-m');
             $reportStart = now()->startOfMonth()->toDateString();
         }
-        $reportEnd = \\Illuminate\\Support\\Carbon::parse($reportStart)->endOfMonth()->toDateString();
+        $reportEnd = \Illuminate\Support\Carbon::parse($reportStart)->endOfMonth()->toDateString();
         $monthlyAttendance = DB::table('madrasa_attendance')->whereIn('student_id', $studentIds)
             ->whereBetween('attendance_date', [$reportStart, $reportEnd])
             ->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->pluck('total', 'status');
