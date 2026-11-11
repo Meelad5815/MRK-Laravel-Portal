@@ -174,6 +174,15 @@ class CloudConnectionController extends Controller
                 ->where('provider', $provider)
                 ->first();
 
+            if ($existingConnection && $existingConnection->provider_account_id !== $accountId) {
+                $revoked = $this->revokeIssuedGrant($provider, $tokenData);
+                $message = 'A different '.$provider.' account is already connected. Disconnect the existing account first; its saved remote-file records have been preserved.';
+                if (!$revoked) {
+                    $message .= ' The newly approved grant could not be confirmed as revoked. Check the provider account security settings for an MRK authorization.';
+                }
+                return redirect()->route('cloud.index')->with('error', $message);
+            }
+
             CloudConnection::updateOrCreate(
                 ['user_id' => $request->user()->id, 'provider' => $provider],
                 [
@@ -184,7 +193,7 @@ class CloudConnectionController extends Controller
                     'access_token' => $issuedAccessToken,
                     'refresh_token' => $tokenData['refresh_token'] ?? $existingConnection?->refresh_token,
                     'token_expires_at' => isset($tokenData['expires_in']) ? now()->addSeconds((int) $tokenData['expires_in']) : null,
-                    'scopes' => isset($tokenData['scope']) ? preg_split('/\s+/', trim($tokenData['scope'])) : [],
+                    'scopes' => isset($tokenData['scope']) ? preg_split('/\\s+/', trim($tokenData['scope'])) : [],
                 ]
             );
 
