@@ -84,7 +84,7 @@
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
 <h2>قاری کو طالب علم تفویض کریں</h2>
 <form method="POST" action="{{ route('madrasa.assign-qari') }}" class="form-grid">@csrf
-<label>طالب علم<select name="student_id" required>@foreach($studentRows as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
+<label>طالب علم<select name="student_id" required>@foreach($studentRows->where('status','active') as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
 <label>قاری<select name="qari_user_id" required>@foreach($qariUsers as $qari)<option value="{{ $qari->id }}">{{ $qari->name }} ({{ $qari->email }})</option>@endforeach</select></label>
 <div><button class="button primary" type="submit">تفویض کریں</button></div>
 </form></div>
@@ -92,7 +92,7 @@
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
 <h2>والدین کا تصدیق شدہ تعلق قائم کریں</h2>
 <form method="POST" action="{{ route('madrasa.link-parent') }}" class="form-grid">@csrf
-<label>طالب علم<select name="student_id" required>@foreach($studentRows as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
+<label>طالب علم<select name="student_id" required>@foreach($studentRows->where('status','active') as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
 <label>والدین کا اکاؤنٹ<select name="parent_user_id" required>@foreach($parentUsers as $parent)<option value="{{ $parent->id }}">{{ $parent->name }} ({{ $parent->email }})</option>@endforeach</select></label>
 <div><button class="button primary" type="submit">تعلق تصدیق کریں</button></div>
 </form></div>
@@ -102,7 +102,7 @@
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
 <h2>روزانہ حاضری درج کریں</h2>
 <form method="POST" action="{{ route('madrasa.attendance.store') }}" class="form-grid">@csrf
-<label>طالب علم<select name="student_id" required>@foreach($studentRows as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
+<label>طالب علم<select name="student_id" required>@foreach($studentRows->where('status','active') as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
 <label>تاریخ<input type="date" name="attendance_date" value="{{ now()->toDateString() }}" required></label>
 <label>سیشن<select name="session"><option value="morning">صبح</option><option value="afternoon">دوپہر</option><option value="evening">شام</option></select></label>
 <label>حاضری<select name="status"><option value="present">حاضر</option><option value="absent">غیر حاضر</option><option value="late">تاخیر سے</option><option value="leave">رخصت</option></select></label>
@@ -112,6 +112,9 @@
 <hr style="margin:1.25rem 0;border:0;border-top:1px solid #e2e8f0">
 <h3>پوری کلاس کی حاضری ایک ساتھ درج کریں</h3>
 <p>ہر طالب علم کے سامنے حاضر، غیر حاضر، تاخیر یا رخصت منتخب کریں۔ پہلے سے موجود حاضری اسی تاریخ اور سیشن کے لیے اپ ڈیٹ ہو جائے گی۔</p>
+@if($studentRows->where('status','active')->isEmpty())
+<p class="empty">اس وقت حاضری درج کرنے کے لیے کوئی فعال طالب علم موجود نہیں۔</p>
+@else
 <form method="POST" action="{{ route('madrasa.attendance.bulk') }}">@csrf
 <div class="madrasa-bulk-controls">
 <label>تاریخ<input type="date" name="attendance_date" value="{{ now()->toDateString() }}" required></label>
@@ -123,12 +126,14 @@
 @endforeach
 </tbody></table></div>
 <button class="button primary" type="submit" onclick="return confirm('منتخب طلبہ کی حاضری محفوظ کریں؟')">تمام حاضری محفوظ کریں</button>
-</form></div>
+</form>
+@endif
+</div>
 
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
 <h2>حفظ و ناظرہ کی روزانہ پیش رفت</h2>
 <form method="POST" action="{{ route('madrasa.progress.store') }}" class="form-grid">@csrf
-<label>طالب علم<select name="student_id" required>@foreach($studentRows as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
+<label>طالب علم<select name="student_id" required>@foreach($studentRows->where('status','active') as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
 <label>تاریخ<input type="date" name="progress_date" value="{{ now()->toDateString() }}" required></label>
 <label>سیشن<select name="session"><option value="morning">صبح</option><option value="afternoon">دوپہر</option><option value="evening">شام</option></select></label>
 <label>سبق<input name="sabaq" maxlength="100"></label>
@@ -219,7 +224,7 @@
 <h2 id="exams">امتحانات اور نتائج</h2>
 @if(in_array($role, ['admin','qari'], true))
 <form method="POST" action="{{ route('madrasa.exams.store') }}" class="form-grid">@csrf
-<label>طالب علم<select name="student_id" required>@foreach($studentRows as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
+<label>طالب علم<select name="student_id" required>@foreach($studentRows->where('status','active') as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
 <label>امتحان کی قسم<select name="exam_type"><option value="hifz">حفظ</option><option value="nazra">ناظرہ</option><option value="qaida">قاعدہ</option><option value="monthly">ماہانہ</option><option value="annual">سالانہ</option></select></label>
 <label>تاریخ<input type="date" name="exam_date" value="{{ now()->toDateString() }}" required></label>
 <label>کل نمبر<input type="number" name="total_marks" min="1" max="99999" step="0.01" value="100" required></label>
@@ -253,7 +258,7 @@
 <div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
 <h2>سرٹیفکیٹ جاری کریں</h2>
 <form method="POST" enctype="multipart/form-data" action="{{ route('madrasa.certificates.store') }}" class="form-grid">@csrf
-<label>طالب علم<select name="student_id" required>@foreach($studentRows as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
+<label>طالب علم<select name="student_id" required>@foreach($studentRows->where('status','active') as $student)<option value="{{ $student->id }}">{{ $student->student_code }} — {{ $student->full_name }}</option>@endforeach</select></label>
 <label>سرٹیفکیٹ کی قسم<select name="certificate_type"><option value="hifz">حفظ مکمل</option><option value="nazra">ناظرہ مکمل</option><option value="qaida">قاعدہ مکمل</option><option value="participation">شرکت</option></select></label>
 <label>اجراء کی تاریخ<input type="date" name="issued_on" value="{{ now()->toDateString() }}" required></label>
 <label>جاری کرنے والے کا نام<input name="issued_by_name" maxlength="150"></label>
