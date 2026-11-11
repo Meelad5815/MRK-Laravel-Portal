@@ -13,9 +13,10 @@
 <section class="section">
     <div class="container">
         <div class="stats" style="margin-bottom:1.5rem">
-            <div><span>Your files</span><strong>{{ number_format($stats['files']) }}</strong></div>
-            <div><span>Stored data</span><strong>{{ number_format($stats['bytes'] / 1048576, 2) }} MB</strong></div>
-            <div><span>Per-file limit</span><strong>5 MB</strong></div>
+            <div><span>Local files</span><strong>{{ number_format($stats['files']) }}</strong></div>
+            <div><span>Local storage</span><strong>{{ number_format($stats['bytes'] / 1048576, 2) }} MB</strong></div>
+            <div><span>Remote files</span><strong>{{ number_format($stats['remote_files']) }}</strong></div>
+            <div><span>Remote storage</span><strong>{{ number_format($stats['remote_bytes'] / 1048576, 2) }} MB</strong></div>
         </div>
 
         <div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem">
@@ -67,6 +68,17 @@
             <form method="POST" action="{{ route('cloud.store') }}" enctype="multipart/form-data" class="dashboard-filters">
                 @csrf
                 <label>Choose file<input type="file" name="file" required></label>
+                <label>Save to
+                    <select name="destination">
+                        <option value="local" @selected(old('destination', 'local') === 'local')>MRK Website Storage</option>
+                        @if(isset($connections['google']))
+                            <option value="google" @selected(old('destination') === 'google')>Google Drive</option>
+                        @endif
+                        @if(isset($connections['dropbox']))
+                            <option value="dropbox" @selected(old('destination') === 'dropbox')>Dropbox</option>
+                        @endif
+                    </select>
+                </label>
                 <label>Folder
                     <select name="folder_id">
                         <option value="">No folder</option>
@@ -85,6 +97,7 @@
                 <button class="button primary" type="submit">Upload to my cloud</button>
             </form>
             @error('file')<p class="form-error">{{ $message }}</p>@enderror
+            @error('destination')<p class="form-error">{{ $message }}</p>@enderror
             @error('folder_id')<p class="form-error">{{ $message }}</p>@enderror
             @error('category')<p class="form-error">{{ $message }}</p>@enderror
         </div>
@@ -146,6 +159,50 @@
                 <div style="padding:1rem">{{ $files->links() }}</div>
             @else
                 <div class="empty">No files found. Upload your first file to get started.</div>
+            @endif
+        </div>
+        <div class="table-card" style="margin-top:1.5rem">
+            <div class="table-head">
+                <h2>Google Drive & Dropbox files</h2>
+                <form method="POST" action="{{ route('cloud.remote.sync') }}">
+                    @csrf
+                    <button class="button secondary" type="submit">Sync remote files</button>
+                </form>
+            </div>
+            <p class="muted">Files stay in their original Google Drive or Dropbox account. MRK stores only file details here; opening or downloading a file is proxied through your private signed-in session.</p>
+            @if($remoteFiles->count())
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>File name</th><th>Provider</th><th>Type</th><th>Size</th><th>Modified</th><th>Actions</th></tr></thead>
+                        <tbody>
+                        @foreach($remoteFiles as $remoteFile)
+                            <tr>
+                                <td><strong>{{ $remoteFile->name }}</strong></td>
+                                <td>{{ ucfirst($remoteFile->provider) }}</td>
+                                <td>{{ strtoupper(str_replace('application/', '', $remoteFile->mime_type ?: 'file')) }}</td>
+                                <td>{{ $remoteFile->size_for_humans }}</td>
+                                <td>{{ $remoteFile->provider_modified_at?->format('d M Y') ?? '—' }}</td>
+                                <td>
+                                    <div class="action-stack">
+                                        @if(in_array(strtolower((string) $remoteFile->mime_type), ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true))
+                                            <a class="button secondary" href="{{ route('cloud.remote.preview', $remoteFile) }}" target="_blank" rel="noopener">Preview</a>
+                                            <button class="button secondary js-image-edit" type="button" data-image-url="{{ route('cloud.remote.preview', $remoteFile) }}" data-image-name="{{ $remoteFile->name }}">Edit / Crop</button>
+                                        @endif
+                                        <a class="button secondary" href="{{ route('cloud.remote.download', $remoteFile) }}">Download</a>
+                                        <form method="POST" action="{{ route('cloud.remote.destroy', $remoteFile) }}" onsubmit="return confirm('Delete this file from {{ ucfirst($remoteFile->provider) }}?')">
+                                            @csrf @method('DELETE')
+                                            <button class="danger-button" type="submit">Delete</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div style="padding:1rem">{{ $remoteFiles->links() }}</div>
+            @else
+                <div class="empty">No remote files are listed yet. Connect an account, then use “Sync remote files” or upload directly to Google Drive / Dropbox.</div>
             @endif
         </div>
         <dialog id="mrk-image-editor" style="width:min(96vw,900px);max-height:90vh;border:1px solid #d1d5db;border-radius:14px;padding:1rem">
