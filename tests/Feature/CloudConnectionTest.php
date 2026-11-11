@@ -73,6 +73,7 @@ class CloudConnectionTest extends TestCase
             'provider' => 'dropbox',
             'provider_account_id' => 'dbid:abc',
             'access_token' => 'access-token',
+            'refresh_token' => 'refresh-token',
         ]);
 
         $this->actingAs($user)->delete(route('cloud.disconnect', 'dropbox'))
@@ -105,4 +106,67 @@ class CloudConnectionTest extends TestCase
 
         $this->assertDatabaseCount('cloud_connections', 1);
     }
+    public function test_failed_profile_lookup_revokes_new_google_grant(): void
+    {
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'access_token' => 'new-access-token',
+                'refresh_token' => 'new-refresh-token',
+                'expires_in' => 3600,
+            ], 200),
+            'www.googleapis.com/oauth2/v2/userinfo' => Http::response(['error' => 'unavailable'], 503),
+            'oauth2.googleapis.com/revoke' => Http::response(null, 200),
+        ]);
+
+        config([
+            'services.cloud_storage.google.client_id' => 'client-id',
+            'services.cloud_storage.google.client_secret' => 'client-secret',
+            'services.cloud_storage.google.redirect' => 'https://example.test/cloud/callback/google',
+        ]);
+
+        $user = User::factory()->create();
+        $this->actingAs($user)->withSession(['cloud_oauth_state_google' => 'valid-state'])
+            ->get(route('cloud.callback', ['provider' => 'google', 'state' => 'valid-state', 'code' => 'authorization-code']))
+            ->assertRedirect(route('cloud.index'))
+            ->assertSessionHas('error');
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://oauth2.googleapis.com/revoke'
+            && $request['token'] === 'new-refresh-token');
+        $this->assertDatabaseCount('cloud_connections', 0);
+    }
+
+    public function test_dropbox_disconnect_refreshes_expired_access_token_before_revoking(): void
+    {
+        Http::fake([
+            'api.dropboxapi.com/oauth2/token' => Http::response([
+                'access_token' => 'fresh-access-token',
+                'expires_in' => 3600,
+            ], 200),
+            'api.dropboxapi.com/2/auth/token/revoke' => Http::response(null, 200),
+        ]);
+
+        config([
+            'services.cloud_storage.dropbox.client_id' => 'dropbox-key',
+            'services.cloud_storage.dropbox.client_secret' => 'dropbox-secret',
+        ]);
+
+        $user = User::factory()->create();
+        CloudConnection::create([
+            'user_id' => $user->id,
+            'provider' => 'dropbox',
+            'provider_account_id' => 'dbid:expired',
+            'access_token' => 'expired-access-token',
+            'refresh_token' => 'dropbox-refresh-token',
+            'token_expires_at' => now()->subMinute(),
+        ]);
+
+        $this->actingAs($user)->delete(route('cloud.disconnect', 'dropbox'))
+            ->assertRedirect(route('cloud.index'))
+            ->assertSessionHas('success');
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://api.dropboxapi.com/2/auth/token/revoke'
+            && $request->hasHeader('Authorization', 'Bearer fresh-access-token'));
+        $this->assertDatabaseCount('cloud_connections', 0);
+    }
+
 }
