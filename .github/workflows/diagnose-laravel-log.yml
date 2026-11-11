@@ -61,4 +61,4 @@ jobs:
           print("LATEST_LARAVEL_ERROR_END")
           PY
 
-# Trigger diagnostic run for current production log (read-only FTP fetch).
+# Trigger fresh read-only production log diagnosis after migration attempt.
