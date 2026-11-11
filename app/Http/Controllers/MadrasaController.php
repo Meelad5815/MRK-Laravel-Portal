@@ -32,7 +32,15 @@ class MadrasaController extends Controller
     private function canTeach(Request $request, int $studentId): void
     {
         $role = $this->role($request);
+        $belongsToThisMadrasa = DB::table('madrasa_students')
+            ->where('id', $studentId)
+            ->where('madrasa_id', self::MADRASA_ID)
+            ->where('status', '!=', 'archived')
+            ->exists();
+
+        abort_unless($belongsToThisMadrasa, 404);
         if ($role === 'admin') return;
+
         abort_unless($role === 'qari' && DB::table('madrasa_qari_assignments')
             ->where('student_id', $studentId)
             ->where('qari_user_id', $request->user()->id)
@@ -43,7 +51,26 @@ class MadrasaController extends Controller
     {
         $role = $this->role($request);
         $userId = (int) $request->user()->id;
-        $students = DB::table('madrasa_students')->where('madrasa_id', self::MADRASA_ID)->when($role !== 'admin', fn ($q) => $q->where('status', '!=', 'archived'))->orderBy('full_name');
+        $students = DB::table('madrasa_students')
+            ->where('madrasa_id', self::MADRASA_ID)
+            ->when($role !== 'admin', fn ($q) => $q->where('status', '!=', 'archived'));
+
+        $studentSearch = trim((string) $request->query('student_search'));
+        if ($studentSearch !== '') {
+            $students->where(function ($query) use ($studentSearch) {
+                $query->where('full_name', 'like', "%{$studentSearch}%")
+                    ->orWhere('student_code', 'like', "%{$studentSearch}%")
+                    ->orWhere('guardian_name', 'like', "%{$studentSearch}%")
+                    ->orWhere('guardian_phone', 'like', "%{$studentSearch}%");
+            });
+        }
+        if (in_array($request->query('program'), ['hifz', 'nazra', 'qaida'], true)) {
+            $students->where('program', $request->query('program'));
+        }
+        if ($role === 'admin' && in_array($request->query('student_status'), ['active', 'inactive', 'archived'], true)) {
+            $students->where('status', $request->query('student_status'));
+        }
+        $students->orderBy('full_name');
         if ($role === 'qari') {
             $ids = DB::table('madrasa_qari_assignments')->where('qari_user_id', $userId)->where('status', 'active')->pluck('student_id');
             $students->whereIn('id', $ids);
@@ -71,7 +98,20 @@ class MadrasaController extends Controller
             ->when($role !== 'admin', fn ($q) => $q->whereIn('audience', ['all', $role]))
             ->orderByDesc('published_at')->limit(30)->get();
 
-        return view('madrasa.index', compact('role', 'studentRows', 'attendance', 'progress', 'qariUsers', 'parentUsers', 'exams', 'certificates', 'announcements'));
+        $today = now()->toDateString();
+        $attendanceToday = DB::table('madrasa_attendance')->whereIn('student_id', $studentIds)->whereDate('attendance_date', $today);
+        $presentToday = (clone $attendanceToday)->where('status', 'present')->count();
+        $absentToday = (clone $attendanceToday)->where('status', 'absent')->count();
+        $lateToday = (clone $attendanceToday)->where('status', 'late')->count();
+        $activeStudents = DB::table('madrasa_students')->whereIn('id', $studentIds)->where('status', 'active')->count();
+        $programCounts = DB::table('madrasa_students')->whereIn('id', $studentIds)
+            ->select('program', DB::raw('COUNT(*) as total'))->groupBy('program')->pluck('total', 'program');
+
+        return view('madrasa.index', compact(
+            'role', 'studentRows', 'attendance', 'progress', 'qariUsers', 'parentUsers',
+            'exams', 'certificates', 'announcements', 'studentSearch', 'activeStudents',
+            'presentToday', 'absentToday', 'lateToday', 'programCounts'
+        ));
     }
 
     public function storeStudent(Request $request): RedirectResponse
@@ -183,6 +223,7 @@ class MadrasaController extends Controller
     {
         $this->admin($request);
         $data = $request->validate(['student_id' => ['required', 'integer', 'exists:madrasa_students,id'], 'qari_user_id' => ['required', 'integer', 'exists:users,id']]);
+        abort_unless(DB::table('madrasa_students')->where('id', $data['student_id'])->where('madrasa_id', self::MADRASA_ID)->where('status', '!=', 'archived')->exists(), 422);
         abort_unless(DB::table('users')->where('id', $data['qari_user_id'])->where('madrasa_role', 'qari')->where('madrasa_id', self::MADRASA_ID)->exists(), 422);
         DB::transaction(function () use ($data, $request) {
             DB::table('madrasa_qari_assignments')->where('student_id', $data['student_id'])->where('status', 'active')->update(['status' => 'inactive', 'unassigned_at' => now(), 'updated_at' => now()]);
@@ -199,6 +240,7 @@ class MadrasaController extends Controller
     {
         $this->admin($request);
         $data = $request->validate(['student_id' => ['required', 'integer', 'exists:madrasa_students,id'], 'parent_user_id' => ['required', 'integer', 'exists:users,id']]);
+        abort_unless(DB::table('madrasa_students')->where('id', $data['student_id'])->where('madrasa_id', self::MADRASA_ID)->where('status', '!=', 'archived')->exists(), 422);
         abort_unless(DB::table('users')->where('id', $data['parent_user_id'])->where('madrasa_role', 'parent')->where('madrasa_id', self::MADRASA_ID)->exists(), 422);
         DB::table('madrasa_parent_links')->updateOrInsert(
             ['student_id' => $data['student_id'], 'parent_user_id' => $data['parent_user_id']],
@@ -284,7 +326,9 @@ class MadrasaController extends Controller
     {
         $this->admin($request);
         $data = $request->validate(['parent_visible' => ['required', 'boolean']]);
-        $exists = DB::table('madrasa_daily_progress')->where('id', $progress)->exists();
+        $exists = DB::table('madrasa_daily_progress')->where('madrasa_daily_progress.id', $progress)
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_daily_progress.student_id')
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
         abort_unless($exists, 404);
         DB::table('madrasa_daily_progress')->where('id', $progress)->update(['parent_visible' => (bool) $data['parent_visible'], 'updated_at' => now()]);
         $this->audit($request, 'progress.visibility_changed', 'madrasa_daily_progress', $progress);
@@ -385,7 +429,10 @@ class MadrasaController extends Controller
     {
         $this->admin($request);
         $data = $request->validate(['parent_visible' => ['required', 'boolean']]);
-        abort_unless(DB::table('madrasa_exams')->where('id', $exam)->exists(), 404);
+        $exists = DB::table('madrasa_exams')->where('madrasa_exams.id', $exam)
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_exams.student_id')
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)->exists();
+        abort_unless($exists, 404);
         DB::table('madrasa_exams')->where('id', $exam)->update(['parent_visible' => (bool) $data['parent_visible'], 'updated_at' => now()]);
         $this->audit($request, 'exam.visibility_changed', 'madrasa_exams', $exam);
         return back()->with('success', 'امتحان کے نتیجے کی منظوری محفوظ ہو گئی۔');
