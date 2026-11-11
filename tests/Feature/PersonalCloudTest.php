@@ -125,6 +125,16 @@ class PersonalCloudTest extends TestCase
         $this->assertDatabaseCount('cloud_files', 0);
     }
 
+    public function test_folder_name_must_be_a_string(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('cloud.folders.store'), ['name' => ['invalid']])
+            ->assertSessionHasErrors('name');
+
+        $this->assertDatabaseCount('cloud_folders', 0);
+    }
+
     public function test_folder_names_are_unique_per_user(): void
     {
         $user = User::factory()->create();
