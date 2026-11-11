@@ -219,6 +219,7 @@ class PersonalCloudController extends Controller
     public function previewRemote(Request $request, CloudRemoteFile $remoteFile, CloudStorageService $storage)
     {
         abort_unless($remoteFile->user_id === $request->user()->id, 404);
+        abort_unless($remoteFile->connection && $remoteFile->connection->user_id === $request->user()->id, 404);
         abort_unless(in_array(strtolower((string) $remoteFile->mime_type), ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true), 415);
 
         try {
@@ -238,6 +239,7 @@ class PersonalCloudController extends Controller
     public function downloadRemote(Request $request, CloudRemoteFile $remoteFile, CloudStorageService $storage): StreamedResponse
     {
         abort_unless($remoteFile->user_id === $request->user()->id, 404);
+        abort_unless($remoteFile->connection && $remoteFile->connection->user_id === $request->user()->id, 404);
 
         try {
             $response = $storage->download($remoteFile->connection, $remoteFile->provider_file_id);
@@ -254,6 +256,7 @@ class PersonalCloudController extends Controller
     public function destroyRemote(Request $request, CloudRemoteFile $remoteFile, CloudStorageService $storage): RedirectResponse
     {
         abort_unless($remoteFile->user_id === $request->user()->id, 404);
+        abort_unless($remoteFile->connection && $remoteFile->connection->user_id === $request->user()->id, 404);
 
         try {
             $storage->delete($remoteFile->connection, $remoteFile->provider_file_id);
