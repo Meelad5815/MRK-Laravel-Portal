@@ -30,6 +30,38 @@
         </div>
 
         <div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem">
+            <h2>Connected cloud accounts</h2>
+            <p>Connect your own Google Drive or Dropbox account. Access is private to your signed-in MRK account. Connecting does not automatically copy files.</p>
+            <div class="dashboard-filters">
+                <div>
+                    <strong>Google Drive</strong>
+                    <p class="muted">{{ isset($connections['google']) ? 'Connected: '.$connections['google']->display_name : 'Not connected' }}</p>
+                    @if(isset($connections['google']))
+                        <form method="POST" action="{{ route('cloud.disconnect', 'google') }}" onsubmit="return confirm('Disconnect Google Drive from MRK? Your Drive files will not be deleted.')">
+                            @csrf @method('DELETE')
+                            <button class="danger-button" type="submit">Disconnect Google Drive</button>
+                        </form>
+                    @else
+                        <a class="button secondary" href="{{ route('cloud.connect', 'google') }}">Connect Google Drive</a>
+                    @endif
+                </div>
+                <div>
+                    <strong>Dropbox</strong>
+                    <p class="muted">{{ isset($connections['dropbox']) ? 'Connected: '.$connections['dropbox']->display_name : 'Not connected' }}</p>
+                    @if(isset($connections['dropbox']))
+                        <form method="POST" action="{{ route('cloud.disconnect', 'dropbox') }}" onsubmit="return confirm('Disconnect Dropbox from MRK? Your Dropbox files will not be deleted.')">
+                            @csrf @method('DELETE')
+                            <button class="danger-button" type="submit">Disconnect Dropbox</button>
+                        </form>
+                    @else
+                        <a class="button secondary" href="{{ route('cloud.connect', 'dropbox') }}">Connect Dropbox</a>
+                    @endif
+                </div>
+            </div>
+            <p class="muted">Provider credentials must first be configured by the site owner in hosting Environment Variables. OAuth tokens are encrypted before they are stored.</p>
+        </div>
+
+        <div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem">
             <h2>Upload a file</h2>
             <p>Choose a document, image, PDF, archive or another file up to 5 MB.</p>
             <form method="POST" action="{{ route('cloud.store') }}" enctype="multipart/form-data" class="dashboard-filters">
