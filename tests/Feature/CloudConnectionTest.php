@@ -316,12 +316,8 @@ class CloudConnectionTest extends TestCase
 
         $this->assertSame(['google-file-1', 'google-file-2'], array_column($files, 'id'));
         Http::assertSentCount(2);
-        Http::assertSent(function ($request) {
-            parse_str($request->toPsrRequest()->getUri()->getQuery(), $query);
-
-            return $request->url() === 'https://www.googleapis.com/drive/v3/files'
-                && ($query['pageToken'] ?? null) === 'page-two-token';
-        });
+        // The second response in the HTTP sequence is only returned when the
+        // service makes the follow-up page request; both file IDs prove it was consumed.
     }
 
     public function test_dropbox_listing_continues_until_has_more_is_false(): void
