@@ -266,6 +266,9 @@ Route::middleware('auth')->group(function () {
 
 
 Route::middleware('auth')->prefix('cloud')->name('cloud.')->group(function () {
+    Route::get('/connect/{provider}', [\\App\\Http\\Controllers\\CloudConnectionController::class, 'connect'])->whereIn('provider', ['google', 'dropbox'])->middleware('throttle:10,1')->name('connect');
+    Route::get('/callback/{provider}', [\\App\\Http\\Controllers\\CloudConnectionController::class, 'callback'])->whereIn('provider', ['google', 'dropbox'])->middleware('throttle:10,1')->name('callback');
+    Route::delete('/connections/{provider}', [\\App\\Http\\Controllers\\CloudConnectionController::class, 'disconnect'])->whereIn('provider', ['google', 'dropbox'])->middleware('throttle:5,1')->name('disconnect');
     Route::get('/', [PersonalCloudController::class, 'index'])->name('index');
     Route::post('/folders', [PersonalCloudController::class, 'storeFolder'])->middleware('throttle:10,1')->name('folders.store');
     Route::post('/upload', [PersonalCloudController::class, 'store'])->middleware('throttle:10,1')->name('store');
