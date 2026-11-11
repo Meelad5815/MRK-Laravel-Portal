@@ -49,7 +49,7 @@
 <a class="{{ request()->routeIs('blog.*') ? 'active' : '' }}" href="{{ route('blog.index') }}">Blog</a>
 <a class="{{ request()->routeIs('pages.*') ? 'active' : '' }}" href="{{ route('pages.index') }}">Resources</a>
 <a class="{{ request()->routeIs('contact') ? 'active' : '' }}" href="{{ route('contact') }}">Contact</a>
-<a class="{{ request()->routeIs('madrasa') ? 'active' : '' }}" href="{{ route('madrasa') }}">Madrasa Portal</a>
+<a class="{{ request()->routeIs('madrasa') ? 'active' : '' }}" href="{{ route('madrasa') }}">مدرسہ پورٹل</a>
 @auth
 <a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">Dashboard</a>
 @if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.online-work') ? 'active' : '' }}" href="{{ route('admin.online-work') }}">Online Work Hub</a><a href="{{ route('admin.fees.index') }}">Fee Manager</a>@endif
