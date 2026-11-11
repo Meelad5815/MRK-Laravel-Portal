@@ -592,7 +592,7 @@ class MadrasaController extends Controller
         $this->admin($request);
         $data = $request->validate([
             'student_id' => ['required', 'integer', 'exists:madrasa_students,id'],
-            'certificate_type' => ['required', 'string', 'max:40'],
+            'certificate_type' => ['required', 'in:hifz,nazra,qaida,participation,achievement'],
             'issued_on' => ['required', 'date'],
             'issued_by_name' => ['nullable', 'string', 'max:150'],
             'external_institution' => ['nullable', 'string', 'max:180'],
@@ -651,7 +651,7 @@ class MadrasaController extends Controller
             ->first(['madrasa_certificates.*']);
         abort_unless($record, 404);
         $data = $request->validate([
-            'certificate_type' => ['required', 'string', 'max:40'],
+            'certificate_type' => ['required', 'in:hifz,nazra,qaida,participation,achievement'],
             'issued_on' => ['required', 'date'],
             'issued_by_name' => ['nullable', 'string', 'max:150'],
             'external_institution' => ['nullable', 'string', 'max:180'],
