@@ -369,6 +369,52 @@ class CloudConnectionTest extends TestCase
         Http::assertSentCount(3);
     }
 
+    public function test_remote_sync_preserves_existing_user_category_and_infers_category_for_new_files(): void
+    {
+        Http::fake([
+            'www.googleapis.com/drive/v3/files*' => Http::response([
+                'files' => [
+                    ['id' => 'existing-image', 'name' => 'chosen-category.png', 'mimeType' => 'image/png', 'size' => '100'],
+                    ['id' => 'new-image', 'name' => 'new-image.png', 'mimeType' => 'image/png', 'size' => '200'],
+                ],
+            ], 200),
+        ]);
+
+        $user = User::factory()->create();
+        $connection = CloudConnection::create([
+            'user_id' => $user->id,
+            'provider' => 'google',
+            'provider_account_id' => 'google-category-test',
+            'access_token' => 'valid-token',
+            'token_expires_at' => now()->addHour(),
+        ]);
+        $existing = CloudRemoteFile::create([
+            'user_id' => $user->id,
+            'cloud_connection_id' => $connection->id,
+            'provider' => 'google',
+            'provider_file_id' => 'existing-image',
+            'name' => 'chosen-category.png',
+            'mime_type' => 'image/png',
+            'size' => 90,
+            'category' => 'other',
+        ]);
+
+        $this->actingAs($user)->post(route('cloud.remote.sync'))
+            ->assertRedirect(route('cloud.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('cloud_remote_files', [
+            'id' => $existing->id,
+            'category' => 'other',
+            'name' => 'chosen-category.png',
+        ]);
+        $this->assertDatabaseHas('cloud_remote_files', [
+            'cloud_connection_id' => $connection->id,
+            'provider_file_id' => 'new-image',
+            'category' => 'images',
+        ]);
+    }
+
     public function test_oauth_cannot_replace_a_different_connected_account_or_its_remote_file_records(): void
     {
         Http::fake([
