@@ -41,4 +41,19 @@ return [
         ],
     ],
 
+    'cloud_storage' => [
+        'google' => [
+            'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
+            'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+            'redirect' => env('GOOGLE_DRIVE_REDIRECT_URI'),
+            'token_url' => 'https://oauth2.googleapis.com/token',
+        ],
+        'dropbox' => [
+            'client_id' => env('DROPBOX_APP_KEY'),
+            'client_secret' => env('DROPBOX_APP_SECRET'),
+            'redirect' => env('DROPBOX_REDIRECT_URI'),
+            'token_url' => 'https://api.dropbox.com/oauth2/token',
+        ],
+    ],
+
 ];
