@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\GovernmentFee;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Http;
-use Illuminate\\Support\\Str;
+use App\Models\GovernmentFee;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class GovernmentFeeController extends Controller
 {
@@ -84,7 +84,7 @@ class GovernmentFeeController extends Controller
                     ]);
                     $checked++;
                     if ($wasChanged) $changed++;
-                } catch (\\Throwable $e) {
+                } catch (\Throwable $e) {
                     report($e);
                     $item->update(['last_checked_at' => now(), 'verification_status' => 'source_unavailable']);
                     $failed++;
