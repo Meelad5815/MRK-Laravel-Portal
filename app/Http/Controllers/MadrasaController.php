@@ -121,7 +121,9 @@ class MadrasaController extends Controller
             ->whereBetween('attendance_date', [$reportStart, $reportEnd])
             ->select('status', DB::raw('COUNT(*) as total'))->groupBy('status')->pluck('total', 'status');
         $monthlyProgressCount = DB::table('madrasa_daily_progress')->whereIn('student_id', $studentIds)
-            ->whereBetween('progress_date', [$reportStart, $reportEnd])->count();
+            ->whereBetween('progress_date', [$reportStart, $reportEnd])
+            ->when($role === 'parent', fn ($q) => $q->where('parent_visible', true))
+            ->count();
         $monthlyExamQuery = DB::table('madrasa_exams')->whereIn('student_id', $studentIds)
             ->whereBetween('exam_date', [$reportStart, $reportEnd])
             ->when($role === 'parent', fn ($q) => $q->where('parent_visible', true));
