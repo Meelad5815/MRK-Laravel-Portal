@@ -8,6 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // A previous MySQL attempt may have created the table before Laravel
+        // recorded this migration. Preserve that table and its existing data.
+        if (Schema::hasTable('cloud_remote_files')) {
+            return;
+        }
+
         Schema::create('cloud_remote_files', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
