@@ -67,7 +67,7 @@ $typeCopy = [
 'achievement'=>'جنہوں نے اپنی نمایاں تعلیمی کارکردگی، محنت اور لگن سے امتیازی کامیابی حاصل کی۔ ادارہ ان کی حوصلہ افزائی کرتا ہے۔'
 ];
 @endphp
-<div class="toolbar"><a href="{{ route('madrasa') }}">پورٹل پر واپس</a><button onclick="window.print()">پرنٹ کریں / PDF محفوظ کریں</button></div>
+<div class="toolbar"><a href="{{ route('madrasa') }}">پورٹل پر واپس</a><button onclick="window.print()">پرنٹ کریں / PDF محفوظ کریں (Save as PDF)</button></div>
 <main class="sheet"><section class="frame">
 <span class="corner c1"></span><span class="corner c2"></span><span class="corner c3"></span><span class="corner c4"></span>
 <div class="topline"><span>MRK MADRASA MANAGEMENT SYSTEM 58</span><span>OFFICIAL ACADEMIC CERTIFICATE</span></div>
