@@ -91,13 +91,25 @@ class CloudStorageService
             $pages++;
         }
 
-        return collect($entries)->filter(fn ($file) => ($file['.tag'] ?? '') === 'file')->map(fn ($file) => [
-            'id' => (string) $file['id'],
-            'name' => (string) ($file['name'] ?? 'Untitled'),
-            'mime_type' => null,
-            'size' => (int) ($file['size'] ?? 0),
-            'modified_at' => $file['server_modified'] ?? null,
-        ])->values()->all();
+        $mimeTypes = [
+            'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png',
+            'gif' => 'image/gif', 'webp' => 'image/webp', 'pdf' => 'application/pdf',
+            'mp4' => 'video/mp4', 'mov' => 'video/quicktime', 'mp3' => 'audio/mpeg',
+            'wav' => 'audio/wav', 'zip' => 'application/zip',
+        ];
+
+        return collect($entries)->filter(fn ($file) => ($file['.tag'] ?? '') === 'file')->map(function ($file) use ($mimeTypes) {
+            $name = (string) ($file['name'] ?? 'Untitled');
+            $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+
+            return [
+                'id' => (string) $file['id'],
+                'name' => $name,
+                'mime_type' => $mimeTypes[$extension] ?? null,
+                'size' => (int) ($file['size'] ?? 0),
+                'modified_at' => $file['server_modified'] ?? null,
+            ];
+        })->values()->all();
     }
 
     public function upload(CloudConnection $connection, string $name, string $mimeType, string $contents): array
