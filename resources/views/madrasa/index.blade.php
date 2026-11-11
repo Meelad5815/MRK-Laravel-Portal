@@ -27,7 +27,7 @@
   </div>
   <div class="madrasa-programs"><span>حفظ: <b>{{ $programCounts['hifz'] ?? 0 }}</b></span><span>ناظرہ: <b>{{ $programCounts['nazra'] ?? 0 }}</b></span><span>قاعدہ: <b>{{ $programCounts['qaida'] ?? 0 }}</b></span></div>
   <nav class="madrasa-shortcuts" aria-label="فوری رسائی">
-    <a href="#students">طلبہ</a><a href="#attendance">حاضری</a><a href="#progress">روزانہ پیش رفت</a><a href="#exams">امتحانات</a><a href="#certificates">سرٹیفکیٹس</a><a href="#announcements">اعلانات</a>
+    <a href="#students">طلبہ</a><a href="#course-progress">نصاب کی تکمیل</a><a href="#attendance">حاضری</a><a href="#progress">روزانہ پیش رفت</a><a href="#exams">امتحانات</a><a href="#certificates">سرٹیفکیٹس</a><a href="#announcements">اعلانات</a>
     @if($role==='admin')<a href="#admissions">نیا داخلہ</a><a href="#accounts">اکاؤنٹس</a>@endif
   </nav>
 </div>
@@ -187,7 +187,7 @@
 <p>قاری یا منتظم موجودہ پارہ / مرحلہ اور مکمل شدہ پاروں / مراحل کا اندراج کریں۔ والدین کو دکھانے سے پہلے منتظم کی منظوری ضروری ہے۔</p>
 @if($studentRows->isEmpty())<p class="empty">طلبہ کا ریکارڈ موجود نہیں۔</p>@else
 <div class="table-wrap"><table><thead><tr><th>طالب علم</th><th>شعبہ</th><th>مکمل پارے / مراحل</th><th>موجودہ پارہ / مرحلہ</th><th>والدین کی رسائی</th>@if(in_array($role,['admin','qari'],true))<th>اپ ڈیٹ</th>@endif</tr></thead><tbody>
-@foreach($studentRows as $student)
+@foreach($studentRows->where('status','active') as $student)
 @php($course = $courseProgress->get($student->id.':'.$student->program))
 <tr><td>{{ $student->full_name }}<br><small>{{ $student->student_code }}</small></td><td>{{ ['hifz'=>'حفظ','nazra'=>'ناظرہ','qaida'=>'قاعدہ'][$student->program] ?? $student->program }}</td>
 <td>{{ $course?->completed_paras ?? 0 }}</td><td>{{ $course?->current_para ?? 1 }}</td>
