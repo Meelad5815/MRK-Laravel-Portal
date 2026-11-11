@@ -8,12 +8,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CloudFile extends Model
 {
     protected $fillable = [
-        'user_id', 'original_name', 'stored_path', 'mime_type', 'extension', 'size',
+        'user_id', 'cloud_folder_id', 'category', 'original_name', 'stored_path', 'mime_type', 'extension', 'size',
     ];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function folder(): BelongsTo
+    {
+        return $this->belongsTo(CloudFolder::class, 'cloud_folder_id');
     }
 
     public function getSizeForHumansAttribute(): string
