@@ -1,20 +1,20 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\CloudConnection;
-use App\\Models\\CloudFile;
-use App\\Models\\CloudFolder;
-use App\\Models\\CloudRemoteFile;
-use App\\Services\\CloudStorageService;
-use Carbon\\Carbon;
-use Illuminate\\Http\\RedirectResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Storage;
-use Illuminate\\Support\\Str;
-use Illuminate\\Validation\\Rule;
-use Symfony\\Component\\HttpFoundation\\StreamedResponse;
-use Illuminate\\View\\View;
+use App\Models\CloudConnection;
+use App\Models\CloudFile;
+use App\Models\CloudFolder;
+use App\Models\CloudRemoteFile;
+use App\Services\CloudStorageService;
+use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\View\View;
 use Throwable;
 
 class PersonalCloudController extends Controller
