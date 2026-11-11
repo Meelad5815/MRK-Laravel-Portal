@@ -221,9 +221,10 @@ class PersonalCloudController extends Controller
         abort_unless($remoteFile->user_id === $request->user()->id, 404);
         abort_unless($remoteFile->connection && $remoteFile->connection->user_id === $request->user()->id, 404);
         abort_unless(in_array(strtolower((string) $remoteFile->mime_type), ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true), 415);
+        abort_if($remoteFile->size > 10 * 1024 * 1024, 413);
 
         try {
-            $response = $storage->download($remoteFile->connection, $remoteFile->provider_file_id);
+            $response = $storage->download($remoteFile->connection, $remoteFile->provider_file_id, $remoteFile->mime_type);
             return response($response->body(), 200, [
                 'Content-Type' => $remoteFile->mime_type,
                 'Content-Disposition' => 'inline; filename="'.addcslashes(basename($remoteFile->name), '"\\').'"',
