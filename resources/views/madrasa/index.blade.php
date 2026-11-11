@@ -4,11 +4,9 @@
 @section('robots', 'noindex,nofollow')
 @section('content')
 <style>
-<style>
-.madrasa-dashboard{display:grid;gap:1rem;margin:0 0 1.5rem}.madrasa-welcome{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:1.2rem;border-radius:16px;background:linear-gradient(135deg,#123c32,#17624d);color:#fff}.madrasa-welcome h2{margin:.3rem 0;color:#fff}.madrasa-welcome p{margin:0;color:#e2eee8}.role-pill{background:#fff;color:#14513f;border-radius:999px;padding:.45rem .85rem;font-weight:700}.madrasa-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.75rem}.madrasa-stats article{padding:1rem;border:1px solid #dce7e1;border-radius:13px;background:#fff;display:grid;gap:.25rem}.madrasa-stats article span{color:#52635b;font-size:.9rem}.madrasa-stats article strong{font-size:1.7rem;color:#14513f}.madrasa-stats article small{color:#718078}.madrasa-programs{display:flex;gap:.6rem;flex-wrap:wrap}.madrasa-programs span{padding:.5rem .8rem;background:#eef6f1;border-radius:9px;color:#214d3c}.madrasa-shortcuts{display:flex;gap:.5rem;flex-wrap:wrap}.madrasa-shortcuts a{padding:.55rem .8rem;border:1px solid #d5e2da;border-radius:9px;text-decoration:none;color:#174d3a;background:#fff;font-weight:600}.madrasa-filters{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:.75rem;align-items:end;margin:1rem 0}.madrasa-filters label{display:grid;gap:.35rem}.madrasa-filters input,.madrasa-filters select{width:100%;padding:.7rem;border:1px solid #cbd5e1;border-radius:9px}.madrasa-filter-actions{display:flex;gap:.5rem;flex-wrap:wrap}.table-wrap{overflow-x:auto}.table-wrap table{min-width:680px;width:100%}html{scroll-behavior:smooth}h2[id]{scroll-margin-top:90px}
-@media(max-width:850px){.madrasa-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.madrasa-filters{grid-template-columns:1fr 1fr}.madrasa-filter-actions{grid-column:1/-1}}
+.madrasa-dashboard{display:grid;gap:1rem;margin:0 0 1.5rem}.madrasa-welcome{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:1.2rem;border-radius:16px;background:linear-gradient(135deg,#123c32,#17624d);color:#fff}.madrasa-welcome h2{margin:.3rem 0;color:#fff}.madrasa-welcome p{margin:0;color:#e2eee8}.role-pill{background:#fff;color:#14513f;border-radius:999px;padding:.45rem .85rem;font-weight:700}.madrasa-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.75rem}.madrasa-stats article{padding:1rem;border:1px solid #dce7e1;border-radius:13px;background:#fff;display:grid;gap:.25rem}.madrasa-stats article span{color:#52635b;font-size:.9rem}.madrasa-stats article strong{font-size:1.7rem;color:#14513f}.madrasa-stats article small{color:#718078}.madrasa-programs{display:flex;gap:.6rem;flex-wrap:wrap}.madrasa-programs span{padding:.5rem .8rem;background:#eef6f1;border-radius:9px;color:#214d3c}.madrasa-shortcuts{display:flex;gap:.5rem;flex-wrap:wrap}.madrasa-shortcuts a{padding:.55rem .8rem;border:1px solid #d5e2da;border-radius:9px;text-decoration:none;color:#174d3a;background:#fff;font-weight:600}.madrasa-report-heading{display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap}.madrasa-report-heading p{margin:.25rem 0;color:#64736b}.madrasa-month-filter{display:flex;gap:.5rem;align-items:end;flex-wrap:wrap}.madrasa-month-filter label{display:grid;gap:.25rem}.madrasa-month-filter input{padding:.6rem;border:1px solid #cbd5e1;border-radius:8px}.madrasa-report-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem;margin-top:1rem}.madrasa-report-grid article{display:grid;gap:.25rem;padding:.8rem;background:#f3f8f5;border-radius:10px}.madrasa-report-grid article span{font-size:.88rem;color:#607168}.madrasa-report-grid article strong{font-size:1.3rem;color:#14513f}.madrasa-filters{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:.75rem;align-items:end;margin:1rem 0}.madrasa-filters label{display:grid;gap:.35rem}.madrasa-filters input,.madrasa-filters select{width:100%;padding:.7rem;border:1px solid #cbd5e1;border-radius:9px}.madrasa-filter-actions{display:flex;gap:.5rem;flex-wrap:wrap}.table-wrap{overflow-x:auto}.table-wrap table{min-width:680px;width:100%}html{scroll-behavior:smooth}h2[id]{scroll-margin-top:90px}
+@media(max-width:850px){.madrasa-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.madrasa-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.madrasa-filters{grid-template-columns:1fr 1fr}.madrasa-filter-actions{grid-column:1/-1}}
 @media(max-width:480px){.madrasa-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.madrasa-filters{grid-template-columns:1fr}.madrasa-filter-actions{grid-column:auto}.madrasa-welcome{align-items:flex-start}}
-</style>
 </style>
 
 <section class="page-hero"><div class="container narrow" dir="rtl">
@@ -32,6 +30,19 @@
     <a href="#students">طلبہ</a><a href="#attendance">حاضری</a><a href="#progress">روزانہ پیش رفت</a><a href="#exams">امتحانات</a><a href="#certificates">سرٹیفکیٹس</a><a href="#announcements">اعلانات</a>
     @if($role==='admin')<a href="#admissions">نیا داخلہ</a><a href="#accounts">اکاؤنٹس</a>@endif
   </nav>
+</div>
+<div class="table-card madrasa-monthly-report" style="padding:1.25rem;margin-bottom:1.25rem">
+  <div class="madrasa-report-heading"><div><h2>ماہانہ تعلیمی کارکردگی</h2><p>منتخب مہینے کی حاضری، اسباق اور امتحانات کا خلاصہ</p></div>
+  <form method="GET" action="{{ route('madrasa') }}" class="madrasa-month-filter"><label>مہینہ <input type="month" name="report_month" value="{{ $reportMonth }}"></label><button class="button secondary" type="submit">رپورٹ دیکھیں</button></form></div>
+  <div class="madrasa-report-grid">
+    <article><span>حاضر</span><strong>{{ $monthlyAttendance['present'] ?? 0 }}</strong></article>
+    <article><span>غیر حاضر</span><strong>{{ $monthlyAttendance['absent'] ?? 0 }}</strong></article>
+    <article><span>تاخیر</span><strong>{{ $monthlyAttendance['late'] ?? 0 }}</strong></article>
+    <article><span>رخصت</span><strong>{{ $monthlyAttendance['leave'] ?? 0 }}</strong></article>
+    <article><span>درج شدہ اسباق</span><strong>{{ $monthlyProgressCount }}</strong></article>
+    <article><span>امتحانات</span><strong>{{ $monthlyExamCount }}</strong></article>
+    <article><span>اوسط امتحانی فیصد</span><strong>{{ $monthlyExamAverage !== null ? number_format((float)$monthlyExamAverage,1).'%' : '—' }}</strong></article>
+  </div>
 </div>
 @if(session('temporary_account_password'))
 <div class="alert success"><strong>عارضی پاس ورڈ (صرف ابھی دکھایا جا رہا ہے):</strong><code dir="ltr">{{ session('temporary_account_password') }}</code><p>اسے متعلقہ صارف تک محفوظ طریقے سے پہنچائیں اور پہلی بار لاگ اِن کے بعد تبدیل کروائیں۔</p></div>
