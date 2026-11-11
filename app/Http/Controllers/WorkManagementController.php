@@ -34,9 +34,9 @@ class WorkManagementController extends Controller
         }
 
         $period = now()->startOfMonth();
-        if ($request->filled('month') && preg_match('/^\\d{4}-\\d{2}$/', $request->query('month'))) {
-            try { $period = \\Illuminate\\Support\\Carbon::createFromFormat('Y-m', $request->query('month'))->startOfMonth(); }
-            catch (\\Throwable $exception) { $period = now()->startOfMonth(); }
+        if ($request->filled('month') && preg_match('/^\d{4}-\d{2}$/', $request->query('month'))) {
+            try { $period = \Illuminate\Support\Carbon::createFromFormat('Y-m', $request->query('month'))->startOfMonth(); }
+            catch (\Throwable $exception) { $period = now()->startOfMonth(); }
         }
         $monthStart = $period->copy()->startOfMonth()->toDateString();
         $monthEnd = $period->copy()->endOfMonth()->toDateString();
