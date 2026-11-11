@@ -241,13 +241,26 @@ class PersonalCloudController extends Controller
     {
         abort_unless($remoteFile->user_id === $request->user()->id, 404);
         abort_unless($remoteFile->connection && $remoteFile->connection->user_id === $request->user()->id, 404);
+        abort_if($remoteFile->size > 25 * 1024 * 1024, 413);
 
         try {
-            $response = $storage->download($remoteFile->connection, $remoteFile->provider_file_id);
+            $response = $storage->download($remoteFile->connection, $remoteFile->provider_file_id, $remoteFile->mime_type);
             $body = $response->body();
+            $contentType = $response->header('Content-Type') ?: ($remoteFile->mime_type ?: 'application/octet-stream');
+            $downloadName = $remoteFile->name;
+            $googleExtensions = [
+                'application/vnd.google-apps.document' => '.docx',
+                'application/vnd.google-apps.spreadsheet' => '.xlsx',
+                'application/vnd.google-apps.presentation' => '.pptx',
+                'application/vnd.google-apps.drawing' => '.png',
+            ];
+            if (isset($googleExtensions[$remoteFile->mime_type]) && !str_contains($downloadName, '.')) {
+                $downloadName .= $googleExtensions[$remoteFile->mime_type];
+            }
+
             return response()->streamDownload(static function () use ($body) {
                 echo $body;
-            }, $remoteFile->name, ['Content-Type' => $remoteFile->mime_type ?: 'application/octet-stream']);
+            }, $downloadName, ['Content-Type' => $contentType]);
         } catch (Throwable $exception) {
             report($exception);
             abort(502, 'The remote file could not be downloaded.');
