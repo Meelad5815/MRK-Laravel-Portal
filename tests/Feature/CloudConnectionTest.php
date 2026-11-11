@@ -105,4 +105,86 @@ class CloudConnectionTest extends TestCase
 
         $this->assertDatabaseCount('cloud_connections', 1);
     }
+    public function test_remote_upload_saves_to_the_selected_connected_provider(): void
+    {
+        $user = User::factory()->create();
+        $connection = CloudConnection::create([
+            'user_id' => $user->id,
+            'provider' => 'google',
+            'provider_account_id' => 'google-account',
+            'access_token' => 'access-token',
+        ]);
+
+        $storage = \\Mockery::mock(CloudStorageService::class);
+        $storage->shouldReceive('upload')->once()->andReturn([
+            'id' => 'drive-file-123',
+            'name' => 'photo.png',
+            'mime_type' => 'image/png',
+            'size' => 1234,
+            'modified_at' => now()->toIso8601String(),
+        ]);
+        $this->app->instance(CloudStorageService::class, $storage);
+
+        $this->actingAs($user)->post(route('cloud.store'), [
+            'file' => UploadedFile::fake()->image('photo.png'),
+            'destination' => 'google',
+            'category' => 'images',
+        ])->assertRedirect(route('cloud.index'));
+
+        $this->assertDatabaseHas('cloud_remote_files', [
+            'user_id' => $user->id,
+            'cloud_connection_id' => $connection->id,
+            'provider' => 'google',
+            'provider_file_id' => 'drive-file-123',
+            'name' => 'photo.png',
+        ]);
+    }
+
+    public function test_user_cannot_download_another_users_remote_file(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $connection = CloudConnection::create([
+            'user_id' => $owner->id,
+            'provider' => 'dropbox',
+            'provider_account_id' => 'dbid:owner',
+            'access_token' => 'owner-token',
+        ]);
+        $file = CloudRemoteFile::create([
+            'user_id' => $owner->id,
+            'cloud_connection_id' => $connection->id,
+            'provider' => 'dropbox',
+            'provider_file_id' => 'id:private-file',
+            'name' => 'private.pdf',
+            'mime_type' => 'application/pdf',
+            'size' => 100,
+            'category' => 'documents',
+        ]);
+
+        $this->actingAs($other)->get(route('cloud.remote.download', $file))->assertNotFound();
+    }
+
+    public function test_remote_image_preview_rejects_non_image_content(): void
+    {
+        $user = User::factory()->create();
+        $connection = CloudConnection::create([
+            'user_id' => $user->id,
+            'provider' => 'google',
+            'provider_account_id' => 'google-account',
+            'access_token' => 'access-token',
+        ]);
+        $file = CloudRemoteFile::create([
+            'user_id' => $user->id,
+            'cloud_connection_id' => $connection->id,
+            'provider' => 'google',
+            'provider_file_id' => 'drive-pdf',
+            'name' => 'document.pdf',
+            'mime_type' => 'application/pdf',
+            'size' => 100,
+            'category' => 'documents',
+        ]);
+
+        $this->actingAs($user)->get(route('cloud.remote.preview', $file))->assertStatus(415);
+    }
+
 }
