@@ -689,6 +689,26 @@ class MadrasaController extends Controller
         return back()->with('success', 'سرٹیفکیٹ منسوخ کر دیا گیا؛ تصدیقی صفحے پر بھی منسوخ دکھائی دے گا۔');
     }
 
+    public function deleteCertificate(Request $request, int $certificate): RedirectResponse
+    {
+        $this->admin($request);
+        $record = DB::table('madrasa_certificates')
+            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_certificates.student_id')
+            ->where('madrasa_certificates.id', $certificate)
+            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)
+            ->first(['madrasa_certificates.*']);
+        abort_unless($record, 404);
+
+        DB::transaction(function () use ($certificate, $request) {
+            $this->audit($request, 'certificate.deleted', 'madrasa_certificates', $certificate);
+            DB::table('madrasa_certificates')->where('id', $certificate)->delete();
+        });
+        if ($record->pdf_path) {
+            Storage::disk('local')->delete($record->pdf_path);
+        }
+        return back()->with('success', 'سرٹیفکیٹ اور اس کی اپ لوڈ شدہ PDF مستقل طور پر حذف کر دی گئی۔');
+    }
+
     public function downloadCertificate(Request $request, int $certificate)
     {
         $this->role($request);
