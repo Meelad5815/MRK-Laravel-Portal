@@ -118,7 +118,7 @@ class CloudConnectionTest extends TestCase
             'access_token' => 'access-token',
         ]);
 
-        $storage = \\Mockery::mock(CloudStorageService::class);
+        $storage = \Mockery::mock(CloudStorageService::class);
         $storage->shouldReceive('upload')->once()->andReturn([
             'id' => 'drive-file-123',
             'name' => 'photo.png',
@@ -129,7 +129,7 @@ class CloudConnectionTest extends TestCase
         $this->app->instance(CloudStorageService::class, $storage);
 
         $this->actingAs($user)->post(route('cloud.store'), [
-            'file' => UploadedFile::fake()->image('photo.png'),
+            'file' => UploadedFile::fake()->create('photo.png', 20, 'image/png'),
             'destination' => 'google',
             'category' => 'images',
         ])->assertRedirect(route('cloud.index'));
