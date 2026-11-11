@@ -290,11 +290,11 @@ Route::get('/fitness/backup-feed', [\App\Http\Controllers\FitnessBackupControlle
 
 
 // MRK Government Fee Manager — public rate list and protected administration.
-Route::get('/government-fees', [\\App\\Http\\Controllers\\GovernmentFeeController::class, 'publicIndex'])->name('fees.public');
+Route::get('/government-fees', [\App\Http\Controllers\GovernmentFeeController::class, 'publicIndex'])->name('fees.public');
 Route::middleware(['auth', 'admin'])->prefix('dashboard/government-fees')->name('admin.fees.')->group(function () {
-    Route::get('/', [\\App\\Http\\Controllers\\GovernmentFeeController::class, 'index'])->name('index');
-    Route::post('/', [\\App\\Http\\Controllers\\GovernmentFeeController::class, 'store'])->name('store');
-    Route::put('/{fee}', [\\App\\Http\\Controllers\\GovernmentFeeController::class, 'update'])->whereNumber('fee')->name('update');
-    Route::delete('/{fee}', [\\App\\Http\\Controllers\\GovernmentFeeController::class, 'destroy'])->whereNumber('fee')->name('destroy');
-    Route::post('/check-sources', [\\App\\Http\\Controllers\\GovernmentFeeController::class, 'checkSources'])->middleware('throttle:2,1')->name('check');
+    Route::get('/', [\App\Http\Controllers\GovernmentFeeController::class, 'index'])->name('index');
+    Route::post('/', [\App\Http\Controllers\GovernmentFeeController::class, 'store'])->name('store');
+    Route::put('/{fee}', [\App\Http\Controllers\GovernmentFeeController::class, 'update'])->whereNumber('fee')->name('update');
+    Route::delete('/{fee}', [\App\Http\Controllers\GovernmentFeeController::class, 'destroy'])->whereNumber('fee')->name('destroy');
+    Route::post('/check-sources', [\App\Http\Controllers\GovernmentFeeController::class, 'checkSources'])->middleware('throttle:2,1')->name('check');
 });
