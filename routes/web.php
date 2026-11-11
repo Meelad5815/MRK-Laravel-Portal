@@ -269,6 +269,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/madrasa/attendance/{attendance}', [\App\Http\Controllers\MadrasaController::class, 'updateAttendance'])->whereNumber('attendance')->name('madrasa.attendance.update');
     Route::delete('/madrasa/attendance/{attendance}', [\App\Http\Controllers\MadrasaController::class, 'deleteAttendance'])->whereNumber('attendance')->name('madrasa.attendance.destroy');
     Route::post('/madrasa/attendance', [\App\Http\Controllers\MadrasaController::class, 'storeAttendance'])->name('madrasa.attendance.store');
+    Route::post('/madrasa/attendance/bulk', [\App\Http\Controllers\MadrasaController::class, 'storeBulkAttendance'])->middleware('throttle:20,1')->name('madrasa.attendance.bulk');
     Route::put('/madrasa/progress/{progress}', [\App\Http\Controllers\MadrasaController::class, 'updateProgress'])->whereNumber('progress')->name('madrasa.progress.update');
     Route::delete('/madrasa/progress/{progress}', [\App\Http\Controllers\MadrasaController::class, 'deleteProgress'])->whereNumber('progress')->name('madrasa.progress.destroy');
     Route::post('/madrasa/progress', [\App\Http\Controllers\MadrasaController::class, 'storeProgress'])->name('madrasa.progress.store');
