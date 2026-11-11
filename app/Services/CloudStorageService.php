@@ -54,14 +54,36 @@ class CloudStorageService
         $token = $this->accessToken($connection);
 
         if ($connection->provider === 'google') {
-            $response = Http::withToken($token)->timeout(45)->get('https://www.googleapis.com/drive/v3/files', [
-                'q' => "trashed = false and mimeType != 'application/vnd.google-apps.folder'",
-                'pageSize' => 100,
-                'orderBy' => 'modifiedTime desc',
-                'fields' => 'files(id,name,mimeType,size,modifiedTime)',
-            ]);
-            $this->ensureSuccess($response, 'Google Drive list');
-            return collect($response->json('files', []))->map(fn ($file) => [
+            $files = [];
+            $pageToken = null;
+            $seenPageTokens = [];
+
+            do {
+                $parameters = [
+                    'q' => "trashed = false and mimeType != 'application/vnd.google-apps.folder'",
+                    'pageSize' => 100,
+                    'orderBy' => 'modifiedTime desc',
+                    'fields' => 'nextPageToken,files(id,name,mimeType,size,modifiedTime)',
+                ];
+                if ($pageToken !== null) {
+                    $parameters['pageToken'] = $pageToken;
+                }
+
+                $response = Http::withToken($token)->timeout(45)->get('https://www.googleapis.com/drive/v3/files', $parameters);
+                $this->ensureSuccess($response, 'Google Drive list');
+                $files = array_merge($files, $response->json('files', []));
+                $nextPageToken = $response->json('nextPageToken');
+
+                if ($nextPageToken !== null && isset($seenPageTokens[$nextPageToken])) {
+                    throw new RuntimeException('Google Drive returned a repeated page token. Sync stopped to avoid an incomplete result.');
+                }
+                if ($nextPageToken !== null) {
+                    $seenPageTokens[$nextPageToken] = true;
+                }
+                $pageToken = $nextPageToken;
+            } while ($pageToken !== null);
+
+            return collect($files)->map(fn ($file) => [
                 'id' => (string) $file['id'],
                 'name' => (string) ($file['name'] ?? 'Untitled'),
                 'mime_type' => $file['mimeType'] ?? null,
@@ -81,15 +103,23 @@ class CloudStorageService
         $entries = $response->json('entries', []);
         $cursor = $response->json('cursor');
         $hasMore = (bool) $response->json('has_more');
-        $pages = 1;
-        while ($hasMore && $cursor && $pages < 5) {
+        $seenCursors = [];
+
+        while ($hasMore) {
+            if (!$cursor) {
+                throw new RuntimeException('Dropbox indicated more files but did not return a continuation cursor. Sync did not complete.');
+            }
+            if (isset($seenCursors[$cursor])) {
+                throw new RuntimeException('Dropbox returned a repeated continuation cursor. Sync stopped to avoid an incomplete result.');
+            }
+            $seenCursors[$cursor] = true;
+
             $next = Http::withToken($token)->acceptJson()->timeout(45)
                 ->post('https://api.dropboxapi.com/2/files/list_folder/continue', ['cursor' => $cursor]);
             $this->ensureSuccess($next, 'Dropbox list continuation');
             $entries = array_merge($entries, $next->json('entries', []));
             $cursor = $next->json('cursor');
             $hasMore = (bool) $next->json('has_more');
-            $pages++;
         }
 
         $mimeTypes = [
