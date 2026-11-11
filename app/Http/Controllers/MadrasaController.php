@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -80,21 +81,27 @@ class MadrasaController extends Controller
         }
         $studentRows = $students->get();
         $studentIds = $studentRows->pluck('id');
-        $timetable = DB::table('madrasa_timetable')
-            ->join('users as timetable_qari', 'timetable_qari.id', '=', 'madrasa_timetable.qari_user_id')
-            ->where('madrasa_timetable.madrasa_id', self::MADRASA_ID)
-            ->when($role === 'qari', fn ($q) => $q->where('madrasa_timetable.qari_user_id', $userId))
-            ->orderBy('madrasa_timetable.weekday')->orderBy('madrasa_timetable.start_time')
-            ->get(['madrasa_timetable.*', 'timetable_qari.name as qari_name']);
+        // These two newer modules may not yet have been migrated on low-cost shared hosting.
+        // Keep the main dashboard available while their tables are being installed.
+        $timetable = Schema::hasTable('madrasa_timetable')
+            ? DB::table('madrasa_timetable')
+                ->join('users as timetable_qari', 'timetable_qari.id', '=', 'madrasa_timetable.qari_user_id')
+                ->where('madrasa_timetable.madrasa_id', self::MADRASA_ID)
+                ->when($role === 'qari', fn ($q) => $q->where('madrasa_timetable.qari_user_id', $userId))
+                ->orderBy('madrasa_timetable.weekday')->orderBy('madrasa_timetable.start_time')
+                ->get(['madrasa_timetable.*', 'timetable_qari.name as qari_name'])
+            : collect();
 
-        $leaveRequests = DB::table('madrasa_leave_requests')
-            ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_leave_requests.student_id')
-            ->leftJoin('users as leave_parents', 'leave_parents.id', '=', 'madrasa_leave_requests.parent_user_id')
-            ->where('madrasa_students.madrasa_id', self::MADRASA_ID)
-            ->whereIn('madrasa_leave_requests.student_id', $studentIds)
-            ->when($role === 'parent', fn ($q) => $q->where('madrasa_leave_requests.parent_user_id', $userId))
-            ->orderByDesc('madrasa_leave_requests.start_date')->limit(100)
-            ->get(['madrasa_leave_requests.*', 'madrasa_students.full_name as student_name', 'leave_parents.name as parent_name']);
+        $leaveRequests = Schema::hasTable('madrasa_leave_requests')
+            ? DB::table('madrasa_leave_requests')
+                ->join('madrasa_students', 'madrasa_students.id', '=', 'madrasa_leave_requests.student_id')
+                ->leftJoin('users as leave_parents', 'leave_parents.id', '=', 'madrasa_leave_requests.parent_user_id')
+                ->where('madrasa_students.madrasa_id', self::MADRASA_ID)
+                ->whereIn('madrasa_leave_requests.student_id', $studentIds)
+                ->when($role === 'parent', fn ($q) => $q->where('madrasa_leave_requests.parent_user_id', $userId))
+                ->orderByDesc('madrasa_leave_requests.start_date')->limit(100)
+                ->get(['madrasa_leave_requests.*', 'madrasa_students.full_name as student_name', 'leave_parents.name as parent_name'])
+            : collect();
 
         $courseProgress = DB::table('madrasa_course_progress')->whereIn('student_id', $studentIds)
             ->when($role === 'parent', fn ($q) => $q->where('parent_visible', true))
