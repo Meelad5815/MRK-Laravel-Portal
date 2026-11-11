@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\CloudConnection;
-use Illuminate\\Http\\RedirectResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Http;
-use Illuminate\\Support\\Str;
+use App\Models\CloudConnection;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Throwable;
 
 class CloudConnectionController extends Controller
@@ -76,7 +76,7 @@ class CloudConnectionController extends Controller
             ]);
 
             if (!$tokenResponse->successful() || !$tokenResponse->json('access_token')) {
-                report(new \\RuntimeException('Cloud OAuth token exchange failed for '.$provider.': '.$tokenResponse->status()));
+                report(new \RuntimeException('Cloud OAuth token exchange failed for '.$provider.': '.$tokenResponse->status()));
                 return redirect()->route('cloud.index')->with('error', 'Could not complete the cloud provider connection.');
             }
 
@@ -86,7 +86,7 @@ class CloudConnectionController extends Controller
                 : Http::withToken($token['access_token'])->post('https://api.dropboxapi.com/2/users/get_current_account');
 
             if (!$profile->successful()) {
-                report(new \\RuntimeException('Cloud provider profile lookup failed for '.$provider.': '.$profile->status()));
+                report(new \RuntimeException('Cloud provider profile lookup failed for '.$provider.': '.$profile->status()));
                 return redirect()->route('cloud.index')->with('error', 'Connected account details could not be verified.');
             }
 
@@ -106,7 +106,7 @@ class CloudConnectionController extends Controller
                     'access_token' => $token['access_token'],
                     'refresh_token' => $token['refresh_token'] ?? null,
                     'token_expires_at' => isset($token['expires_in']) ? now()->addSeconds((int) $token['expires_in']) : null,
-                    'scopes' => isset($token['scope']) ? preg_split('/\\s+/', trim($token['scope'])) : [],
+                    'scopes' => isset($token['scope']) ? preg_split('/\s+/', trim($token['scope'])) : [],
                 ]
             );
 
@@ -137,7 +137,7 @@ class CloudConnectionController extends Controller
                     : Http::withToken($tokenToRevoke)->post('https://api.dropboxapi.com/2/auth/token/revoke');
 
                 if (!$revocation->successful()) {
-                    report(new \\RuntimeException('Cloud provider token revocation failed for '.$provider.': '.$revocation->status()));
+                    report(new \RuntimeException('Cloud provider token revocation failed for '.$provider.': '.$revocation->status()));
                     return redirect()->route('cloud.index')->with('error', 'The provider did not confirm revocation. Your connection remains saved so you can retry safely.');
                 }
             } catch (Throwable $exception) {
