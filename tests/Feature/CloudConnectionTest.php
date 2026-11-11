@@ -292,23 +292,16 @@ class CloudConnectionTest extends TestCase
 
     public function test_google_drive_listing_follows_all_next_page_tokens(): void
     {
-        Http::fake(function ($request) {
-            if ($request->url() !== 'https://www.googleapis.com/drive/v3/files') {
-                return Http::response([], 404);
-            }
-
-            parse_str($request->toPsrRequest()->getUri()->getQuery(), $query);
-            if (($query['pageToken'] ?? null) === 'page-two-token') {
-                return Http::response([
+        Http::fake([
+            'www.googleapis.com/drive/v3/files*' => Http::sequence()
+                ->push([
+                    'files' => [['id' => 'google-file-1', 'name' => 'first.pdf', 'mimeType' => 'application/pdf']],
+                    'nextPageToken' => 'page-two-token',
+                ], 200)
+                ->push([
                     'files' => [['id' => 'google-file-2', 'name' => 'second.pdf', 'mimeType' => 'application/pdf']],
-                ], 200);
-            }
-
-            return Http::response([
-                'files' => [['id' => 'google-file-1', 'name' => 'first.pdf', 'mimeType' => 'application/pdf']],
-                'nextPageToken' => 'page-two-token',
-            ], 200);
-        });
+                ], 200),
+        ]);
 
         $user = User::factory()->create();
         $connection = CloudConnection::create([
