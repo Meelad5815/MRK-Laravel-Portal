@@ -1,9 +1,9 @@
 <?php
 
-use Illuminate\\Database\\Migrations\\Migration;
-use Illuminate\\Database\\Schema\\Blueprint;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Schema;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void
@@ -67,7 +67,7 @@ return new class extends Migration {
                 'priority'=>$row[3], 'government_fee'=>$row[4], 'official_source_url'=>$row[5],
                 'verification_status'=>$row[6], 'source_note'=>$row[7],
                 'mrk_service_fee'=>0, 'currency'=>'PKR', 'is_active'=>true,
-                'created_at'=>now(), 'updated_at'=>now(),
+                'last_verified_at'=>$row[6] === 'verified' ? now() : null, 'created_at'=>now(), 'updated_at'=>now(),
             ]);
         }
     }
