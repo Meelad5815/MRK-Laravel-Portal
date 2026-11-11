@@ -32,7 +32,7 @@
 
         <div class="table-card" style="padding:1.25rem;margin-bottom:1.5rem">
             <h2>Connected cloud accounts</h2>
-            <p>Connect your own Google Drive or Dropbox account. Access is private to your signed-in MRK account. Connecting does not automatically copy files. Google access uses the safer Drive file scope and is limited to files created or opened through MRK; Dropbox can list files permitted by its app scopes.</p>
+            <p>Connect your own Google Drive or Dropbox account. Access is private to your signed-in MRK account. Connecting does not automatically copy files. Google access uses the safer Drive file scope and currently lists files uploaded through MRK; it does not scan every pre-existing item in your Drive. Dropbox can list files permitted by its app scopes.</p>
             <div class="dashboard-filters">
                 <div>
                     <strong>Google Drive</strong>
