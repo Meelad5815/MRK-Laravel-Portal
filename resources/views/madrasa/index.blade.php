@@ -27,7 +27,7 @@
   </div>
   <div class="madrasa-programs"><span>حفظ: <b>{{ $programCounts['hifz'] ?? 0 }}</b></span><span>ناظرہ: <b>{{ $programCounts['nazra'] ?? 0 }}</b></span><span>قاعدہ: <b>{{ $programCounts['qaida'] ?? 0 }}</b></span></div>
   <nav class="madrasa-shortcuts" aria-label="فوری رسائی">
-    <a href="#students">طلبہ</a><a href="#course-progress">نصاب کی تکمیل</a><a href="#attendance">حاضری</a><a href="#progress">روزانہ پیش رفت</a><a href="#exams">امتحانات</a><a href="#certificates">سرٹیفکیٹس</a><a href="#announcements">اعلانات</a>
+    <a href="#students">طلبہ</a><a href="#timetable">ٹائم ٹیبل</a><a href="#course-progress">نصاب کی تکمیل</a><a href="#attendance">حاضری</a><a href="#progress">روزانہ پیش رفت</a><a href="#exams">امتحانات</a><a href="#certificates">سرٹیفکیٹس</a><a href="#announcements">اعلانات</a>
     @if($role==='admin')<a href="#admissions">نیا داخلہ</a><a href="#accounts">اکاؤنٹس</a>@endif
   </nav>
 </div>
@@ -237,6 +237,30 @@
 <button class="button primary" type="submit">فیصلہ محفوظ کریں</button></form></details>
 @endif
 </td></tr>
+@endforeach
+</tbody></table></div>
+@endif
+</div>
+
+
+<div class="table-card" style="padding:1.25rem;margin-bottom:1.25rem">
+<h2 id="timetable">ہفتہ وار ٹائم ٹیبل اور کلاس شیڈول</h2>
+@if($role === 'admin')
+<form method="POST" action="{{ route('madrasa.timetable.store') }}" class="form-grid">@csrf
+<label>قاری / معلم<select name="qari_user_id" required><option value="">منتخب کریں</option>@foreach($qariUsers as $qari)<option value="{{ $qari->id }}">{{ $qari->name }}</option>@endforeach</select></label>
+<label>دن<select name="weekday" required><option value="1">پیر</option><option value="2">منگل</option><option value="3">بدھ</option><option value="4">جمعرات</option><option value="5">جمعہ</option><option value="6">ہفتہ</option><option value="7">اتوار</option></select></label>
+<label>شروع ہونے کا وقت<input type="time" name="start_time" required></label><label>اختتام کا وقت<input type="time" name="end_time" required></label>
+<label>کلاس / گروپ کا نام<input name="class_name" maxlength="120" placeholder="مثلاً حفظ جماعت اول" required></label>
+<label>مضمون / کورس<input name="subject" maxlength="120" placeholder="حفظ / ناظرہ / قاعدہ" required></label>
+<label>کمرہ (اختیاری)<input name="room" maxlength="80"></label><label>نوٹ<input name="notes" maxlength="500"></label>
+<button class="button primary" type="submit">شیڈول شامل کریں</button></form>
+@endif
+@if($timetable->isEmpty())<p class="empty">ابھی ہفتہ وار ٹائم ٹیبل درج نہیں کیا گیا۔</p>@else
+<div class="table-wrap"><table><thead><tr><th>دن</th><th>وقت</th><th>کلاس / گروپ</th><th>کورس</th><th>قاری</th><th>کمرہ</th>@if($role === 'admin')<th>انتظام</th>@endif</tr></thead><tbody>
+@foreach($timetable as $slot)
+<tr><td>{{ [1=>'پیر',2=>'منگل',3=>'بدھ',4=>'جمعرات',5=>'جمعہ',6=>'ہفتہ',7=>'اتوار'][$slot->weekday] ?? $slot->weekday }}</td>
+<td>{{ substr($slot->start_time,0,5) }} تا {{ substr($slot->end_time,0,5) }}</td><td>{{ $slot->class_name }}</td><td>{{ $slot->subject }}</td><td>{{ $slot->qari_name }}</td><td>{{ $slot->room ?: '—' }}</td>
+@if($role === 'admin')<td><form method="POST" action="{{ route('madrasa.timetable.destroy',$slot->id) }}" onsubmit="return confirm('یہ شیڈول حذف کریں؟')">@csrf @method('DELETE')<button class="button secondary" type="submit">حذف</button></form></td>@endif</tr>
 @endforeach
 </tbody></table></div>
 @endif
