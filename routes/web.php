@@ -287,6 +287,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/madrasa/certificates/{certificate}/download', [\App\Http\Controllers\MadrasaController::class, 'downloadCertificate'])->whereNumber('certificate')->name('madrasa.certificates.download');
     Route::get('/madrasa/certificates/{certificate}/print', [\App\Http\Controllers\MadrasaController::class, 'printCertificate'])->whereNumber('certificate')->name('madrasa.certificates.print');
     Route::post('/madrasa/announcements', [\App\Http\Controllers\MadrasaController::class, 'storeAnnouncement'])->name('madrasa.announcements.store');
+    Route::post('/madrasa/leave-requests', [\App\Http\Controllers\MadrasaController::class, 'storeLeaveRequest'])->middleware('throttle:10,1')->name('madrasa.leave.store');
+    Route::post('/madrasa/leave-requests/{leaveRequest}/review', [\App\Http\Controllers\MadrasaController::class, 'reviewLeaveRequest'])->whereNumber('leaveRequest')->name('madrasa.leave.review');
 });
 
 
