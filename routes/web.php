@@ -328,10 +328,10 @@ Route::get('/fitness/backup-feed', [\App\Http\Controllers\FitnessBackupControlle
 
 // MRK Birth Certificate case manager — protected customer records.
 Route::middleware(['auth', 'admin'])->prefix('dashboard/birth-certificates')->name('admin.birth-certificates.')->group(function () {
-    Route::get('/', [\\App\\Http\\Controllers\\BirthCertificateController::class, 'index'])->name('index');
-    Route::post('/', [\\App\\Http\\Controllers\\BirthCertificateController::class, 'store'])->middleware('throttle:20,1')->name('store');
-    Route::patch('/{case}/status', [\\App\\Http\\Controllers\\BirthCertificateController::class, 'updateStatus'])->whereNumber('case')->name('status');
-    Route::get('/{case}/receipt', [\\App\\Http\\Controllers\\BirthCertificateController::class, 'receipt'])->whereNumber('case')->name('receipt');
+    Route::get('/', [\App\\Http\\Controllers\\BirthCertificateController::class, 'index'])->name('index');
+    Route::post('/', [\App\\Http\\Controllers\\BirthCertificateController::class, 'store'])->middleware('throttle:20,1')->name('store');
+    Route::patch('/{case}/status', [\App\\Http\\Controllers\\BirthCertificateController::class, 'updateStatus'])->whereNumber('case')->name('status');
+    Route::get('/{case}/receipt', [\App\\Http\\Controllers\\BirthCertificateController::class, 'receipt'])->whereNumber('case')->name('receipt');
 });
 
 // MRK Government Fee Manager — public rate list and protected administration.
