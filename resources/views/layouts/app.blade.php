@@ -52,7 +52,7 @@
 <a class="{{ request()->routeIs('madrasa') ? 'active' : '' }}" href="{{ route('madrasa') }}">مدرسہ پورٹل</a>
 @auth
 <a class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">Dashboard</a>
-@if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.online-work') ? 'active' : '' }}" href="{{ route('admin.online-work') }}">Online Work Hub</a><a href="{{ route('admin.fees.index') }}">Fee Manager</a>@endif
+@if(auth()->user()->is_admin)<a class="{{ request()->routeIs('admin.online-work') ? 'active' : '' }}" href="{{ route('admin.online-work') }}">Online Work Hub</a><a href="{{ route('admin.fees.index') }}">Fee Manager</a><a class="{{ request()->routeIs('admin.birth-certificates.*') ? 'active' : '' }}" href="{{ route('admin.birth-certificates.index') }}">Birth Certificates</a>@endif
 <form class="inline-form" method="POST" action="{{ route('logout') }}">@csrf<button class="nav-button" type="submit">Logout</button></form>
 @else
 <a class="{{ request()->routeIs('login') ? 'active' : '' }}" href="{{ route('login') }}">Login</a>

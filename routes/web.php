@@ -326,6 +326,14 @@ Route::middleware('auth')->prefix('fitness')->name('fitness.')->group(function (
 Route::get('/fitness/backup-feed', [\App\Http\Controllers\FitnessBackupController::class, 'feed'])->middleware('throttle:30,1')->name('fitness.backup.feed');
 
 
+// MRK Birth Certificate case manager — protected customer records.
+Route::middleware(['auth', 'admin'])->prefix('dashboard/birth-certificates')->name('admin.birth-certificates.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\BirthCertificateController::class, 'index'])->name('index');
+    Route::post('/', [\App\Http\Controllers\BirthCertificateController::class, 'store'])->middleware('throttle:20,1')->name('store');
+    Route::patch('/{case}/status', [\App\Http\Controllers\BirthCertificateController::class, 'updateStatus'])->whereNumber('case')->name('status');
+    Route::get('/{case}/receipt', [\App\Http\Controllers\BirthCertificateController::class, 'receipt'])->whereNumber('case')->name('receipt');
+});
+
 // MRK Government Fee Manager — public rate list and protected administration.
 Route::get('/government-fees', [\App\Http\Controllers\GovernmentFeeController::class, 'publicIndex'])->name('fees.public');
 Route::middleware(['auth', 'admin'])->prefix('dashboard/government-fees')->name('admin.fees.')->group(function () {
