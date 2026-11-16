@@ -28,7 +28,8 @@
   let decoding = false;
 
   const SAMPLE_RATE = 16000;
-  const SILENCE_RMS = 0.012;
+  const SILENCE_RMS = 0.008;
+  const MAX_SEGMENT_SAMPLES = SAMPLE_RATE * 10;
   const SILENCE_END_SAMPLES = Math.round(SAMPLE_RATE * 0.85);
   const MIN_SEGMENT_SAMPLES = Math.round(SAMPLE_RATE * 0.8);
 
@@ -417,11 +418,12 @@
       silenceSamples = 0;
       segmentChunks.push(samples);
       segmentSamples += samples.length;
+      if (segmentSamples >= MAX_SEGMENT_SAMPLES) decodeCurrentSegment();
     } else if (speechStarted) {
       segmentChunks.push(samples);
       segmentSamples += samples.length;
       silenceSamples += samples.length;
-      if (silenceSamples >= SILENCE_END_SAMPLES) decodeCurrentSegment();
+      if (silenceSamples >= SILENCE_END_SAMPLES || segmentSamples >= MAX_SEGMENT_SAMPLES) decodeCurrentSegment();
     }
   }
 
