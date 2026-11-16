@@ -41,7 +41,7 @@
 
     <div class="card" style="padding:1.25rem;margin-bottom:1rem">
       <h2 style="margin-top:0">2۔ مفت آف لائن ماڈل تیار کریں</h2>
-      <p class="muted">پہلی مرتبہ ماڈل اور WebAssembly انجن ڈاؤن لوڈ ہوگا (تقریباً 45 MB، اصل حجم مختلف ہو سکتا ہے)۔ فائلیں براؤزر کی کیش میں محفوظ ہوں گی؛ اس کے بعد آف لائن استعمال ممکن ہوگا۔</p>
+      <p class="muted">پہلی مرتبہ ماڈل اور WebAssembly انجن ڈاؤن لوڈ ہوگا (تقریباً 50 MB یا اس سے زیادہ، اصل حجم مختلف ہو سکتا ہے)۔ فائلیں براؤزر کی کیش میں محفوظ ہوں گی؛ اس کے بعد آف لائن استعمال ممکن ہوگا۔</p>
       <button id="loadModel" class="btn btn-primary" type="button">آف لائن ماڈل لوڈ کریں</button>
       <p id="modelStatus" class="muted" role="status" aria-live="polite" style="margin:.75rem 0 0">ماڈل ابھی لوڈ نہیں ہوا۔</p>
     </div>
