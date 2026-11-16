@@ -33,6 +33,30 @@ jobs:
           npm install --no-audit --no-fund
           npm run build
 
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 4.0.23
+          actions-cache-folder: emsdk-cache
+
+      - name: Build offline Quran ASR WebAssembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch v2.0.1 https://github.com/k2-fsa/sherpa-onnx.git /tmp/sherpa-onnx
+          mkdir -p /tmp/sherpa-onnx/wasm/vad-asr/assets
+          curl --fail --location --retry 3 --output /tmp/sherpa-onnx/wasm/vad-asr/assets/silero_vad.onnx \
+            https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx
+          curl --fail --location --retry 3 --output /tmp/sherpa-onnx/wasm/vad-asr/assets/zipformer-ctc.onnx \
+            https://huggingface.co/Abdou/quran-asr-small/resolve/main/model.int8.onnx
+          curl --fail --location --retry 3 --output /tmp/sherpa-onnx/wasm/vad-asr/assets/tokens.txt \
+            https://huggingface.co/Abdou/quran-asr-small/resolve/main/tokens.txt
+          cd /tmp/sherpa-onnx
+          ./build-wasm-simd-vad-asr.sh
+          test -s build-wasm-simd-vad-asr/install/bin/wasm/vad-asr/sherpa-onnx-wasm-main-vad-asr.js
+          test -s build-wasm-simd-vad-asr/install/bin/wasm/vad-asr/sherpa-onnx-wasm-main-vad-asr.wasm
+          test -s build-wasm-simd-vad-asr/install/bin/wasm/vad-asr/sherpa-onnx-wasm-main-vad-asr.data
+
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
