@@ -5,7 +5,22 @@ const PAGE_PATH = '/quran/murajaah';
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    try { await cache.add(PAGE_PATH); } catch (_) {}
+    try {
+      const pageResponse = await fetch(PAGE_PATH);
+      if (pageResponse.ok) {
+        await cache.put(PAGE_PATH, pageResponse.clone());
+        const html = await pageResponse.text();
+        const assets = [...html.matchAll(/(?:src|href)=["']([^"']+\\.(?:css|js)(?:\\?[^"']*)?)["']/g)]
+          .map((match) => new URL(match[1], self.location.origin).href)
+          .filter((href) => new URL(href).origin === self.location.origin);
+        await Promise.all(assets.map(async (href) => {
+          try {
+            const response = await fetch(href);
+            if (response.ok) await cache.put(href, response);
+          } catch (_) {}
+        }));
+      }
+    } catch (_) {}
     await self.skipWaiting();
   })());
 });
