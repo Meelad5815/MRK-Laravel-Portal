@@ -310,8 +310,8 @@
             const config = {
               featConfig: { sampleRate: SAMPLE_RATE, featureDim: 80 },
               modelConfig: {
-                zipformerCtc: { model: './zipformer-ctc.onnx' },
-                tokens: './tokens.txt',
+                zipformerCtc: { model: './assets/zipformer-ctc.onnx' },
+                tokens: './assets/tokens.txt',
                 numThreads: 2,
                 provider: 'cpu',
                 debug: 0
