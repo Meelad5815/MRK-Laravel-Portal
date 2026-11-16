@@ -285,7 +285,7 @@
     if (recognizer || engineLoading) return;
     engineLoading = true;
     $('loadModel').disabled = true;
-    setModelStatus('آف لائن انجن لوڈ ہو رہا ہے۔ پہلی مرتبہ تقریباً 45 MB فائلیں ڈاؤن لوڈ ہوں گی۔');
+    setModelStatus('آف لائن انجن لوڈ ہو رہا ہے۔ پہلی مرتبہ تقریباً 50 MB یا اس سے زیادہ فائلیں ڈاؤن لوڈ ہوں گی۔');
     status('آف لائن ماڈل تیار کیا جا رہا ہے۔ اس دوران صفحہ بند نہ کریں۔');
     try {
       if ('serviceWorker' in navigator) {
