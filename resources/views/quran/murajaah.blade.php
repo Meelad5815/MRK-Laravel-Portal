@@ -46,6 +46,7 @@
       <p class="muted">مائیک شروع کریں اور منتخب آیات زبانی پڑھیں۔ بہتر نتائج کے لیے خاموش جگہ اور واضح آواز استعمال کریں۔</p>
       <div style="display:flex;gap:.75rem;flex-wrap:wrap">
         <button id="startMic" class="btn btn-primary" type="button" disabled>🎙️ تلاوت شروع کریں</button>
+        <button id="testMic" class="btn btn-secondary" type="button">مائیک کی اجازت چیک کریں</button>
         <button id="stopMic" class="btn btn-secondary" type="button" disabled>تلاوت روکیں</button>
       </div>
       <div style="margin-top:1rem;padding:1rem;background:var(--surface,#f5f7fa);border-radius:12px">
@@ -181,6 +182,32 @@
     }
   }
 
+  async function testMicrophone() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setFeedback('اس براؤزر میں مائیک ٹیسٹ دستیاب نہیں۔ تازہ Chrome اور HTTPS استعمال کریں۔', 'warning');
+      return;
+    }
+    const button = $('testMic');
+    button.disabled = true;
+    setFeedback('مائیکروفون کی اجازت چیک کی جا رہی ہے…');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      stream.getTracks().forEach(track => track.stop());
+      setFeedback('مائیک کی عام اجازت درست ہے۔ اب «تلاوت شروع کریں» دبائیں۔ اگر وہاں not-allowed آئے تو مسئلہ Chrome کی Speech Recognition سروس میں ہے، عام مائیک اجازت میں نہیں۔', 'success');
+    } catch (error) {
+      const messages = {
+        'NotAllowedError': 'اس ویب سائٹ کے لیے مائیک کی اجازت بند ہے۔ Chrome کے Site settings میں Microphone کو Allow کریں۔',
+        'PermissionDeniedError': 'مائیک کی اجازت مسترد ہوئی۔ Chrome Site settings اور Android App permissions دونوں میں Allow کریں۔',
+        'NotFoundError': 'فون میں کوئی دستیاب مائیکروفون نہیں ملا۔',
+        'NotReadableError': 'مائیک کسی دوسری ایپ کے استعمال میں ہے یا دستیاب نہیں۔',
+        'SecurityError': 'مائیک کے لیے HTTPS اور محفوظ کنکشن ضروری ہے۔'
+      };
+      setFeedback(messages[error.name] || ('مائیک ٹیسٹ ناکام: ' + error.name + '۔'), 'warning');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   async function startRecognition() {
     const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!window.isSecureContext) {
@@ -251,6 +278,7 @@
   $('loadRange').addEventListener('click', renderRange);
   $('resetProgress').addEventListener('click', () => { cursor = 0; renderRange(); });
   $('startMic').addEventListener('click', startRecognition);
+  $('testMic').addEventListener('click', testMicrophone);
   $('stopMic').addEventListener('click', () => { if (recognition && running) recognition.stop(); });
   loadSurahs();
 })();
