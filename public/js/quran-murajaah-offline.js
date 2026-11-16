@@ -299,6 +299,11 @@
         setStatus: (message) => {
           if (message) setModelStatus(message);
         },
+        onAbort: (reason) => {
+          setModelStatus('آف لائن انجن لوڈ نہیں ہو سکا: ' + String(reason));
+          status('آف لائن انجن لوڈ نہیں ہو سکا۔ انٹرنیٹ اور فون کی خالی اسٹوریج چیک کرکے دوبارہ کوشش کریں۔', 'warning');
+          $('loadModel').disabled = false;
+        },
         onRuntimeInitialized: () => {
           try {
             const config = {
