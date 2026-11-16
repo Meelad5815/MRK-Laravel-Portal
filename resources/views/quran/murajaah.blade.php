@@ -75,7 +75,14 @@
   const api = 'https://api.quran.com/api/v4';
   const $ = id => document.getElementById(id);
   const surahSelect = $('surahSelect'), fromAyah = $('fromAyah'), toAyah = $('toAyah');
-  let verses = [], selected = [], recognition = null, running = false, cursor = 0;
+  let verses = [], selected = [], recognition = null, running = false, cursor = 0, micStream = null;
+
+  function releaseMicStream() {
+    if (micStream) {
+      micStream.getTracks().forEach(track => track.stop());
+      micStream = null;
+    }
+  }
 
   const normalize = value => (value || '')
     .normalize('NFKD')
@@ -181,23 +188,55 @@
     }
   }
 
-  function startRecognition() {
+  async function startRecognition() {
     const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!window.isSecureContext) {
+      setFeedback('مائیک کے لیے محفوظ HTTPS ویب سائٹ ضروری ہے۔ براہِ کرم اصل https لنک استعمال کریں۔', 'warning');
+      return;
+    }
     if (!Speech) {
-      setFeedback('آپ کا براؤزر لائیو عربی آواز کی شناخت سپورٹ نہیں کرتا۔ تازہ Google Chrome میں کوشش کریں۔', 'warning');
+      setFeedback('اس براؤزر میں Speech Recognition دستیاب نہیں۔ تازہ Google Chrome یا کسی سپورٹڈ ڈیوائس پر کوشش کریں۔', 'warning');
       return;
     }
     if (!selected.length) {
       setFeedback('پہلے سورت اور آیات منتخب کرکے لوڈ کریں۔', 'warning');
       return;
     }
-    if (recognition) { try { recognition.stop(); } catch (_) {} }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setFeedback('Chrome اس صفحے کو مائیکروفون تک رسائی نہیں دے رہا۔ سائٹ کی اجازت اور Android Microphone access چیک کریں۔', 'warning');
+      return;
+    }
+
+    $('startMic').disabled = true;
+    setFeedback('مائیکروفون کی اجازت اور دستیابی چیک کی جا رہی ہے…');
+    try {
+      // Explicitly request microphone permission before starting Web Speech Recognition.
+      // This distinguishes a blocked device permission from a Speech Recognition service error.
+      releaseMicStream();
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (error) {
+      $('startMic').disabled = false;
+      const name = error && error.name ? error.name : 'unknown';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+        setFeedback('Chrome/Android نے مائیکروفون کی اجازت روک دی ہے۔ Android Settings → Apps → Chrome → Permissions → Microphone میں Allow کریں، اور Chrome کی Site settings میں بھی اس ویب سائٹ کو Allow کریں۔', 'warning');
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        setFeedback('اس ڈیوائس پر کوئی مائیکروفون دستیاب نہیں ملا۔ فون کا مائیک اور Microphone access چیک کریں۔', 'warning');
+      } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+        setFeedback('مائیکروفون کسی دوسری ایپ کے استعمال میں ہو سکتا ہے۔ Voice Recorder/WhatsApp بند کرکے دوبارہ کوشش کریں۔', 'warning');
+      } else {
+        setFeedback('مائیکروفون ٹیسٹ نہیں ہو سکا (' + name + ')۔ Chrome اپ ڈیٹ کریں اور Android Microphone access چیک کریں۔', 'warning');
+      }
+      return;
+    }
+
+    if (recognition) { try { recognition.abort(); } catch (_) {} }
     recognition = new Speech();
     recognition.lang = 'ar-SA';
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.onstart = () => {
       running = true;
+      releaseMicStream();
       $('micState').textContent = 'مائیک فعال ہے';
       $('startMic').disabled = true;
       $('stopMic').disabled = false;
@@ -214,16 +253,31 @@
       if (finalText.trim()) checkPhrase(finalText.trim());
     };
     recognition.onerror = event => {
-      setFeedback('مائیک/آواز کی شناخت میں مسئلہ: ' + event.error + '۔ اجازت اور انٹرنیٹ چیک کریں۔', 'warning');
+      releaseMicStream();
+      const messages = {
+        'not-allowed': 'مائیکروفون کی اجازت Speech Recognition سروس نے مسترد کی۔ اگر Android اور Chrome دونوں میں Microphone Allow ہے تو Chrome/Google app اپ ڈیٹ کریں، فون ری اسٹارٹ کریں، یا کسی دوسرے سپورٹڈ براؤزر/ڈیوائس پر آزمائیں۔',
+        'service-not-allowed': 'Chrome کی Speech Recognition سروس دستیاب یا مجاز نہیں۔ Chrome اور Google app اپ ڈیٹ کریں؛ ممکن ہے اس ڈیوائس پر یہ سہولت سپورٹ نہ ہو۔',
+        'audio-capture': 'مائیکروفون دستیاب نہیں یا دوسری ایپ استعمال کر رہی ہے۔',
+        'network': 'آواز کی شناخت کے لیے انٹرنیٹ/Google speech service سے رابطہ نہیں ہو سکا۔',
+        'no-speech': 'آواز موصول نہیں ہوئی۔ مائیک کے قریب واضح آواز سے دوبارہ پڑھیں۔',
+        'aborted': 'آواز کی شناخت روک دی گئی۔'
+      };
+      setFeedback(messages[event.error] || ('آواز کی شناخت میں مسئلہ: ' + event.error + '۔'), 'warning');
     };
     recognition.onend = () => {
+      releaseMicStream();
       running = false;
       $('micState').textContent = 'مائیک بند ہے';
       $('startMic').disabled = false;
       $('stopMic').disabled = true;
     };
-    try { recognition.start(); }
-    catch (error) { setFeedback('مائیک شروع نہیں ہو سکا۔ صفحہ ریفریش کرکے دوبارہ کوشش کریں۔', 'warning'); }
+    try {
+      recognition.start();
+    } catch (error) {
+      releaseMicStream();
+      $('startMic').disabled = false;
+      setFeedback('مائیک شروع نہیں ہو سکا۔ صفحہ ریفریش کرکے دوبارہ کوشش کریں۔', 'warning');
+    }
   }
 
   $('surahSelect').addEventListener('change', e => { if (e.target.value) loadSurah(e.target.value); });
