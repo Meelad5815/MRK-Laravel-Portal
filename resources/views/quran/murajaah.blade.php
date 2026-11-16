@@ -75,14 +75,7 @@
   const api = 'https://api.quran.com/api/v4';
   const $ = id => document.getElementById(id);
   const surahSelect = $('surahSelect'), fromAyah = $('fromAyah'), toAyah = $('toAyah');
-  let verses = [], selected = [], recognition = null, running = false, cursor = 0, micStream = null;
-
-  function releaseMicStream() {
-    if (micStream) {
-      micStream.getTracks().forEach(track => track.stop());
-      micStream = null;
-    }
-  }
+  let verses = [], selected = [], recognition = null, running = false, cursor = 0;
 
   const normalize = value => (value || '')
     .normalize('NFKD')
@@ -202,32 +195,10 @@
       setFeedback('پہلے سورت اور آیات منتخب کرکے لوڈ کریں۔', 'warning');
       return;
     }
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setFeedback('Chrome اس صفحے کو مائیکروفون تک رسائی نہیں دے رہا۔ سائٹ کی اجازت اور Android Microphone access چیک کریں۔', 'warning');
-      return;
-    }
-
-    $('startMic').disabled = true;
-    setFeedback('مائیکروفون کی اجازت اور دستیابی چیک کی جا رہی ہے…');
-    try {
-      // Explicitly request microphone permission before starting Web Speech Recognition.
-      // This distinguishes a blocked device permission from a Speech Recognition service error.
-      releaseMicStream();
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (error) {
-      $('startMic').disabled = false;
-      const name = error && error.name ? error.name : 'unknown';
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-        setFeedback('Chrome/Android نے مائیکروفون کی اجازت روک دی ہے۔ Android Settings → Apps → Chrome → Permissions → Microphone میں Allow کریں، اور Chrome کی Site settings میں بھی اس ویب سائٹ کو Allow کریں۔', 'warning');
-      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-        setFeedback('اس ڈیوائس پر کوئی مائیکروفون دستیاب نہیں ملا۔ فون کا مائیک اور Microphone access چیک کریں۔', 'warning');
-      } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-        setFeedback('مائیکروفون کسی دوسری ایپ کے استعمال میں ہو سکتا ہے۔ Voice Recorder/WhatsApp بند کرکے دوبارہ کوشش کریں۔', 'warning');
-      } else {
-        setFeedback('مائیکروفون ٹیسٹ نہیں ہو سکا (' + name + ')۔ Chrome اپ ڈیٹ کریں اور Android Microphone access چیک کریں۔', 'warning');
-      }
-      return;
-    }
+    // Start SpeechRecognition directly from the user's button click.
+    // Chrome handles the microphone permission prompt for the Web Speech API.
+    // Avoid a separate getUserMedia() preflight: it can fail independently and
+    // prevent SpeechRecognition from showing its own permission prompt.
 
     if (recognition) { try { recognition.abort(); } catch (_) {} }
     recognition = new Speech();
@@ -236,7 +207,6 @@
     recognition.interimResults = true;
     recognition.onstart = () => {
       running = true;
-      releaseMicStream();
       $('micState').textContent = 'مائیک فعال ہے';
       $('startMic').disabled = true;
       $('stopMic').disabled = false;
@@ -253,7 +223,6 @@
       if (finalText.trim()) checkPhrase(finalText.trim());
     };
     recognition.onerror = event => {
-      releaseMicStream();
       const messages = {
         'not-allowed': 'مائیکروفون کی اجازت Speech Recognition سروس نے مسترد کی۔ اگر Android اور Chrome دونوں میں Microphone Allow ہے تو Chrome/Google app اپ ڈیٹ کریں، فون ری اسٹارٹ کریں، یا کسی دوسرے سپورٹڈ براؤزر/ڈیوائس پر آزمائیں۔',
         'service-not-allowed': 'Chrome کی Speech Recognition سروس دستیاب یا مجاز نہیں۔ Chrome اور Google app اپ ڈیٹ کریں؛ ممکن ہے اس ڈیوائس پر یہ سہولت سپورٹ نہ ہو۔',
@@ -265,7 +234,6 @@
       setFeedback(messages[event.error] || ('آواز کی شناخت میں مسئلہ: ' + event.error + '۔'), 'warning');
     };
     recognition.onend = () => {
-      releaseMicStream();
       running = false;
       $('micState').textContent = 'مائیک بند ہے';
       $('startMic').disabled = false;
@@ -274,7 +242,6 @@
     try {
       recognition.start();
     } catch (error) {
-      releaseMicStream();
       $('startMic').disabled = false;
       setFeedback('مائیک شروع نہیں ہو سکا۔ صفحہ ریفریش کرکے دوبارہ کوشش کریں۔', 'warning');
     }
