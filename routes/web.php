@@ -343,3 +343,6 @@ Route::middleware(['auth', 'admin'])->prefix('dashboard/government-fees')->name(
     Route::delete('/{fee}', [\App\Http\Controllers\GovernmentFeeController::class, 'destroy'])->whereNumber('fee')->name('destroy');
     Route::post('/check-sources', [\App\Http\Controllers\GovernmentFeeController::class, 'checkSources'])->middleware('throttle:2,1')->name('check');
 });
+
+// MRK Hifz-e-Quran Live Muraja'ah (browser-based, no server-side audio storage).
+Route::view('/quran/murajaah', 'quran.murajaah')->name('quran.murajaah');
