@@ -286,7 +286,7 @@
     if (recognizer || engineLoading) return;
     engineLoading = true;
     $('loadModel').disabled = true;
-    setModelStatus('آف لائن انجن لوڈ ہو رہا ہے۔ پہلی مرتبہ تقریباً 50 MB یا اس سے زیادہ فائلیں ڈاؤن لوڈ ہوں گی۔');
+    setModelStatus('آف لائن ماڈل خودکار طور پر تیار ہو رہا ہے۔ پہلی مرتبہ تقریباً 50 MB یا اس سے زیادہ ڈیٹا آ سکتا ہے؛ صفحہ کھلا رکھیں۔');
     status('آف لائن ماڈل تیار کیا جا رہا ہے۔ اس دوران صفحہ بند نہ کریں۔');
     try {
       if ('serviceWorker' in navigator) {
@@ -322,6 +322,7 @@
             recognizer = new OfflineRecognizer(config, window.Module);
             setModelStatus('آف لائن قرآن ماڈل تیار ہے۔ اب انٹرنیٹ بند کرکے بھی تلاوت چیک کی جا سکتی ہے، بشرطیکہ فائلیں کیش ہو چکی ہوں۔');
             $('loadModel').textContent = 'ماڈل تیار ہے';
+            $('loadModel').disabled = true;
             $('startMic').disabled = selectedVerses.length === 0;
             status('آف لائن ماڈل تیار ہے۔ آواز فون پر ہی پروسیس ہوگی۔', 'success');
           } catch (error) {
@@ -531,4 +532,6 @@
   $('startMic').disabled = true;
   $('stopMic').disabled = true;
   loadSurahs();
+  // Prepare and cache the offline engine automatically; the user does not need a separate download step.
+  loadOfflineModel();
 })();
