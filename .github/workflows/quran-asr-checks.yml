@@ -1,0 +1,59 @@
+name: Quran Offline Feature Checks
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate Quran client JavaScript
+        run: |
+          node --check public/js/quran-murajaah-offline.js
+          grep -q "OfflineRecognizer" public/js/quran-murajaah-offline.js
+          grep -q "zipformerCtc" public/js/quran-murajaah-offline.js
+          if grep -q "SpeechRecognition" public/js/quran-murajaah-offline.js; then
+            echo "Remote browser SpeechRecognition must not be used."
+            exit 1
+          fi
+
+      - name: Build frontend
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, fileinfo, openssl, pdo, pdo_sqlite
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run Laravel tests
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+          touch database/database.sqlite
+          mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+          php artisan migrate:fresh --force
+          php artisan test
