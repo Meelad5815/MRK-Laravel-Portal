@@ -39,6 +39,7 @@
 <a class="{{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Home</a>
 <a class="{{ request()->routeIs('about') ? 'active' : '' }}" href="{{ route('about') }}">About</a>
 <a class="{{ request()->routeIs('services') ? 'active' : '' }}" href="{{ route('services') }}">Services</a>
+<a class="{{ request()->routeIs('quran.*') ? 'active' : '' }}" href="{{ route('quran.murajaah') }}">حفظ القرآن</a>
 <a class="{{ request()->routeIs('fees.public') ? 'active' : '' }}" href="{{ route('fees.public') }}">Government Fees</a>
 <a class="{{ request()->routeIs('tools', 'developer-tools') ? 'active' : '' }}" href="{{ route('tools') }}">Free Tools</a>
 @auth
