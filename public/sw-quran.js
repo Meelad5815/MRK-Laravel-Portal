@@ -35,13 +35,13 @@ self.addEventListener('fetch', (event) => {
       const cached = await cache.match(request);
       if (cached) return cached;
       const response = await fetch(request);
-      if (response.ok) await cache.put(request, response.clone());
+      if (response.ok) { try { await cache.put(request, response.clone()); } catch (_) {} }
       return response;
     }
 
     try {
       const response = await fetch(request);
-      if (response.ok) await cache.put(request, response.clone());
+      if (response.ok) { try { await cache.put(request, response.clone()); } catch (_) {} }
       return response;
     } catch (error) {
       const cached = await cache.match(request);
