@@ -10,7 +10,7 @@ self.addEventListener('install', (event) => {
       if (pageResponse.ok) {
         await cache.put(PAGE_PATH, pageResponse.clone());
         const html = await pageResponse.text();
-        const assets = [...html.matchAll(/(?:src|href)=["']([^"']+\\.(?:css|js)(?:\\?[^"']*)?)["']/g)]
+        const assets = [...html.matchAll(/(?:src|href)=["']([^"']+\.(?:css|js)(?:\?[^"']*)?)["']/g)]
           .map((match) => new URL(match[1], self.location.origin).href)
           .filter((href) => new URL(href).origin === self.location.origin);
         await Promise.all(assets.map(async (href) => {
