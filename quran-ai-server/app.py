@@ -12,10 +12,12 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.1.1"
 SAMPLE_RATE = 16000
 MAX_AUDIO_SECONDS = int(os.getenv("MAX_AUDIO_SECONDS", "15"))
 MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(2 * 1024 * 1024)))
+# Allow a small multipart boundary/header overhead above the file-size limit.
+MAX_REQUEST_BYTES = MAX_UPLOAD_BYTES + 64 * 1024
 MODEL_DIR = Path(os.getenv("MODEL_DIR", "/tmp/mrk-quran-asr"))
 MODEL_URLS = {
     "model.int8.onnx": "https://huggingface.co/Abdou/quran-asr-small/resolve/main/model.int8.onnx",
@@ -30,12 +32,70 @@ ALLOWED_ORIGINS = [
     if item.strip()
 ]
 
+
+class RequestBodyLimitMiddleware:
+    """Bound multipart request bodies before Starlette parses/spools uploads."""
+
+    def __init__(self, app, max_bytes: int):
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope.get("method") != "POST" or scope.get("path") != "/transcribe":
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope.get("headers") or [])
+        raw_length = headers.get(b"content-length")
+        if raw_length:
+            try:
+                if int(raw_length) > self.max_bytes:
+                    await self._too_large(scope, receive, send)
+                    return
+            except ValueError:
+                pass
+
+        body = bytearray()
+        more_body = True
+        while more_body:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            if message["type"] != "http.request":
+                continue
+            body.extend(message.get("body", b""))
+            if len(body) > self.max_bytes:
+                await self._too_large(scope, receive, send)
+                return
+            more_body = message.get("more_body", False)
+
+        delivered = False
+
+        async def replay_receive():
+            nonlocal delivered
+            if not delivered:
+                delivered = True
+                return {"type": "http.request", "body": bytes(body), "more_body": False}
+            return {"type": "http.disconnect"}
+
+        await self.app(scope, replay_receive, send)
+
+    async def _too_large(self, scope, receive, send):
+        payload = b'{"detail":"Request body is too large."}'
+        await send({
+            "type": "http.response.start",
+            "status": 413,
+            "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(payload)).encode())],
+        })
+        await send({"type": "http.response.body", "body": payload})
+
+
 app = FastAPI(
     title="MRK Quran ASR API",
     description="Arabic Quran recitation transcription using the free Abdou Quran ASR model and sherpa-onnx.",
     version=APP_VERSION,
 )
-
+app.add_middleware(RequestBodyLimitMiddleware, max_bytes=MAX_REQUEST_BYTES)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -81,7 +141,7 @@ def initialize_recognizer() -> None:
             debug=False,
         )
         model_error = None
-    except Exception as exc:  # surfaced through /health without exposing secrets
+    except Exception as exc:
         recognizer = None
         model_error = f"{type(exc).__name__}: {exc}"
         raise
@@ -133,6 +193,8 @@ def decode_wav_bytes(data: bytes) -> tuple[np.ndarray, int]:
                     raise ValueError("Audio must use 16-bit PCM.")
                 if frame_count <= 0:
                     raise ValueError("Audio is empty.")
+                if sample_rate <= 0:
+                    raise ValueError("Invalid sample rate.")
                 duration = frame_count / float(sample_rate)
                 if duration > MAX_AUDIO_SECONDS:
                     raise ValueError(f"Audio is too long; maximum is {MAX_AUDIO_SECONDS} seconds.")
@@ -143,7 +205,6 @@ def decode_wav_bytes(data: bytes) -> tuple[np.ndarray, int]:
             new_length = max(1, int(round(samples.size * SAMPLE_RATE / sample_rate)))
             new_times = np.arange(new_length, dtype=np.float64) / SAMPLE_RATE
             samples = np.interp(new_times, old_times, samples).astype(np.float32)
-            sample_rate = SAMPLE_RATE
         return samples, int(round(duration * 1000))
     except (wave.Error, EOFError, OSError) as exc:
         raise ValueError("Please upload a valid WAV audio file.") from exc
@@ -163,10 +224,11 @@ def transcribe_samples(samples: np.ndarray) -> str:
 
 
 @app.post("/transcribe")
-async def transcribe(request: Request, audio: UploadFile = File(...)):
+async def transcribe(audio: UploadFile = File(...)):
     if recognizer is None:
         raise HTTPException(status_code=503, detail="Quran AI model is not ready. Please retry shortly.")
     if audio.content_type not in {"audio/wav", "audio/x-wav", "audio/wave", "application/octet-stream"}:
+        await audio.close()
         raise HTTPException(status_code=415, detail="Please send a WAV audio file.")
     data = await audio.read(MAX_UPLOAD_BYTES + 1)
     await audio.close()
