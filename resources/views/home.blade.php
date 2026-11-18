@@ -12,7 +12,7 @@
 <span class="local-kicker">چک نمبر 58/15-L • میاں چنوں</span>
 <h1>آپ کی ہر آن لائن اور ڈیجیٹل ضرورت، اب آپ کے علاقے میں!</h1>
 <p class="local-lead">MRK Digital پر طلبہ، ملازمت کے امیدواروں، دکانداروں، کسانوں اور مقامی کاروباروں کے لیے قابلِ اعتماد ڈیجیٹل معاونت، ویب ڈویلپمنٹ، سافٹ ویئر اور آٹومیشن کی خدمات دستیاب ہیں۔ کام شروع کرنے سے پہلے قیمت اور وقت واضح بتایا جاتا ہے۔</p>
-<div class="local-actions"><a class="local-btn" href="https://wa.me/923270447263?text={{ rawurlencode('السلام علیکم! مجھے MRK Digital کی سروس درکار ہے۔') }}" target="_blank" rel="noopener">واٹس ایپ پر ابھی رابطہ کریں</a><a class="local-btn alt" href="{{ route('services') }}">تمام خدمات دیکھیں</a><a class="local-btn alt" href="https://www.google.com/maps/search/?api=1&query=Chak+No+58%2F15-L%2C+Mian+Channu%2C+Pakistan" target="_blank" rel="noopener">دکان کا مقام دیکھیں</a></div>
+<div class="local-actions"><a class="local-btn" href="https://wa.me/923270447263?text={{ rawurlencode('السلام علیکم! مجھے MRK Digital کی سروس درکار ہے۔') }}" target="_blank" rel="noopener">واٹس ایپ پر رابطہ کریں: 0327-0447263</a><a class="local-btn alt" href="{{ route('services') }}">تمام خدمات دیکھیں</a><a class="local-btn alt" href="https://www.google.com/maps/search/?api=1&query=Chak+No+58%2F15-L%2C+Mian+Channu%2C+Pakistan" target="_blank" rel="noopener">دکان کا مقام دیکھیں</a></div>
 <div class="local-band"><strong>مقامی گاہکوں کے لیے:</strong> اپنی ضرورت WhatsApp پر بھیجیں، ہم دستیابی، مطلوبہ دستاویزات، فیس اور متوقع وقت کی تفصیل بتائیں گے۔ سرکاری درخواستوں کی منظوری متعلقہ محکمے کے قواعد کے مطابق ہوتی ہے۔</div>
 </div></div></section>
 <section class="section mrk-local"><div class="container">
