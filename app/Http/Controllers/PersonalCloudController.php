@@ -175,7 +175,7 @@ class PersonalCloudController extends Controller
             // Show only a short provider/service diagnostic for expected runtime failures.
             // Database and unexpected exceptions remain generic so internal details are not exposed.
             $message = 'Remote upload failed. Check your cloud connection and try again.';
-            if ($exception instanceof \\RuntimeException) {
+            if ($exception instanceof \RuntimeException) {
                 $detail = trim(preg_replace('/[\\x00-\\x1F\\x7F]+/u', ' ', $exception->getMessage()) ?: '');
                 if ($detail !== '') {
                     $message .= ' Details: '.mb_substr($detail, 0, 280);
