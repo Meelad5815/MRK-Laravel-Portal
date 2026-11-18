@@ -267,8 +267,27 @@ class CloudStorageService
     private function ensureSuccess(Response $response, string $operation): void
     {
         if (!$response->successful()) {
-            report(new RuntimeException($operation.' failed with HTTP '.$response->status()));
-            throw new RuntimeException($operation.' failed. Check the cloud connection and try again.');
+            $payload = $response->json();
+            $providerMessage = data_get($payload, 'error.message')
+                ?? data_get($payload, 'error_summary')
+                ?? data_get($payload, 'error_description')
+                ?? data_get($payload, 'error')
+                ?? null;
+
+            if (is_array($providerMessage)) {
+                $providerMessage = json_encode($providerMessage);
+            }
+
+            $providerMessage = is_string($providerMessage)
+                ? trim(preg_replace('/[\\x00-\\x1F\\x7F]+/u', ' ', $providerMessage) ?: '')
+                : '';
+
+            $detail = $providerMessage !== ''
+                ? ' Provider response: '.mb_substr($providerMessage, 0, 240)
+                : '';
+
+            report(new RuntimeException($operation.' failed with HTTP '.$response->status().'.'.$detail));
+            throw new RuntimeException($operation.' failed (HTTP '.$response->status().').'.$detail);
         }
     }
 }
