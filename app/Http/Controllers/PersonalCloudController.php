@@ -171,7 +171,18 @@ class PersonalCloudController extends Controller
             return redirect()->route('cloud.index')->with('success', 'File uploaded to '.ucfirst($destination).'.');
         } catch (Throwable $exception) {
             report($exception);
-            return back()->withErrors(['file' => 'Remote upload failed. Check your cloud connection and try again.']);
+
+            // Show only a short provider/service diagnostic for expected runtime failures.
+            // Database and unexpected exceptions remain generic so internal details are not exposed.
+            $message = 'Remote upload failed. Check your cloud connection and try again.';
+            if ($exception instanceof \\RuntimeException) {
+                $detail = trim(preg_replace('/[\\x00-\\x1F\\x7F]+/u', ' ', $exception->getMessage()) ?: '');
+                if ($detail !== '') {
+                    $message .= ' Details: '.mb_substr($detail, 0, 280);
+                }
+            }
+
+            return back()->withErrors(['file' => $message]);
         }
     }
 
