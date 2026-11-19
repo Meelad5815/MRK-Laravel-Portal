@@ -2,36 +2,20 @@
   'use strict';
 
   const API = 'https://api.quran.com/api/v4';
-  const ASR_BASE = '/quran-asr/';
   const $ = (id) => document.getElementById(id);
-
   const surahSelect = $('surahSelect');
   const fromAyah = $('fromAyah');
   const toAyah = $('toAyah');
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   let allVerses = [];
   let selectedVerses = [];
   let expectedWords = [];
   let cursor = 0;
-  let recognizer = null;
-  let engineLoading = false;
-  let mediaStream = null;
-  let audioContext = null;
-  let sourceNode = null;
-  let processorNode = null;
-  let muteNode = null;
-  let sourceRate = 16000;
-  let segmentChunks = [];
-  let segmentSamples = 0;
-  let speechStarted = false;
-  let silenceSamples = 0;
-  let decoding = false;
-
-  const SAMPLE_RATE = 16000;
-  const SILENCE_RMS = 0.008;
-  const MAX_SEGMENT_SAMPLES = SAMPLE_RATE * 10;
-  const SILENCE_END_SAMPLES = Math.round(SAMPLE_RATE * 0.85);
-  const MIN_SEGMENT_SAMPLES = Math.round(SAMPLE_RATE * 0.8);
+  let recognition = null;
+  let listening = false;
+  let restarting = false;
+  let processedFinalTranscript = '';
 
   function status(message, kind = 'info') {
     const el = $('feedback');
@@ -40,11 +24,6 @@
     el.dataset.kind = kind;
     el.style.background = kind === 'success' ? '#eaf8ef' : kind === 'warning' ? '#fff4df' : '#eef6ff';
     el.style.color = kind === 'success' ? '#14532d' : kind === 'warning' ? '#754600' : '#123b66';
-  }
-
-  function setModelStatus(message) {
-    const el = $('modelStatus');
-    if (el) el.textContent = message;
   }
 
   function setMicState(message) {
@@ -87,7 +66,7 @@
 
   async function loadSurahs() {
     try {
-      const data = await getJson(API + '/chapters?language=ar', 'mrk_quran_chapters_v1');
+      const data = await getJson(API + '/chapters?language=ar', 'mrk_quran_chapters_v2');
       surahSelect.innerHTML = '<option value="">سورت منتخب کریں</option>';
       data.chapters.forEach((chapter) => {
         const option = document.createElement('option');
@@ -95,7 +74,7 @@
         option.textContent = chapter.id + '. ' + chapter.name_arabic + ' — ' + chapter.name_simple;
         surahSelect.appendChild(option);
       });
-      $('loadStatus').textContent = 'سورت منتخب کریں۔ محفوظ شدہ سورتیں آف لائن بھی کھل سکتی ہیں۔';
+      $('loadStatus').textContent = 'آن لائن سورت منتخب کریں۔';
     } catch (error) {
       $('loadStatus').textContent = error.message;
     }
@@ -103,9 +82,8 @@
 
   async function loadSurah(id) {
     $('loadStatus').textContent = 'سورت کی آیات لوڈ ہو رہی ہیں…';
-    $('startMic').disabled = true;
     try {
-      const cacheKey = 'mrk_quran_surah_v1_' + id;
+      const cacheKey = 'mrk_quran_surah_v2_' + id;
       let all = [];
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
@@ -155,11 +133,12 @@
     $('quranText').textContent = selectedVerses.map((verse) => verse.text_uthmani + ' ۝' + verse.verse_number).join(' ');
     expectedWords = wordsOf(selectedVerses.map((verse) => verse.text_uthmani).join(' '));
     cursor = 0;
+    processedFinalTranscript = '';
     $('position').textContent = 'منتخب آیات: ' + from + ' تا ' + to + ' — کل ' + expectedWords.length + ' الفاظ';
     $('liveTranscript').textContent = '—';
     $('wordFeedback').textContent = 'تلاوت کے بعد لفظی موازنہ یہاں دکھایا جائے گا۔';
-    $('startMic').disabled = !recognizer;
-    status('آیات منتخب ہیں۔ آف لائن ماڈل تیار ہونے کے بعد تلاوت شروع کریں۔');
+    updateMicButton();
+    status('آیات منتخب ہیں۔ مائیک شروع کریں۔');
   }
 
   function levenshteinAlignment(expected, spoken) {
@@ -171,11 +150,7 @@
     for (let i = 1; i < rows; i++) {
       for (let j = 1; j < cols; j++) {
         const cost = expected[i - 1] === spoken[j - 1] ? 0 : 1;
-        dp[i][j] = Math.min(
-          dp[i - 1][j] + 1,
-          dp[i][j - 1] + 1,
-          dp[i - 1][j - 1] + cost
-        );
+        dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
       }
     }
     const ops = [];
@@ -183,11 +158,7 @@
     let j = spoken.length;
     while (i > 0 || j > 0) {
       if (i > 0 && j > 0 && dp[i][j] === dp[i - 1][j - 1] + (expected[i - 1] === spoken[j - 1] ? 0 : 1)) {
-        ops.unshift({
-          type: expected[i - 1] === spoken[j - 1] ? 'match' : 'wrong',
-          expected: expected[i - 1],
-          spoken: spoken[j - 1]
-        });
+        ops.unshift({ type: expected[i - 1] === spoken[j - 1] ? 'match' : 'wrong', expected: expected[i - 1], spoken: spoken[j - 1] });
         i--; j--;
       } else if (i > 0 && dp[i][j] === dp[i - 1][j] + 1) {
         ops.unshift({ type: 'missing', expected: expected[i - 1], spoken: '' });
@@ -197,7 +168,7 @@
         j--;
       }
     }
-    return { cost: dp[expected.length][spoken.length], ops };
+    return { cost: dp[expected.length][spoken.length], ops, length: spoken.length };
   }
 
   function findBestAlignment(spoken) {
@@ -229,13 +200,8 @@
     box.textContent = '';
     const expectedLine = document.createElement('div');
     const spokenLine = document.createElement('div');
-    const expectedLabel = document.createElement('strong');
-    expectedLabel.textContent = 'قرآن کے الفاظ: ';
-    expectedLine.appendChild(expectedLabel);
-    const spokenLabel = document.createElement('strong');
-    spokenLabel.textContent = 'پہچانی گئی تلاوت: ';
-    spokenLine.appendChild(spokenLabel);
-
+    expectedLine.appendChild(Object.assign(document.createElement('strong'), { textContent: 'قرآن کے الفاظ: ' }));
+    spokenLine.appendChild(Object.assign(document.createElement('strong'), { textContent: 'پہچانی گئی تلاوت: ' }));
     alignment.ops.forEach((op) => {
       if (op.expected) appendToken(expectedLine, op.expected + ' ', op.type === 'match' ? 'correct' : op.type === 'wrong' ? 'wrong' : 'missing');
       if (op.spoken) appendToken(spokenLine, op.spoken + ' ', op.type === 'match' ? 'correct' : op.type === 'wrong' ? 'wrong' : 'extra');
@@ -255,280 +221,159 @@
     const spoken = wordsOf(transcript);
     if (!spoken.length || !expectedWords.length) return;
     const alignment = findBestAlignment(spoken);
-    if (!alignment) {
-      status('تلاوت کا موازنہ نہیں ہو سکا۔', 'warning');
-      return;
-    }
+    if (!alignment) return;
     showAlignment(alignment);
     const matches = alignment.ops.filter((op) => op.type === 'match').length;
     const ratio = matches / Math.max(spoken.length, alignment.length, 1);
     if (ratio >= 0.45) {
       cursor = Math.max(cursor, alignment.start + alignment.length);
       $('position').textContent = 'متن میں پیش رفت: ' + Math.min(cursor, expectedWords.length) + ' / ' + expectedWords.length + ' الفاظ';
-      status('تلاوت کا موازنہ مکمل۔ رنگوں کو دیکھ کر مصحف سے تصدیق کریں۔', matches === spoken.length ? 'success' : 'warning');
+      status('تلاوت کی آن لائن شناخت مکمل ہوئی۔ رنگوں کو دیکھ کر مصحف سے تصدیق کریں۔', matches === spoken.length ? 'success' : 'warning');
     } else {
-      status('پہچانی گئی آواز منتخب آیات سے واضح طور پر نہیں ملی۔ دوبارہ پڑھیں یا مصحف سے جانچیں۔', 'warning');
+      status('پہچانی گئی آواز منتخب آیات سے واضح طور پر نہیں ملی۔ دوبارہ پڑھیں۔', 'warning');
     }
   }
 
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.async = false;
-      script.onload = resolve;
-      script.onerror = () => reject(new Error('آف لائن انجن کی فائل لوڈ نہیں ہوئی: ' + src));
-      document.head.appendChild(script);
-    });
-  }
+  function setupRecognition() {
+    if (!SpeechRecognition) return null;
+    const engine = new SpeechRecognition();
+    engine.lang = 'ar-SA';
+    engine.continuous = true;
+    engine.interimResults = true;
+    engine.maxAlternatives = 1;
 
-  async function loadOfflineModel() {
-    if (recognizer || engineLoading) return;
-    engineLoading = true;
-    $('loadModel').disabled = true;
-    setModelStatus('آف لائن انجن لوڈ ہو رہا ہے۔ پہلی مرتبہ تقریباً 50 MB یا اس سے زیادہ فائلیں ڈاؤن لوڈ ہوں گی۔');
-    status('آف لائن ماڈل تیار کیا جا رہا ہے۔ اس دوران صفحہ بند نہ کریں۔');
-    try {
-      if ('serviceWorker' in navigator) {
-        await navigator.serviceWorker.register('/sw-quran.js', { scope: '/' });
-        await navigator.serviceWorker.ready;
+    engine.onstart = () => {
+      listening = true;
+      setMicState('مائیک فعال ہے — آن لائن شناخت');
+      $('startMic').disabled = true;
+      $('stopMic').disabled = false;
+      status('تلاوت شروع کریں۔ آواز براؤزر کی آن لائن شناخت سروس کو بھیجی جا سکتی ہے۔', 'success');
+    };
+
+    engine.onresult = (event) => {
+      let interim = '';
+      let finalText = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const text = event.results[i][0].transcript;
+        if (event.results[i].isFinal) finalText += text + ' ';
+        else interim += text;
       }
-      await loadScript(ASR_BASE + 'sherpa-onnx-asr.js');
+      const display = (finalText + interim).trim();
+      if (display) $('liveTranscript').textContent = display;
+      if (finalText.trim() && finalText.trim() !== processedFinalTranscript) {
+        processedFinalTranscript = finalText.trim();
+        compareRecitation(finalText);
+      }
+    };
 
-      window.Module = {
-        locateFile: (path) => ASR_BASE + path,
-        setStatus: (message) => {
-          if (message) setModelStatus(message);
-        },
-        onAbort: (reason) => {
-          setModelStatus('آف لائن انجن لوڈ نہیں ہو سکا: ' + String(reason));
-          status('آف لائن انجن لوڈ نہیں ہو سکا۔ انٹرنیٹ اور فون کی خالی اسٹوریج چیک کرکے دوبارہ کوشش کریں۔', 'warning');
-          $('loadModel').disabled = false;
-        },
-        onRuntimeInitialized: () => {
-          try {
-            const config = {
-              featConfig: { sampleRate: SAMPLE_RATE, featureDim: 80 },
-              modelConfig: {
-                zipformerCtc: { model: './assets/zipformer-ctc.onnx' },
-                tokens: './assets/tokens.txt',
-                numThreads: 2,
-                provider: 'cpu',
-                debug: 0
-              },
-              decodingMethod: 'greedy_search',
-              maxActivePaths: 4
-            };
-            recognizer = new OfflineRecognizer(config, window.Module);
-            setModelStatus('آف لائن قرآن ماڈل تیار ہے۔ اب انٹرنیٹ بند کرکے بھی تلاوت چیک کی جا سکتی ہے، بشرطیکہ فائلیں کیش ہو چکی ہوں۔');
-            $('loadModel').textContent = 'ماڈل تیار ہے';
-            $('startMic').disabled = selectedVerses.length === 0;
-            status('آف لائن ماڈل تیار ہے۔ آواز فون پر ہی پروسیس ہوگی۔', 'success');
-          } catch (error) {
-            setModelStatus('ماڈل شروع نہیں ہو سکا: ' + error.message);
-            status('آف لائن ماڈل شروع نہیں ہو سکا۔ دوبارہ کوشش کریں۔', 'warning');
-            $('loadModel').disabled = false;
-          }
-        }
+    engine.onerror = (event) => {
+      const messages = {
+        'not-allowed': 'مائیک اجازت نہیں ملی۔ براؤزر کی سائٹ ترتیبات میں مائیک اجازت دیں۔',
+        'audio-capture': 'مائیک نہیں ملا یا کسی دوسری ایپ میں استعمال ہو رہا ہے۔',
+        'no-speech': 'کچھ آواز نہیں سنی گئی۔ قریب سے واضح آواز میں دوبارہ پڑھیں۔',
+        'network': 'آن لائن شناخت سروس سے رابطہ نہیں ہو سکا۔ انٹرنیٹ چیک کریں۔',
+        'aborted': 'تلاوت کی شناخت روک دی گئی۔'
       };
-      await loadScript(ASR_BASE + 'sherpa-onnx-wasm-main-vad-asr.js');
-    } catch (error) {
-      setModelStatus(error.message);
-      status(error.message, 'warning');
-      $('loadModel').disabled = false;
-    } finally {
-      engineLoading = false;
-    }
-  }
-
-  function downsample(input, inputRate) {
-    if (inputRate === SAMPLE_RATE) return new Float32Array(input);
-    const ratio = inputRate / SAMPLE_RATE;
-    const length = Math.round(input.length / ratio);
-    const output = new Float32Array(length);
-    for (let i = 0; i < length; i++) {
-      const start = Math.floor(i * ratio);
-      const end = Math.min(input.length, Math.floor((i + 1) * ratio));
-      let sum = 0;
-      for (let j = start; j < end; j++) sum += input[j];
-      output[i] = sum / Math.max(1, end - start);
-    }
-    return output;
-  }
-
-  function rms(samples) {
-    let sum = 0;
-    for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
-    return Math.sqrt(sum / Math.max(1, samples.length));
-  }
-
-  function joinChunks(chunks, total) {
-    const result = new Float32Array(total);
-    let offset = 0;
-    chunks.forEach((chunk) => {
-      result.set(chunk, offset);
-      offset += chunk.length;
-    });
-    return result;
-  }
-
-  async function decodeCurrentSegment() {
-    if (decoding || !recognizer || segmentSamples < MIN_SEGMENT_SAMPLES) {
-      segmentChunks = [];
-      segmentSamples = 0;
-      speechStarted = false;
-      silenceSamples = 0;
-      return;
-    }
-    decoding = true;
-    const samples = joinChunks(segmentChunks, segmentSamples);
-    segmentChunks = [];
-    segmentSamples = 0;
-    speechStarted = false;
-    silenceSamples = 0;
-    try {
-      setMicState('تلاوت پروسیس ہو رہی ہے');
-      const stream = recognizer.createStream();
-      stream.acceptWaveform(SAMPLE_RATE, samples);
-      recognizer.decode(stream);
-      const result = recognizer.getResult(stream);
-      stream.free();
-      const text = (result && result.text ? result.text : '').trim();
-      if (text) {
-        $('liveTranscript').textContent = text;
-        compareRecitation(text);
-      } else {
-        status('اس حصے میں الفاظ پہچانے نہیں گئے۔ واضح آواز سے دوبارہ پڑھیں۔', 'warning');
+      if (event.error !== 'aborted' || listening) {
+        status(messages[event.error] || ('مائیک شناخت کی خرابی: ' + event.error), 'warning');
       }
-    } catch (error) {
-      status('آواز کی مقامی شناخت میں مسئلہ: ' + error.message, 'warning');
-    } finally {
-      decoding = false;
-      if (mediaStream) setMicState('مائیک فعال ہے — صرف فون پر شناخت');
-    }
+    };
+
+    engine.onend = () => {
+      if (listening && !restarting) {
+        restarting = true;
+        window.setTimeout(() => {
+          restarting = false;
+          if (listening) {
+            try { engine.start(); } catch (_) {}
+          }
+        }, 250);
+      }
+    };
+
+    return engine;
   }
 
-  function handleAudio(event) {
-    if (!recognizer || !mediaStream) return;
-    const raw = event.inputBuffer.getChannelData(0);
-    const samples = downsample(raw, sourceRate);
-    const level = rms(samples);
-    if (level >= SILENCE_RMS) {
-      speechStarted = true;
-      silenceSamples = 0;
-      segmentChunks.push(samples);
-      segmentSamples += samples.length;
-      if (segmentSamples >= MAX_SEGMENT_SAMPLES) decodeCurrentSegment();
-    } else if (speechStarted) {
-      segmentChunks.push(samples);
-      segmentSamples += samples.length;
-      silenceSamples += samples.length;
-      if (silenceSamples >= SILENCE_END_SAMPLES || segmentSamples >= MAX_SEGMENT_SAMPLES) decodeCurrentSegment();
-    }
+  function updateMicButton() {
+    $('startMic').disabled = listening || !SpeechRecognition || !selectedVerses.length;
   }
 
   async function testMicrophone() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      status('اس براؤزر میں مائیک ٹیسٹ دستیاب نہیں۔ HTTPS اور تازہ Chrome استعمال کریں۔', 'warning');
+    if (!window.isSecureContext) {
+      status('مائیک کے لیے HTTPS یا localhost درکار ہے۔', 'warning');
       return;
     }
-    $('testMic').disabled = true;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      status('یہ براؤزر مائیک اجازت فراہم نہیں کرتا۔ Chrome یا Edge استعمال کریں۔', 'warning');
+      return;
+    }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
       stream.getTracks().forEach((track) => track.stop());
-      status('مائیک کی اجازت درست ہے۔ آواز کی شناخت کے لیے پہلے آف لائن ماڈل لوڈ کریں۔', 'success');
+      status('مائیک کی اجازت درست ہے۔ اب تلاوت شروع کریں۔', 'success');
     } catch (error) {
-      status('مائیک کی اجازت یا دستیابی کا مسئلہ: ' + error.name + '۔ Chrome Site Settings اور Android App Permissions چیک کریں۔', 'warning');
-    } finally {
-      $('testMic').disabled = false;
+      status('مائیک کی اجازت یا دستیابی کا مسئلہ: ' + error.name + '۔ Chrome/Site Settings میں مائیک Allow کریں۔', 'warning');
     }
   }
 
   async function startMicrophone() {
-    if (!recognizer) {
-      status('پہلے مفت آف لائن ماڈل لوڈ کریں۔', 'warning');
+    if (!SpeechRecognition) {
+      status('یہ براؤزر آن لائن آواز شناخت معاونت نہیں کرتا۔ Chrome یا Edge استعمال کریں۔', 'warning');
       return;
     }
     if (!selectedVerses.length) {
-      status('پہلے سورت اور آیات منتخب کریں۔', 'warning');
+      status('پہلے س��رت اور آیات منتخب کریں۔', 'warning');
       return;
     }
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      status('اس براؤزر میں مائیک دستیاب نہیں۔ HTTPS پر تازہ Chrome استعمال کریں۔', 'warning');
+    if (!window.isSecureContext) {
+      status('مائیک کے لیے HTTPS یا localhost درکار ہے۔', 'warning');
       return;
     }
     try {
-      mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
       });
-      audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
-      if (audioContext.state === 'suspended') await audioContext.resume();
-      sourceRate = audioContext.sampleRate;
-      sourceNode = audioContext.createMediaStreamSource(mediaStream);
-      processorNode = audioContext.createScriptProcessor(4096, 1, 1);
-      muteNode = audioContext.createGain();
-      muteNode.gain.value = 0;
-      processorNode.onaudioprocess = handleAudio;
-      sourceNode.connect(processorNode);
-      processorNode.connect(muteNode);
-      muteNode.connect(audioContext.destination);
-      $('startMic').disabled = true;
-      $('stopMic').disabled = false;
-      $('testMic').disabled = true;
-      setMicState('مائیک فعال ہے — صرف فون پر شناخت');
-      status('تلاوت شروع کریں۔ وقفے پر الفاظ خودکار طور پر پہچانے اور ملائے جائیں گے۔', 'success');
+      stream.getTracks().forEach((track) => track.stop());
+      recognition = recognition || setupRecognition();
+      processedFinalTranscript = '';
+      recognition.start();
     } catch (error) {
-      mediaStream = null;
-      status('مائیک شروع نہیں ہو سکا: ' + error.name + '۔ Chrome اور Android میں مائیک اجازت چیک کریں۔', 'warning');
+      listening = false;
+      status('مائیک شروع نہیں ہو سکا: ' + error.name + '۔ Chrome/Site Settings میں مائیک اجازت Allow کریں۔', 'warning');
+      updateMicButton();
     }
   }
 
-  async function stopMicrophone() {
-    if (segmentSamples >= MIN_SEGMENT_SAMPLES) await decodeCurrentSegment();
-    if (processorNode) {
-      processorNode.onaudioprocess = null;
-      try { processorNode.disconnect(); } catch (_) {}
+  function stopMicrophone() {
+    listening = false;
+    if (recognition) {
+      try { recognition.stop(); } catch (_) {}
     }
-    if (sourceNode) {
-      try { sourceNode.disconnect(); } catch (_) {}
-    }
-    if (muteNode) {
-      try { muteNode.disconnect(); } catch (_) {}
-    }
-    if (mediaStream) mediaStream.getTracks().forEach((track) => track.stop());
-    if (audioContext) {
-      try { await audioContext.close(); } catch (_) {}
-    }
-    mediaStream = null;
-    audioContext = null;
-    sourceNode = null;
-    processorNode = null;
-    muteNode = null;
-    segmentChunks = [];
-    segmentSamples = 0;
-    speechStarted = false;
-    silenceSamples = 0;
-    $('startMic').disabled = !recognizer || !selectedVerses.length;
-    $('stopMic').disabled = true;
-    $('testMic').disabled = false;
     setMicState('مائیک بند ہے');
-    status('تلاوت روک دی گئی۔ آواز کی کوئی فائل محفوظ یا اپ لوڈ نہیں کی گئی۔');
+    $('startMic').disabled = !selectedVerses.length || !SpeechRecognition;
+    $('stopMic').disabled = true;
+    status('تلاوت روک دی گئی۔');
   }
 
-  $('surahSelect').addEventListener('change', (event) => {
+  surahSelect.addEventListener('change', (event) => {
     if (event.target.value) loadSurah(event.target.value);
   });
   $('loadRange').addEventListener('click', renderRange);
   $('resetProgress').addEventListener('click', () => {
     cursor = 0;
+    processedFinalTranscript = '';
     renderRange();
   });
-  $('loadModel').addEventListener('click', loadOfflineModel);
   $('testMic').addEventListener('click', testMicrophone);
   $('startMic').addEventListener('click', startMicrophone);
   $('stopMic').addEventListener('click', stopMicrophone);
 
   $('startMic').disabled = true;
   $('stopMic').disabled = true;
+  if (!SpeechRecognition) {
+    status('یہ براؤزر آن لائن آواز شناخت معاونت نہیں کرتا۔ Chrome یا Edge استعمال کریں۔', 'warning');
+  }
   loadSurahs();
 })();
