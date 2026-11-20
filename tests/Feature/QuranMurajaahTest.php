@@ -1,19 +1,19 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\\Feature;
 
-use Tests\TestCase;
+use Tests\\TestCase;
 
 class QuranMurajaahTest extends TestCase
 {
-    public function test_murajaah_page_is_online_and_exposes_microphone_controls(): void
+    public function test_murajaah_page_exposes_current_offline_recitation_controls(): void
     {
         $this->get('/quran/murajaah')
             ->assertOk()
-            ->assertSee('آن لائن دہرائی')
+            ->assertSee('حفظِ قرآن — آف لائن دہرائی')
+            ->assertSee('آف لائن ماڈل لوڈ کریں')
             ->assertSee('مائیک کی اجازت چیک کریں')
             ->assertSee('تلاوت شروع کریں')
-            ->assertDontSee('آف لائن ماڈل لوڈ کریں')
-            ->assertSee('js/quran-murajaah-online.js', false);
+            ->assertSee('js/quran-murajaah-offline.js', false);
     }
 }
