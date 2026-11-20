@@ -127,3 +127,37 @@ body{background:radial-gradient(ellipse at 12% 0%,rgba(56,189,248,.13),transpare
 @keyframes mrk-spin{to{transform:rotate(360deg)}}
 @media(max-width:850px){.tools-hero{grid-template-columns:1fr;padding:34px;gap:0}.tools-hero-art{min-height:260px}.tools-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.tools-page{padding-top:24px}.tools-hero{border-radius:23px;padding:27px 22px;margin-bottom:44px}.tools-hero h1{font-size:clamp(2.6rem,13vw,3.8rem)}.tools-hero-art{min-height:230px}.orbit-two{width:260px;height:260px}.orbit-one{width:205px;height:205px}.tools-art-core{width:112px;height:112px;border-radius:30px}.tools-float-card{padding:9px 11px}.tools-grid{grid-template-columns:1fr}.tool-filter-bar .button{font-size:.82rem;padding:9px 12px}}
+
+
+/* MRK VU Study dashboard and installable PWA */
+.vu-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:22px}
+.vu-install-hint,.vu-disclaimer{color:#91a6bc;font-size:.92rem}
+.vu-install-hint[hidden],#install-mrk-pwa[hidden]{display:none}
+.vu-stats{grid-template-columns:repeat(5,minmax(0,1fr))}
+.vu-stats small{display:block;color:#7890a8;font-size:.78rem}
+.vu-form-card,.vu-timeline{padding:18px;margin:18px 0}
+.vu-form-card>p{color:#91a6bc;margin:8px 0 16px}
+.vu-entry-form{grid-template-columns:repeat(3,minmax(0,1fr));margin:0;padding:0;border:0;background:transparent}
+.vu-entry-form .vu-wide{grid-column:1/-1}
+.vu-entry-form textarea,.vu-filter-form input,.vu-filter-form select,.vu-table select{width:100%;padding:11px 12px;border:1px solid #29435e;border-radius:9px;background:#071421;color:#fff;font:inherit}
+.vu-entry-form textarea{resize:vertical}
+.vu-filter-form{display:flex;align-items:end;gap:12px;flex-wrap:wrap;padding:16px;border-bottom:1px solid #20364d}
+.vu-filter-form label{display:grid;gap:5px;min-width:190px;color:#aebfd0;font-weight:700}
+.vu-clear-filter{color:#67d5ff;text-decoration:none;padding:12px 4px}
+.vu-table{min-width:850px}
+.vu-pagination{padding:14px}
+.vu-disclaimer{margin-top:22px}
+@media(max-width:800px){.vu-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.vu-entry-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){
+  .vu-entry-form{grid-template-columns:1fr}
+  .vu-entry-form .vu-wide{grid-column:auto}
+  .vu-filter-form{align-items:stretch;flex-direction:column}
+  .vu-filter-form label{min-width:0}
+  .vu-table{min-width:0}
+  .vu-table thead{display:none}
+  .vu-table,.vu-table tbody,.vu-table tr,.vu-table td{display:block;width:100%}
+  .vu-table tr{padding:12px 14px;border-bottom:1px solid #243d57}
+  .vu-table td{display:grid;grid-template-columns:90px minmax(0,1fr);gap:10px;padding:8px 0;border:0;overflow-wrap:anywhere}
+  .vu-table td:before{content:attr(data-label);color:#7890a8;font-size:.78rem;font-weight:800}
+  .vu-table td form{min-width:0}
+}
