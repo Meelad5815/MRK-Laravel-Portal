@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "MRK Digital — VU Smart Study",
+  "short_name": "MRK Study",
+  "description": "Personal Virtual University study planner by MRK Digital.",
+  "lang": "ur",
+  "start_url": "/vu-study",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#06101d",
+  "theme_color": "#082b5b",
+  "icons": [
+    {
+      "src": "/mrk-pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
