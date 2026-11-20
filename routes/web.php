@@ -344,5 +344,13 @@ Route::middleware(['auth', 'admin'])->prefix('dashboard/government-fees')->name(
     Route::post('/check-sources', [\App\Http\Controllers\GovernmentFeeController::class, 'checkSources'])->middleware('throttle:2,1')->name('check');
 });
 
+// MRK VU Smart Study — private personal study tracker.
+Route::middleware('auth')->prefix('vu-study')->name('vu-study.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\VuStudyController::class, 'index'])->name('index');
+    Route::post('/items', [\App\Http\Controllers\VuStudyController::class, 'store'])->middleware('throttle:20,1')->name('store');
+    Route::patch('/items/{item}/status', [\App\Http\Controllers\VuStudyController::class, 'updateStatus'])->whereNumber('item')->name('status');
+    Route::post('/sync', [\App\Http\Controllers\VuStudyController::class, 'sync'])->middleware('throttle:10,1')->name('sync');
+});
+
 // MRK Hifz-e-Quran Live Muraja'ah (browser-based, no server-side audio storage).
 Route::view('/quran/murajaah', 'quran.murajaah')->name('quran.murajaah');
