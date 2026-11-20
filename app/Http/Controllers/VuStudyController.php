@@ -4,27 +4,40 @@ namespace App\Http\Controllers;
 
 use App\Models\VuStudyItem;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Validator;
 
 class VuStudyController extends Controller
 {
     public function index(Request $request)
     {
-        $items = VuStudyItem::where('user_id', $request->user()->id)
-            ->orderByRaw('CASE WHEN due_at IS NULL THEN 1 ELSE 0 END')
-            ->orderBy('due_at')
-            ->paginate(25);
-
         $base = VuStudyItem::where('user_id', $request->user()->id);
+        $query = clone $base;
+        $type = $request->query('type');
+
+        if (in_array($type, ['announcement', 'assignment', 'quiz', 'gdb', 'exam', 'grade'], true)) {
+            $query->where('item_type', $type);
+        }
+
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $query->where(function ($builder) use ($search) {
+                $builder->where('title', 'like', '%' . $search . '%')
+                    ->orWhere('course_code', 'like', '%' . $search . '%')
+                    ->orWhere('course_title', 'like', '%' . $search . '%');
+            });
+        }
+
+        $items = $query->orderByRaw('CASE WHEN due_at IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('due_at')->paginate(20)->withQueryString();
+
         $stats = [
-            'upcoming' => (clone $base)->whereNotNull('due_at')->whereBetween('due_at', [now(), now()->addDays(14)])->count(),
+            'upcoming' => (clone $base)->whereNotNull('due_at')->whereBetween('due_at', [now(), now()->addDays(14)])->whereNotIn('status', ['completed', 'submitted'])->count(),
+            'overdue' => (clone $base)->whereNotNull('due_at')->where('due_at', '<', now())->whereNotIn('status', ['completed', 'submitted'])->count(),
             'announcements' => (clone $base)->where('item_type', 'announcement')->count(),
             'quizzes' => (clone $base)->where('item_type', 'quiz')->count(),
             'gdb' => (clone $base)->where('item_type', 'gdb')->count(),
         ];
 
-        return view('vu-study.index', compact('items', 'stats'));
+        return view('vu-study.index', compact('items', 'stats', 'type', 'search'));
     }
 
     public function store(Request $request)
@@ -56,7 +69,7 @@ class VuStudyController extends Controller
         return back()->with('success', 'Study status updated.');
     }
 
-    // Read-only sync endpoint for a trusted browser extension. Configure VU_SYNC_TOKEN in server environment.
+    // Sync requires the user's authenticated Laravel session and a server-side sync token.
     public function sync(Request $request)
     {
         $expected = (string) config('services.vu_sync.token');
@@ -78,10 +91,17 @@ class VuStudyController extends Controller
 
         $count = 0;
         foreach ($payload['items'] as $item) {
-            VuStudyItem::updateOrCreate(
-                ['user_id' => $request->user()->id, 'source_key' => $item['source_key']],
-                $item + ['status' => 'detected', 'last_synced_at' => now()]
-            );
+            $record = VuStudyItem::firstOrNew([
+                'user_id' => $request->user()->id,
+                'source_key' => $item['source_key'],
+            ]);
+            unset($item['source_key']);
+            $record->fill($item);
+            if (!$record->exists) {
+                $record->status = 'detected';
+            }
+            $record->last_synced_at = now();
+            $record->save();
             $count++;
         }
 
