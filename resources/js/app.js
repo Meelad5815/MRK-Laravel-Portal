@@ -19,6 +19,41 @@ if (menuToggle && navigation) {
     });
 }
 
+// Register the PWA worker. Its fetch handler is limited to public static assets.
+if ('serviceWorker' in navigator && window.isSecureContext) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js').catch(() => {
+            // The site remains usable when service workers are unavailable.
+        });
+    });
+}
+
+// Show the native install prompt only when the browser supports it.
+let installPrompt = null;
+const installButton = document.querySelector('#install-mrk-pwa');
+const installHint = document.querySelector('#install-mrk-hint');
+
+window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    installPrompt = event;
+    if (installButton) installButton.hidden = false;
+    if (installHint) installHint.hidden = true;
+});
+
+if (installButton) {
+    installButton.addEventListener('click', async () => {
+        if (!installPrompt) return;
+        installPrompt.prompt();
+        await installPrompt.userChoice;
+        installPrompt = null;
+        installButton.hidden = true;
+    });
+}
+
+window.addEventListener('appinstalled', () => {
+    if (installButton) installButton.hidden = true;
+    if (installHint) installHint.textContent = 'MRK Study App انسٹال ہو گئی ہے۔';
+});
 
 // Subtle scroll-reveal animation; content remains visible if JS or observers are unavailable.
 if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
