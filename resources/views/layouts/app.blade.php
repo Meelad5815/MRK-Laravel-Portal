@@ -43,6 +43,7 @@
 <a class="{{ request()->routeIs('fees.public') ? 'active' : '' }}" href="{{ route('fees.public') }}">Government Fees</a>
 <a class="{{ request()->routeIs('tools', 'developer-tools') ? 'active' : '' }}" href="{{ route('tools') }}">Free Tools</a>
 @auth
+<a class="{{ request()->routeIs('vu-study.*') ? 'active' : '' }}" href="{{ route('vu-study.index') }}">VU Study</a>
 <a class="{{ request()->routeIs('cloud.*') ? 'active' : '' }}" href="{{ route('cloud.index') }}">Personal Cloud</a>
 <a class="{{ request()->routeIs('fitness.*') ? 'active' : '' }}" href="{{ route('fitness.index') }}">Fitness</a>
 @endauth
