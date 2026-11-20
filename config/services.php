@@ -56,4 +56,5 @@ return [
         ],
     ],
 
+    'vu_sync' => ['token' => env('VU_SYNC_TOKEN')],
 ];
