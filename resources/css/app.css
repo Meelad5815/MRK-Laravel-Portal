@@ -161,3 +161,12 @@ body{background:radial-gradient(ellipse at 12% 0%,rgba(56,189,248,.13),transpare
   .vu-table td:before{content:attr(data-label);color:#7890a8;font-size:.78rem;font-weight:800}
   .vu-table td form{min-width:0}
 }
+
+
+/* Personal Android companion token panel */
+.vu-companion-card{border:1px solid #31516f}
+.vu-token-actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.vu-token-once{display:grid;gap:9px;padding:14px;margin:14px 0;border:1px solid #b78b35;border-radius:10px;background:#1d2430}
+.vu-token-once code{display:block;overflow-wrap:anywhere;user-select:all;padding:12px;background:#071421;border-radius:8px;color:#f4d58a}
+.vu-token-once p{margin:0;color:#e0d4b7}
+.vu-companion-card>small{color:#91a6bc;overflow-wrap:anywhere}
