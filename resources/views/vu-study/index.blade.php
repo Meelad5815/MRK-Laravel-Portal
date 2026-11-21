@@ -13,6 +13,28 @@
 <p class="vu-install-hint" id="install-mrk-hint">موبائل میں انسٹال کرنے کے لیے Chrome کے مینو سے “Add to Home screen” بھی منتخب کر سکتے ہیں۔</p>
 </div></section>
 <section class="section"><div class="container">
+<div class="table-card vu-form-card vu-companion-card">
+<div class="table-head"><h2>Android Companion اتصال</h2><span>{{ $hasActiveCompanionToken ? 'Token active' : 'Not connected' }}</span></div>
+<p>Android ایپ کے لیے ذاتی API Token بنائیں۔ یہ Token صرف ایک مرتبہ دکھایا جائے گا؛ MRK صرف اس کا محفوظ Hash رکھتا ہے۔</p>
+@if(session('companion_token_once'))
+<div class="vu-token-once">
+<strong>آپ کا نیا Companion Token — ابھی کاپی کریں</strong>
+<code>{{ session('companion_token_once') }}</code>
+<p>اسے صرف اپنی MRK VU Companion ایپ میں درج کریں۔ کسی دوسرے شخص کو نہ بھیجیں۔ صفحہ بند ہونے کے بعد یہ Token دوبارہ نہیں دکھایا جائے گا۔</p>
+</div>
+@endif
+<div class="vu-token-actions">
+<form method="POST" action="{{ route('vu-study.companion-token.create') }}">@csrf
+<button class="button primary" type="submit">{{ $hasActiveCompanionToken ? 'Generate new token (revoke old)' : 'Generate Companion Token' }}</button>
+</form>
+@if($hasActiveCompanionToken)
+<form method="POST" action="{{ route('vu-study.companion-token.revoke') }}">@csrf @method('DELETE')
+<button class="button secondary" type="submit">Revoke token</button>
+</form>
+@endif
+</div>
+<small>API endpoint: <code>/api/vu-study/sync</code> · HTTPS only · Token expires after one year.</small>
+</div>
 <div class="stats vu-stats">
 <div><span>اگلے 14 دن</span><strong>{{ $stats['upcoming'] }}</strong><small>Open deadlines</small></div>
 <div><span>Overdue</span><strong>{{ $stats['overdue'] }}</strong><small>توجہ درکار</small></div>
