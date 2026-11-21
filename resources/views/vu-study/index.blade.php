@@ -16,6 +16,8 @@
 <div class="table-card vu-form-card vu-web-import-card">
 <div class="table-head"><h2>VULMS Web Import</h2><span>Browser-based</span></div>
 <p>VULMS کو دوسری ٹیب میں کھولیں، متعلقہ اعلان یا سرگرمی کا نظر آنے والا متن Copy کریں، پھر یہاں Paste کرکے MRK میں محفوظ کریں۔ آپ کا VULMS پاس ورڈ یا سیشن یہاں درکار نہیں۔</p>
+<div class="vu-token-actions"><button class="button secondary" type="button" id="vu-copy-bookmarklet">ایک بار کا Auto Detect بٹن بنائیں</button></div>
+<p class="vu-install-hint">Bookmarklet بنانے کے بعد اسے Chrome Bookmark کے URL میں محفوظ کریں، پھر VULMS کے متعلقہ صفحے پر Bookmark دبائیں۔ یہ صرف کھلے صفحے کا نظر آنے والا متن MRK میں منتقل کرتا ہے؛ پس منظر میں خودکار Sync نہیں کرتا۔
 <div class="vu-token-actions">
 <a class="button secondary" href="https://vulms.vu.edu.pk/" target="_blank" rel="noopener">VULMS نئی ٹیب میں کھولیں</a>
 <button class="button secondary" type="button" id="vu-fill-from-clipboard">Clipboard سے Paste کریں</button>
@@ -84,6 +86,28 @@ document.addEventListener('DOMContentLoaded', function () {
     const parseButton = document.getElementById('vu-parse-pasted-text');
     const form = document.querySelector('.vu-entry-form');
     if (!pasteBox || !form) return;
+    const bookmarkletButton = document.getElementById('vu-copy-bookmarklet');
+    bookmarkletButton?.addEventListener('click', async function () {
+        const code = "javascript:(()=>{if(!location.hostname.endsWith('vu.edu.pk')){alert('Open a VULMS page first.');return;}const text=(document.body.innerText||'').slice(0,12000);window.open('https://meeladrazakhokhar786.freehosting.dev/vu-study#vu-import='+encodeURIComponent(text),'_blank');})();";
+        try {
+            await navigator.clipboard.writeText(code);
+            feedback.textContent = 'Bookmarklet کاپی ہوگیا۔ Chrome میں Bookmark بنائیں اور اس کے URL میں کوڈ Paste کریں، پھر VULMS کے صفحے پر Bookmark دبائیں۔';
+        } catch (error) {
+            feedback.textContent = 'Clipboard اجازت نہیں ملی؛ Chrome میں Clipboard permission دیں اور دوبارہ کوشش کریں۔';
+        }
+    });
+
+    if (location.hash.startsWith('#vu-import=')) {
+        try {
+            pasteBox.value = decodeURIComponent(location.hash.slice('#vu-import='.length));
+            history.replaceState(null, '', location.pathname + location.search);
+            parseButton?.click();
+            feedback.textContent = 'VULMS صفحے سے متن آگیا۔ فارم چیک کریں اور Save کرنے سے پہلے قسم اور تاریخ کی تصدیق کریں۔';
+        } catch (error) {
+            feedback.textContent = 'متن وصول کرنے میں مسئلہ ہوا؛ دوبارہ کوشش کریں۔';
+        }
+    }
+
 
     pasteButton?.addEventListener('click', async function () {
         try {
