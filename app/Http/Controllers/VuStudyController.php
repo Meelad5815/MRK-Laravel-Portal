@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\VuCompanionToken;
 use App\Models\VuStudyItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class VuStudyController extends Controller
 {
@@ -37,7 +39,13 @@ class VuStudyController extends Controller
             'gdb' => (clone $base)->where('item_type', 'gdb')->count(),
         ];
 
-        return view('vu-study.index', compact('items', 'stats', 'type', 'search'));
+        $hasActiveCompanionToken = VuCompanionToken::where('user_id', $request->user()->id)
+            ->whereNull('revoked_at')
+            ->where(function ($builder) {
+                $builder->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })->exists();
+
+        return view('vu-study.index', compact('items', 'stats', 'type', 'search', 'hasActiveCompanionToken'));
     }
 
     public function store(Request $request)
@@ -69,19 +77,57 @@ class VuStudyController extends Controller
         return back()->with('success', 'Study status updated.');
     }
 
-    // Sync requires the user's authenticated Laravel session and a server-side sync token.
-    public function sync(Request $request)
+    public function createCompanionToken(Request $request)
     {
-        $expected = (string) config('services.vu_sync.token');
-        abort_if($expected === '' || !hash_equals($expected, (string) $request->header('X-MRK-Sync-Token')), 403);
+        $plainToken = bin2hex(random_bytes(32));
+
+        DB::transaction(function () use ($request, $plainToken) {
+            VuCompanionToken::where('user_id', $request->user()->id)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+
+            VuCompanionToken::create([
+                'user_id' => $request->user()->id,
+                'token_hash' => hash('sha256', $plainToken),
+                'label' => 'MRK VU Companion Android',
+                'expires_at' => now()->addYear(),
+            ]);
+        });
+
+        return back()->with('companion_token_once', $plainToken);
+    }
+
+    public function revokeCompanionToken(Request $request)
+    {
+        VuCompanionToken::where('user_id', $request->user()->id)
+            ->whereNull('revoked_at')
+            ->update(['revoked_at' => now()]);
+
+        return back()->with('success', 'Companion API token revoked.');
+    }
+
+    public function syncCompanion(Request $request)
+    {
+        $authorization = (string) $request->header('Authorization');
+        $plainToken = str_starts_with($authorization, 'Bearer ')
+            ? substr($authorization, 7)
+            : '';
+
+        abort_if($plainToken === '', 401, 'Missing bearer token.');
+
+        $token = VuCompanionToken::where('token_hash', hash('sha256', $plainToken))
+            ->whereNull('revoked_at')
+            ->first();
+
+        abort_if(!$token || ($token->expires_at && $token->expires_at->isPast()), 401, 'Invalid or expired companion token.');
 
         $payload = $request->validate([
-            'items' => ['required', 'array', 'max:100'],
+            'items' => ['required', 'array', 'min:1', 'max:20'],
             'items.*.course_code' => ['nullable', 'string', 'max:30'],
             'items.*.course_title' => ['nullable', 'string', 'max:255'],
             'items.*.item_type' => ['required', 'in:announcement,assignment,quiz,gdb,exam,grade'],
             'items.*.title' => ['required', 'string', 'max:255'],
-            'items.*.description' => ['nullable', 'string', 'max:10000'],
+            'items.*.description' => ['nullable', 'string', 'max:5000'],
             'items.*.source_url' => ['nullable', 'url', 'max:2048'],
             'items.*.opens_at' => ['nullable', 'date'],
             'items.*.due_at' => ['nullable', 'date'],
@@ -89,21 +135,31 @@ class VuStudyController extends Controller
             'items.*.metadata' => ['nullable', 'array'],
         ]);
 
-        $count = 0;
-        foreach ($payload['items'] as $item) {
-            $record = VuStudyItem::firstOrNew([
-                'user_id' => $request->user()->id,
-                'source_key' => $item['source_key'],
-            ]);
-            unset($item['source_key']);
-            $record->fill($item);
-            if (!$record->exists) {
-                $record->status = 'detected';
+        $count = DB::transaction(function () use ($payload, $token) {
+            $received = 0;
+
+            foreach ($payload['items'] as $item) {
+                $record = VuStudyItem::firstOrNew([
+                    'user_id' => $token->user_id,
+                    'source_key' => $item['source_key'],
+                ]);
+
+                unset($item['source_key']);
+                $record->fill($item);
+
+                if (!$record->exists) {
+                    $record->status = 'detected';
+                }
+
+                $record->last_synced_at = now();
+                $record->save();
+                $received++;
             }
-            $record->last_synced_at = now();
-            $record->save();
-            $count++;
-        }
+
+            $token->forceFill(['last_used_at' => now()])->save();
+
+            return $received;
+        });
 
         return response()->json(['ok' => true, 'received' => $count]);
     }
