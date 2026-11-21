@@ -87,14 +87,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('.vu-entry-form');
     if (!pasteBox || !form) return;
     const bookmarkletButton = document.getElementById('vu-copy-bookmarklet');
-    bookmarkletButton?.addEventListener('click', async function () {
-        const code = "javascript:(()=>{if(!location.hostname.endsWith('vu.edu.pk')){alert('Open a VULMS page first.');return;}const text=(document.body.innerText||'').slice(0,12000);window.open('https://meeladrazakhokhar786.freehosting.dev/vu-study#vu-import='+encodeURIComponent(text),'_blank');})();";
-        try {
-            await navigator.clipboard.writeText(code);
-            feedback.textContent = 'Bookmarklet کاپی ہوگیا۔ Chrome میں Bookmark بنائیں اور اس کے URL میں کوڈ Paste کریں، پھر VULMS کے صفحے پر Bookmark دبائیں۔';
-        } catch (error) {
-            feedback.textContent = 'Clipboard اجازت نہیں ملی؛ Chrome میں Clipboard permission دیں اور دوبارہ کوشش کریں۔';
-        }
+    bookmarkletButton?.addEventListener('click', function () {
+        const code = "javascript:(()=>{if(location.hostname!=='vulms.vu.edu.pk'){alert('Pehle VULMS ka page kholen.');return;}const text=(document.body.innerText||'').slice(0,12000);location.href='https://meeladrazakhokhar786.freehosting.dev/vu-study#vu-import='+encodeURIComponent(text);})();";
+        feedback.textContent = 'Bookmarklet code neeche khul raha hai. Isay copy karke Chrome Bookmark ke URL mein paste karein.';
+        window.prompt('Is code ko copy karein, phir Chrome mein Bookmark ke URL mein paste karein:', code);
     });
 
     if (location.hash.startsWith('#vu-import=')) {
