@@ -166,7 +166,7 @@ class MainActivity : Activity() {
         form.addView(statusText)
 
         formScroll.addView(form)
-        root.addView(formScroll, LinearParams(LinearParams.MATCH_PARENT, 290))
+        root.addView(formScroll, LinearParams(LinearLayout.LayoutParams.MATCH_PARENT, 290))
 
         setContentView(root)
     }
