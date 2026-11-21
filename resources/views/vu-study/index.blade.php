@@ -101,18 +101,18 @@ document.addEventListener('DOMContentLoaded', function () {
             feedback.textContent = 'پہلے VULMS سے کاپی کیا گیا متن Paste کریں۔';
             return;
         }
-        const lines = raw.split(/\\r?\\n/).map(line => line.trim()).filter(Boolean);
+        const lines = raw.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
         const title = form.querySelector('[name="title"]');
         const courseCode = form.querySelector('[name="course_code"]');
         const description = document.getElementById('vu-description');
         const dueAt = form.querySelector('[name="due_at"]');
 
         if (title && !title.value.trim()) title.value = (lines[0] || '').slice(0, 255);
-        const codeMatch = raw.match(/\\b[A-Z]{2,5}\\s?-?\\d{3}\\b/i);
-        if (courseCode && codeMatch && !courseCode.value.trim()) courseCode.value = codeMatch[0].replace(/\\s+/g, '').replace('-', '').toUpperCase();
+        const codeMatch = raw.match(/\b[A-Z]{2,5}\s?-?\d{3}\b/i);
+        if (courseCode && codeMatch && !courseCode.value.trim()) courseCode.value = codeMatch[0].replace(/\s+/g, '').replace('-', '').toUpperCase();
 
-        const isoDate = raw.match(/\\b(20\\d{2})-(0[1-9]|1[0-2])-([0-2]\\d|3[01])\\b/);
-        const slashDate = raw.match(/\\b([0-3]?\\d)\\/([01]?\\d)\\/(20\\d{2})\\b/);
+        const isoDate = raw.match(/\b(20\d{2})-(0[1-9]|1[0-2])-([0-2]\d|3[01])\b/);
+        const slashDate = raw.match(/\b([0-3]?\d)\/([01]?\d)\/(20\d{2})\b/);
         if (dueAt && !dueAt.value && isoDate) dueAt.value = isoDate[0] + 'T23:59';
         else if (dueAt && !dueAt.value && slashDate) {
             const day = slashDate[1].padStart(2, '0');
