@@ -350,8 +350,8 @@ Route::middleware('auth')->prefix('vu-study')->name('vu-study.')->group(function
     Route::post('/items', [\App\Http\Controllers\VuStudyController::class, 'store'])->middleware('throttle:20,1')->name('store');
     Route::patch('/items/{item}/status', [\App\Http\Controllers\VuStudyController::class, 'updateStatus'])->whereNumber('item')->name('status');
     Route::post('/sync', [\App\Http\Controllers\VuStudyController::class, 'sync'])->middleware('throttle:10,1')->name('sync');
-    Route::post('/companion-token', [\\App\\Http\\Controllers\\VuStudyController::class, 'createCompanionToken'])->middleware('throttle:3,1')->name('companion-token.create');
-    Route::delete('/companion-token', [\\App\\Http\\Controllers\\VuStudyController::class, 'revokeCompanionToken'])->middleware('throttle:5,1')->name('companion-token.revoke');
+    Route::post('/companion-token', [\App\Http\Controllers\VuStudyController::class, 'createCompanionToken'])->middleware('throttle:3,1')->name('companion-token.create');
+    Route::delete('/companion-token', [\App\Http\Controllers\VuStudyController::class, 'revokeCompanionToken'])->middleware('throttle:5,1')->name('companion-token.revoke');
 });
 
 // MRK Hifz-e-Quran Live Muraja'ah (browser-based, no server-side audio storage).
