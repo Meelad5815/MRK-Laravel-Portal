@@ -28,6 +28,33 @@
 <button class="button primary" type="button" id="vu-parse-pasted-text">متن سے فارم پُر کریں</button>
 <p class="vu-install-hint" id="vu-import-feedback" aria-live="polite">متن پڑھ کر عنوان، کورس کوڈ اور تفصیل فارم میں منتقل کی جائے گی۔ تاریخ خودکار طور پر صرف واضح YYYY-MM-DD یا DD/MM/YYYY فارمیٹ میں پہچانی جائے گی؛ محفوظ کرنے سے پہلے لازماً تصدیق کریں۔</p>
 </div>
+<div class="table-card vu-form-card">
+<div class="table-head"><h2>Android Companion App</h2><span>Secure device connection</span></div>
+<p>MRK VU Study Android App کو اپنے اکاؤنٹ سے جوڑنے کے لیے ایک محفوظ Token بنائیں۔ یہ Token صرف ایک بار دکھایا جائے گا؛ اسے صرف اپنی ایپ میں محفوظ کریں۔</p>
+@if(session('companion_token_once'))
+<label class="vu-wide">آپ کا نیا Companion Token — ابھی Copy کریں
+<textarea id="mrk-companion-token" rows="3" readonly>{{ session('companion_token_once') }}</textarea>
+</label>
+<button class="button secondary" type="button" id="mrk-copy-companion-token">Token Copy کریں</button>
+<p class="vu-install-hint">حفاظت کے لیے یہ مکمل Token دوبارہ نہیں دکھایا جائے گا۔ اگر گم ہو جائے تو نیا Token بنائیں؛ پرانا خود بخود بند ہو جائے گا۔</p>
+@endif
+@if($hasActiveCompanionToken)
+<p><strong>حالت:</strong> اس اکاؤنٹ کے لیے ایک فعال Android Companion Token موجود ہے۔ نیا Token بنانے سے پرانا بند ہو جائے گا۔</p>
+@else
+<p><strong>حالت:</strong> ابھی کوئی فعال Android Token موجود نہیں۔</p>
+@endif
+<form method="POST" action="{{ route('vu-study.companion-token.create') }}" class="vu-token-actions">
+@csrf
+<button class="button primary" type="submit">{{ $hasActiveCompanionToken ? 'نیا Token بنائیں' : 'Android App Token بنائیں' }}</button>
+</form>
+@if($hasActiveCompanionToken)
+<form method="POST" action="{{ route('vu-study.companion-token.revoke') }}" class="vu-token-actions">
+@csrf
+@method('DELETE')
+<button class="button secondary" type="submit">Android App کا Token بند کریں</button>
+</form>
+@endif
+</div>
 <div class="stats vu-stats">
 <div><span>اگلے 14 دن</span><strong>{{ $stats['upcoming'] }}</strong><small>Open deadlines</small></div>
 <div><span>Overdue</span><strong>{{ $stats['overdue'] }}</strong><small>توجہ درکار</small></div>
@@ -80,6 +107,20 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const companionCopyButton = document.getElementById('mrk-copy-companion-token');
+    companionCopyButton?.addEventListener('click', async function () {
+        const tokenField = document.getElementById('mrk-companion-token');
+        if (!tokenField) return;
+        try {
+            await navigator.clipboard.writeText(tokenField.value);
+            companionCopyButton.textContent = 'Token Copy ہو گیا';
+        } catch (error) {
+            tokenField.focus();
+            tokenField.select();
+            feedback?.textContent = 'Token منتخب ہو گیا ہے؛ Copy منتخب کریں۔';
+        }
+    });
+
     const pasteBox = document.getElementById('vu-pasted-text');
     const feedback = document.getElementById('vu-import-feedback');
     const pasteButton = document.getElementById('vu-fill-from-clipboard');
