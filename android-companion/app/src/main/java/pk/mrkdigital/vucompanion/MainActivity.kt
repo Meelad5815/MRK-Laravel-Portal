@@ -82,7 +82,9 @@ class MainActivity : Activity() {
             settings.javaScriptCanOpenWindowsAutomatically = false
             settings.setSupportMultipleWindows(false)
             settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-            if (android.os.Build.VERSION.SDK_INT >= 26) {\n                settings.safeBrowsingEnabled = true\n            }
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                settings.safeBrowsingEnabled = true
+            }
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val host = request?.url?.host?.lowercase() ?: return true
