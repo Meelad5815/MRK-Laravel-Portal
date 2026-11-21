@@ -13,27 +13,18 @@
 <p class="vu-install-hint" id="install-mrk-hint">موبائل میں انسٹال کرنے کے لیے Chrome کے مینو سے “Add to Home screen” بھی منتخب کر سکتے ہیں۔</p>
 </div></section>
 <section class="section"><div class="container">
-<div class="table-card vu-form-card vu-companion-card">
-<div class="table-head"><h2>Android Companion اتصال</h2><span>{{ $hasActiveCompanionToken ? 'Token active' : 'Not connected' }}</span></div>
-<p>Android ایپ کے لیے ذاتی API Token بنائیں۔ یہ Token صرف ایک مرتبہ دکھایا جائے گا؛ MRK صرف اس کا محفوظ Hash رکھتا ہے۔</p>
-@if(session('companion_token_once'))
-<div class="vu-token-once">
-<strong>آپ کا نیا Companion Token — ابھی کاپی کریں</strong>
-<code>{{ session('companion_token_once') }}</code>
-<p>اسے صرف اپنی MRK VU Companion ایپ میں درج کریں۔ کسی دوسرے شخص کو نہ بھیجیں۔ صفحہ بند ہونے کے بعد یہ Token دوبارہ نہیں دکھایا جائے گا۔</p>
-</div>
-@endif
+<div class="table-card vu-form-card vu-web-import-card">
+<div class="table-head"><h2>VULMS Web Import</h2><span>Browser-based</span></div>
+<p>VULMS کو دوسری ٹیب میں کھولیں، متعلقہ اعلان یا سرگرمی کا نظر آنے والا متن Copy کریں، پھر یہاں Paste کرکے MRK میں محفوظ کریں۔ آپ کا VULMS پاس ورڈ یا سیشن یہاں درکار نہیں۔</p>
 <div class="vu-token-actions">
-<form method="POST" action="{{ route('vu-study.companion-token.create') }}">@csrf
-<button class="button primary" type="submit">{{ $hasActiveCompanionToken ? 'Generate new token (revoke old)' : 'Generate Companion Token' }}</button>
-</form>
-@if($hasActiveCompanionToken)
-<form method="POST" action="{{ route('vu-study.companion-token.revoke') }}">@csrf @method('DELETE')
-<button class="button secondary" type="submit">Revoke token</button>
-</form>
-@endif
+<a class="button secondary" href="https://vulms.vu.edu.pk/" target="_blank" rel="noopener">VULMS نئی ٹیب میں کھولیں</a>
+<button class="button secondary" type="button" id="vu-fill-from-clipboard">Clipboard سے Paste کریں</button>
 </div>
-<small>API endpoint: <code>/api/vu-study/sync</code> · HTTPS only · Token expires after one year.</small>
+<label class="vu-wide">VULMS سے کاپی کیا گیا متن
+<textarea id="vu-pasted-text" rows="5" placeholder="VULMS کے اعلان، کوئز، اسائنمنٹ یا GDB کا متن یہاں Paste کریں..."></textarea>
+</label>
+<button class="button primary" type="button" id="vu-parse-pasted-text">متن سے فارم پُر کریں</button>
+<p class="vu-install-hint" id="vu-import-feedback" aria-live="polite">متن پڑھ کر عنوان، کورس کوڈ اور تفصیل فارم میں منتقل کی جائے گی۔ تاریخ خودکار طور پر صرف واضح YYYY-MM-DD یا DD/MM/YYYY فارمیٹ میں پہچانی جائے گی؛ محفوظ کرنے سے پہلے لازماً تصدیق کریں۔</p>
 </div>
 <div class="stats vu-stats">
 <div><span>اگلے 14 دن</span><strong>{{ $stats['upcoming'] }}</strong><small>Open deadlines</small></div>
@@ -52,7 +43,7 @@
 <label>Title<input name="title" required maxlength="255"></label>
 <label>Opening Date<input type="datetime-local" name="opens_at"></label>
 <label>Deadline<input type="datetime-local" name="due_at"></label>
-<label class="vu-wide">Details<textarea name="description" rows="3" maxlength="10000"></textarea></label>
+<label class="vu-wide">تفصیل / VULMS کی اضافی معلومات<textarea id="vu-description" name="description" rows="3" maxlength="10000"></textarea></label>
 <button class="button primary" type="submit">Save Study Item</button>
 </form>
 </div>
@@ -84,4 +75,54 @@
 </div>
 <p class="vu-disclaimer">اہم: اصل ڈیڈ لائن اور ہدایات ہمیشہ <a href="https://vulms.vu.edu.pk/" target="_blank" rel="noopener">سرکاری VULMS</a> سے تصدیق کریں۔ یہ MRK کا غیر سرکاری ذاتی مطالعہ معاون ہے۔</p>
 </div></section>
-@endsection
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const pasteBox = document.getElementById('vu-pasted-text');
+    const feedback = document.getElementById('vu-import-feedback');
+    const pasteButton = document.getElementById('vu-fill-from-clipboard');
+    const parseButton = document.getElementById('vu-parse-pasted-text');
+    const form = document.querySelector('.vu-entry-form');
+    if (!pasteBox || !form) return;
+
+    pasteButton?.addEventListener('click', async function () {
+        try {
+            pasteBox.value = await navigator.clipboard.readText();
+            feedback.textContent = 'Clipboard کا متن آ گیا ہے۔ اب “متن سے فارم پُر کریں” دبائیں۔';
+        } catch (error) {
+            pasteBox.focus();
+            feedback.textContent = 'Clipboard اجازت دستیاب نہیں۔ VULMS سے متن Copy کرکے اس خانے میں خود Paste کریں۔';
+        }
+    });
+
+    parseButton?.addEventListener('click', function () {
+        const raw = pasteBox.value.trim();
+        if (!raw) {
+            feedback.textContent = 'پہلے VULMS سے کاپی کیا گیا متن Paste کریں۔';
+            return;
+        }
+        const lines = raw.split(/\\r?\\n/).map(line => line.trim()).filter(Boolean);
+        const title = form.querySelector('[name="title"]');
+        const courseCode = form.querySelector('[name="course_code"]');
+        const description = document.getElementById('vu-description');
+        const dueAt = form.querySelector('[name="due_at"]');
+
+        if (title && !title.value.trim()) title.value = (lines[0] || '').slice(0, 255);
+        const codeMatch = raw.match(/\\b[A-Z]{2,5}\\s?-?\\d{3}\\b/i);
+        if (courseCode && codeMatch && !courseCode.value.trim()) courseCode.value = codeMatch[0].replace(/\\s+/g, '').replace('-', '').toUpperCase();
+
+        const isoDate = raw.match(/\\b(20\\d{2})-(0[1-9]|1[0-2])-([0-2]\\d|3[01])\\b/);
+        const slashDate = raw.match(/\\b([0-3]?\\d)\\/([01]?\\d)\\/(20\\d{2})\\b/);
+        if (dueAt && !dueAt.value && isoDate) dueAt.value = isoDate[0] + 'T23:59';
+        else if (dueAt && !dueAt.value && slashDate) {
+            const day = slashDate[1].padStart(2, '0');
+            const month = slashDate[2].padStart(2, '0');
+            dueAt.value = slashDate[3] + '-' + month + '-' + day + 'T23:59';
+        }
+        if (description) description.value = raw.slice(0, 10000);
+        feedback.textContent = 'فارم پُر ہو گیا ہے۔ قسم، کورس، عنوان اور ڈیڈ لائن چیک کریں، پھر نیچے “Save Study Item” دبائیں۔ ایک بار میں ایک سرگرمی محفوظ ہوتی ہے۔';
+        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+});
+</script>
+\n@endsection
