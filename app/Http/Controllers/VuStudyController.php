@@ -106,6 +106,45 @@ class VuStudyController extends Controller
         return back()->with('success', 'Companion API token revoked.');
     }
 
+    // Backward-compatible session-authenticated sync endpoint for the original dashboard client.
+    public function sync(Request $request)
+    {
+        $expected = (string) config('services.vu_sync.token');
+        abort_if($expected === '' || !hash_equals($expected, (string) $request->header('X-MRK-Sync-Token')), 403);
+
+        $payload = $request->validate([
+            'items' => ['required', 'array', 'max:100'],
+            'items.*.course_code' => ['nullable', 'string', 'max:30'],
+            'items.*.course_title' => ['nullable', 'string', 'max:255'],
+            'items.*.item_type' => ['required', 'in:announcement,assignment,quiz,gdb,exam,grade'],
+            'items.*.title' => ['required', 'string', 'max:255'],
+            'items.*.description' => ['nullable', 'string', 'max:10000'],
+            'items.*.source_url' => ['nullable', 'url', 'max:2048'],
+            'items.*.opens_at' => ['nullable', 'date'],
+            'items.*.due_at' => ['nullable', 'date'],
+            'items.*.source_key' => ['required', 'string', 'max:191'],
+            'items.*.metadata' => ['nullable', 'array'],
+        ]);
+
+        $count = 0;
+        foreach ($payload['items'] as $item) {
+            $record = VuStudyItem::firstOrNew([
+                'user_id' => $request->user()->id,
+                'source_key' => $item['source_key'],
+            ]);
+            unset($item['source_key']);
+            $record->fill($item);
+            if (!$record->exists) {
+                $record->status = 'detected';
+            }
+            $record->last_synced_at = now();
+            $record->save();
+            $count++;
+        }
+
+        return response()->json(['ok' => true, 'received' => $count]);
+    }
+
     public function syncCompanion(Request $request)
     {
         $authorization = (string) $request->header('Authorization');
