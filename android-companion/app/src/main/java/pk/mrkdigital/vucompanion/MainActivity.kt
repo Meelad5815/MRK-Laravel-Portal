@@ -263,7 +263,7 @@ class MainActivity : Activity() {
                 }
             } catch (error: Exception) {
                 runOnUiThread {
-                    statusText.text = "Connection failed: \${error.message ?: "network error"}"
+                    statusText.text = "Connection failed: ${error.message ?: "network error"}"
                     toast("Could not connect to MRK.")
                 }
             } finally {
