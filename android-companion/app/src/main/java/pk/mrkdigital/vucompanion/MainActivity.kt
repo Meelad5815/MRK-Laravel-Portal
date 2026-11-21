@@ -22,7 +22,7 @@ import org.json.JSONObject
 import org.json.JSONTokener
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.UUID
+import java.security.MessageDigest
 import kotlin.concurrent.thread
 
 class MainActivity : Activity() {
@@ -103,7 +103,8 @@ class MainActivity : Activity() {
         }
 
         form.addView(label("MRK portal HTTPS address"))
-        portalInput = field("https://your-mrk-portal.example")
+        portalInput = field("https://meeladrazakhokhar786.freehosting.dev")
+        portalInput.setText("https://meeladrazakhokhar786.freehosting.dev")
         form.addView(portalInput)
 
         form.addView(label("Personal Companion API token"))
@@ -202,8 +203,9 @@ class MainActivity : Activity() {
         val due = dueInput.text.toString().trim()
         val details = detailsInput.text.toString().trim()
 
-        if (!portal.startsWith("https://")) {
-            toast("Enter your MRK portal HTTPS address.")
+        val portalHost = try { URL(portal).host.lowercase() } catch (_: Exception) { "" }
+        if (!portal.startsWith("https://") || portalHost != "meeladrazakhokhar786.freehosting.dev") {
+            toast("For safety, use your registered MRK portal HTTPS domain only.")
             return
         }
         if (token.length < 32) {
@@ -224,7 +226,9 @@ class MainActivity : Activity() {
             put("course_title", courseTitle)
             put("item_type", type)
             put("title", title)
-            put("source_key", "android-" + UUID.randomUUID().toString())
+            val identity = "$courseCode|$type|$title".lowercase().toByteArray(Charsets.UTF_8)
+            val digest = MessageDigest.getInstance("SHA-256").digest(identity).joinToString("") { "%02x".format(it) }
+            put("source_key", "android-$digest")
             if (details.isNotBlank()) put("description", details)
             if (due.isNotBlank()) put("due_at", due)
             put("metadata", JSONObject().put("capture_method", "student_reviewed_webview_form"))
