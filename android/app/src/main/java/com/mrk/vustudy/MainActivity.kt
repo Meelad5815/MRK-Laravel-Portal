@@ -70,9 +70,11 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(20, 20, 20, 20)
         }
-        homeScroll = ScrollView(this)
-        homeScroll.addView(homePanel)
-        root.addView(homeScroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        homeScroll = ScrollView(this).apply {
+            isFillViewport = true
+            visibility = View.VISIBLE
+            setBackgroundColor(0xFFF4F7FB.toInt())
+        }
 
         homePanel.addView(label("محفوظ اور آسان VULMS Study Sync"))
         homePanel.addView(label("1) MRK Dashboard میں Companion Token بنائیں۔\n2) Token یہاں محفوظ کریں۔\n3) VULMS کھولیں، سرکاری VULMS صفحے پر لاگ اِن کریں، پھر MRK میں بھیجیں دبائیں۔"))
@@ -93,6 +95,16 @@ class MainActivity : Activity() {
         homePanel.addView(label("رازداری: آپ کا VULMS پاس ورڈ اس ایپ یا MRK سرور کو نہیں بھیجا جاتا۔ آپ VULMS میں براہِ راست لاگ اِن کرتے ہیں۔ ایپ صرف آپ کے منتخب کردہ کھلے صفحے کا نظر آنے والا متن MRK کو بھیجتی ہے۔"))
         status = label("حالت: تیار")
         homePanel.addView(status)
+
+        // Add the fully populated home screen only after all controls exist.
+        homeScroll.addView(
+            homePanel,
+            ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
+        root.addView(homeScroll, LinearLayout.LayoutParams(-1, 0, 1f))
 
         webView = WebView(this).apply {
             visibility = View.GONE
