@@ -82,7 +82,7 @@ class MainActivity : Activity() {
             settings.javaScriptCanOpenWindowsAutomatically = false
             settings.setSupportMultipleWindows(false)
             settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-            settings.safeBrowsingEnabled = true
+            if (android.os.Build.VERSION.SDK_INT >= 26) {\n                settings.safeBrowsingEnabled = true\n            }
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                     val host = request?.url?.host?.lowercase() ?: return true
@@ -94,7 +94,7 @@ class MainActivity : Activity() {
                 }
             }
         }
-        root.addView(webView, LinearParams(LinearParams.MATCH_PARENT, 0, 1f))
+        root.addView(webView, LinearParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
 
         val formScroll = ScrollView(this)
         val form = LinearLayout(this).apply {
