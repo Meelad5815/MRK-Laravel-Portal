@@ -43,6 +43,7 @@ class MainActivity : Activity() {
     private lateinit var tokenInput: EditText
     private lateinit var webView: WebView
     private lateinit var homePanel: LinearLayout
+    private lateinit var homeScroll: ScrollView
     private var token = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,9 +70,9 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(20, 20, 20, 20)
         }
-        val scroll = ScrollView(this)
-        scroll.addView(homePanel)
-        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        homeScroll = ScrollView(this)
+        homeScroll.addView(homePanel)
+        root.addView(homeScroll, LinearLayout.LayoutParams(-1, 0, 1f))
 
         homePanel.addView(label("محفوظ اور آسان VULMS Study Sync"))
         homePanel.addView(label("1) MRK Dashboard میں Companion Token بنائیں۔\n2) Token یہاں محفوظ کریں۔\n3) VULMS کھولیں، سرکاری VULMS صفحے پر لاگ اِن کریں، پھر MRK میں بھیجیں دبائیں۔"))
@@ -101,7 +102,7 @@ class MainActivity : Activity() {
             settings.allowContentAccess = false
             settings.javaScriptCanOpenWindowsAutomatically = false
             settings.setSupportMultipleWindows(false)
-            settings.safeBrowsingEnabled = true
+            if (android.os.Build.VERSION.SDK_INT >= 26) settings.safeBrowsingEnabled = true
             addJavascriptInterface(PageBridge(), "MRKBridge")
             webChromeClient = WebChromeClient()
             webViewClient = object : WebViewClient() {
@@ -161,14 +162,14 @@ class MainActivity : Activity() {
     }
 
     private fun openVulms() {
-        homePanel.visibility = View.GONE
+        homeScroll.visibility = View.GONE
         webView.visibility = View.VISIBLE
         if (webView.url.isNullOrBlank()) webView.loadUrl("https://vulms.vu.edu.pk/")
     }
 
     private fun showHome() {
         webView.visibility = View.GONE
-        homePanel.visibility = View.VISIBLE
+        homeScroll.visibility = View.VISIBLE
     }
 
     private fun confirmPage(titleValue: String, pageText: String, pageUrl: String) {
